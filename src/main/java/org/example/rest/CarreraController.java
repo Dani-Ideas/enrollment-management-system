@@ -1,0 +1,36 @@
+package org.example.rest;
+
+import jakarta.ejb.EJB;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import org.example.lib.CarreraService;
+
+// Solo lectura -- Carrera es dato estatico, sin endpoint de escritura.
+@Path("/carreras")
+@Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
+public class CarreraController {
+
+    @EJB
+    private CarreraService carreraService;
+
+    @GET
+    public Response listar() {
+        return Response.ok(carreraService.listar()).build();
+    }
+
+    @GET
+    @Path("/{id}")
+    public Response buscar(@PathParam("id") Long id) {
+        var dto = carreraService.buscarPorId(id);
+        if (dto == null) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+        return Response.ok(dto).build();
+    }
+}
