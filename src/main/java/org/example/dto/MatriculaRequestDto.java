@@ -8,7 +8,9 @@ import java.io.Serializable;
 // clase". Deliberadamente minimo -- estado/fechaInscripcion/fechaCompletada los decide el
 // servidor (ver MatriculaBuilder), el cliente no los manda.
 public record MatriculaRequestDto(
-        @NotNull Long estudianteId,
-        @NotNull Long claseId
+        @NotNull
+        Long estudianteId,
+        @NotNull
+        Long claseId
 ) implements Serializable {
 }

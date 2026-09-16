@@ -15,7 +15,7 @@
     </properties>
 
     <!-- Mismas dependencias/versiones que HelloJakarta-variante (probadas en esta misma
-         maquina contra GlassFish 8) -- sin frontend-maven-plugin, este proyecto es solo
+         maquina contra GlassFish 8), sin frontend-maven-plugin: este proyecto es solo
          backend, sin frontend. -->
     <dependencies>
         <dependency>
@@ -52,6 +52,51 @@
     <build>
         <finalName>SistemaMatriculas</finalName>
         <plugins>
+            <!-- Frontend-maven-plugin, dejado comentado a proposito: este proyecto es solo
+                 backend por ahora. Si mas adelante se agrega un frontend en ./frontend
+                 (hermano de este pom.xml, ya que aqui no hay una carpeta "back/" como en
+                 HelloJakarta-variante), descomentar el bloque completo de abajo. El
+                 vite.config.ts de ese frontend deberia usar build.outDir apuntando a
+                 src/main/webapp (relativo a ./frontend), mismo patron ya probado en
+                 HelloJakarta-variante/frontend/vite.config.ts.
+            <plugin>
+                <groupId>com.github.eirslett</groupId>
+                <artifactId>frontend-maven-plugin</artifactId>
+                <version>2.0.1</version>
+                <configuration>
+                    <workingDirectory>frontend</workingDirectory>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>install node and npm</id>
+                        <goals>
+                            <goal>install-node-and-npm</goal>
+                        </goals>
+                        <configuration>
+                            <nodeVersion>v20.20.2</nodeVersion>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>npm install</id>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>install</arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>npm run build</id>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>run build</arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-war-plugin</artifactId>

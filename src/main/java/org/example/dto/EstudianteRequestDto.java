@@ -10,8 +10,11 @@ import java.io.Serializable;
 // antes de guardar, nunca se persiste ni se devuelve tal cual (ver
 // EstudianteServiceImpl.crear() y PasswordHasher).
 public record EstudianteRequestDto(
-        @NotNull @Size(min = 3, max = 255) String username,
-        @NotNull @Size(min = 6) String password,
-        @NotNull Long carreraId
+        @NotNull @Size(min = 3, max = 255)
+        String username,
+        @NotNull @Size(min = 6)
+        String password,
+        @NotNull
+        Long carreraId
 ) implements Serializable {
 }

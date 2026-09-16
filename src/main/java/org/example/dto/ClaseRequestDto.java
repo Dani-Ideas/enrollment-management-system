@@ -8,7 +8,9 @@ import java.io.Serializable;
 // del foco "estudiante se matricula", pero necesario para que el sistema sea testeable de
 // punta a punta sin depender solo de los datos sembrados en DatosIniciales.
 public record ClaseRequestDto(
-        @NotNull Long materiaId,
-        @NotNull Long profesorId
+        @NotNull
+        Long materiaId,
+        @NotNull
+        Long profesorId
 ) implements Serializable {
 }
