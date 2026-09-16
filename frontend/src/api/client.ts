@@ -2,7 +2,7 @@ import type { FacturaDTO, ProductoDTO, SesionCajaDTO, UsuarioDTO } from "./types
 
 // Ruta relativa: en `npm run dev` la resuelve el proxy de vite.config.ts hacia GlassFish;
 // en produccion, el frontend vive dentro del mismo WAR, asi que resuelve al mismo origen.
-const API_BASE = "/HelloJakarta-variante/api";
+const API_BASE = "/SistemaMatriculas/api";
 
 async function parseErrorBody(response: Response): Promise<string> {
   try {

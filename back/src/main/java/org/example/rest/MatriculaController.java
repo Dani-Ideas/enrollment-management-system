@@ -20,11 +20,13 @@ import org.example.lib.MatriculaService;
 
 import java.net.URI;
 
+import static org.example.rest.ApplicationConfig.Endpoints.MATRICULAS;
+
 // El endpoint central del sistema: POST /matriculas es "el estudiante se matricula en una
 // clase" -- las 3 reglas (misma carrera, cupo maximo 3, sin duplicados) se validan en
 // MatriculaServiceImpl y llegan aca como 409 via ReglaDeNegocioExceptionMapper, este
 // Controller no sabe nada de esas reglas.
-@Path("/matriculas")
+@Path(MATRICULAS)
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class MatriculaController {

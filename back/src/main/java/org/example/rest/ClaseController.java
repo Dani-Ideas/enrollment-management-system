@@ -18,10 +18,12 @@ import org.example.lib.ClaseService;
 
 import java.net.URI;
 
+import static org.example.rest.ApplicationConfig.Endpoints.CLASES;
+
 // GET es de consulta (ver cupos disponibles antes de matricularse). POST es "administrativo"
 // (asignar profesor a materia) -- ReglaDeNegocioException (habilitacion/limite de 3) se
 // traduce a 409 sola, via ReglaDeNegocioExceptionMapper.
-@Path("/clases")
+@Path(CLASES)
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class ClaseController {

@@ -48,6 +48,7 @@ org/example/mapper/MatriculaMapperImpl.class
 org/example/dto/MateriaDto.class
 org/example/rest/CarreraController.class
 org/example/rest/MateriaController.class
+org/example/rest/ApplicationConfig$Endpoints.class
 org/example/ejb/DatosIniciales.class
 org/example/model/Profesor.class
 org/example/mapper/ClaseMapperImpl.class

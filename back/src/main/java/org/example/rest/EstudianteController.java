@@ -18,9 +18,11 @@ import org.example.lib.EstudianteService;
 
 import java.net.URI;
 
+import static org.example.rest.ApplicationConfig.Endpoints.ESTUDIANTES;
+
 // POST /estudiantes = registro de cuenta (username/password/carrera). El "historial de
 // cursos completados" vive en /estudiantes/{id}/historial, no en el propio EstudianteDto.
-@Path("/estudiantes")
+@Path(ESTUDIANTES)
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class EstudianteController {

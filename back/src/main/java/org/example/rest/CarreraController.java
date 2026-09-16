@@ -10,8 +10,10 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.example.lib.CarreraService;
 
+import static org.example.rest.ApplicationConfig.Endpoints.CARRERAS;
+
 // Solo lectura -- Carrera es dato estatico, sin endpoint de escritura.
-@Path("/carreras")
+@Path(CARRERAS)
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class CarreraController {

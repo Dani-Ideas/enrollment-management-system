@@ -10,9 +10,11 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.example.lib.ProfesorService;
 
+import static org.example.rest.ApplicationConfig.Endpoints.PROFESORES;
+
 // Solo lectura -- incluye las habilitaciones de cada profesor (que materias PODRIA dictar,
 // no las que dicta ahora -- ver ClaseController para eso).
-@Path("/profesores")
+@Path(PROFESORES)
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class ProfesorController {

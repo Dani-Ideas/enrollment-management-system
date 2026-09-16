@@ -11,9 +11,11 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.example.lib.MateriaService;
 
+import static org.example.rest.ApplicationConfig.Endpoints.MATERIAS;
+
 // Solo lectura. GET /materias?carreraId=X devuelve el plan de estudio completo de esa
 // carrera (25 materias, 5 por anio) -- sin filtro, devuelve todas.
-@Path("/materias")
+@Path(MATERIAS)
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class MateriaController {
