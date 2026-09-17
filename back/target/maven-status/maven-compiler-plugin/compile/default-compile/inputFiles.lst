@@ -5,6 +5,7 @@
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/dto/ClaseRequestDto.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/dto/EstudianteDto.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/dto/EstudianteRequestDto.java
+/home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/dto/LoginRequestDto.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/dto/MateriaDto.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/dto/MatriculaDto.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/dto/MatriculaRequestDto.java

@@ -14,9 +14,11 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
 import org.example.dto.EstudianteDto;
 import org.example.dto.EstudianteRequestDto;
+import org.example.dto.LoginRequestDto;
 import org.example.lib.EstudianteService;
 
 import java.net.URI;
+import java.util.Map;
 
 import static org.example.rest.ApplicationConfig.Endpoints.ESTUDIANTES;
 
@@ -38,6 +40,21 @@ public class EstudianteController {
         EstudianteDto creado = estudianteService.crear(dto);
         URI location = uriInfo.getAbsolutePathBuilder().path(String.valueOf(creado.id())).build();
         return Response.created(location).entity(creado).build();
+    }
+
+    // Login simple: 200 + EstudianteDto si username/password coinciden, 401 si no. Sin
+    // token/sesion -- este proyecto no tiene esa infraestructura, y agregarla es un alcance
+    // distinto al pedido (validar credenciales, nada mas).
+    @POST
+    @Path("/login")
+    public Response login(@Valid LoginRequestDto dto) {
+        EstudianteDto estudiante = estudianteService.login(dto);
+        if (estudiante == null) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(Map.of("error", "Usuario o contrasena incorrectos"))
+                    .build();
+        }
+        return Response.ok(estudiante).build();
     }
 
     @GET

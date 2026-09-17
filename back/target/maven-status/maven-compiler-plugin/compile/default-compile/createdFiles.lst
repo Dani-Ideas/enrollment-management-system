@@ -14,6 +14,7 @@ org/example/rest/MatriculaController.class
 org/example/mapper/RequestResponseMapper.class
 org/example/mapper/EstudianteMapper.class
 org/example/model/Clase.class
+org/example/dto/LoginRequestDto.class
 org/example/ejb/MateriaServiceImpl.class
 org/example/builder/ClaseBuilder.class
 org/example/ejb/MatriculaServiceImpl.class
