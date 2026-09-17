@@ -1,10 +1,6 @@
 import { createRootRoute, createRoute, createRouter } from "@tanstack/react-router";
 import { RootLayout } from "./routes/RootLayout";
 import { HomePage } from "./routes/HomePage";
-import { ProductosPage } from "./routes/ProductosPage";
-import { FacturasPage } from "./routes/FacturasPage";
-import { SesionCajaPage } from "./routes/SesionCajaPage";
-import { UsuariosPage } from "./routes/UsuariosPage";
 import { SalirSitioPage } from "./routes/pago/SalirSitioPage";
 import { FormularioPagoPage } from "./routes/pago/FormularioPagoPage";
 import { FormularioLargoPage } from "./routes/pago/FormularioLargoPage";
@@ -28,31 +24,7 @@ const indexRoute = createRoute({
   component: HomePage,
 });
 
-const productosRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/productos",
-  component: ProductosPage,
-});
-
-const facturasRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/facturas",
-  component: FacturasPage,
-});
-
-const sesionCajaRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/sesiones-caja",
-  component: SesionCajaPage,
-});
-
-const usuariosRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/usuarios",
-  component: UsuariosPage,
-});
-
-// Rutas del "menu de pago" de la pagina de inicio (demo shadcn, 100% front-end).
+// Rutas del "menu de pago" de la pagina de inicio.
 const salirSitioRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/salir-sitio",
@@ -75,10 +47,6 @@ const formularioLargoRoute = createRoute({
 // saber que existe en la app completa.
 const routeTree = rootRoute.addChildren([
   indexRoute,
-  productosRoute,
-  facturasRoute,
-  sesionCajaRoute,
-  usuariosRoute,
   salirSitioRoute,
   formularioPagoRoute,
   formularioLargoRoute,

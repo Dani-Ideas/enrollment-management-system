@@ -1,9 +1,8 @@
 import { Outlet } from "@tanstack/react-router";
 
 // Este componente es el "marco" fijo de toda la app: se renderiza SIEMPRE, sin importar
-// en que pagina estes (/, /productos o /facturas). Es el component: de rootRoute en
-// router.tsx -- por eso el header nunca "parpadea" al cambiar de pagina, solo el
-// contenido de <Outlet/> cambia.
+// en que pagina estes. Es el component: de rootRoute en router.tsx -- por eso el header
+// nunca "parpadea" al cambiar de pagina, solo el contenido de <Outlet/> cambia.
 //
 // Sin <nav> a proposito: la navegacion entre paginas vive en HomePage (la lista de
 // botones + el PieMenu), no en un menu fijo arriba -- para volver a "/" desde cualquier
@@ -12,12 +11,13 @@ export function RootLayout() {
   return (
     <div className="pagina">
       <header className="encabezado">
-        <h1>HelloJakarta</h1>
+        <h1>Sistema de Matrículas</h1>
       </header>
 
       <main>
-        {/* Aqui es donde el router "inserta" la pagina activa segun la URL actual:
-            HomePage, ProductosPage o FacturasPage (ver router.tsx). */}
+        {/* Aqui es donde el router "inserta" la pagina activa segun la URL actual
+            (HomePage, SalirSitioPage, FormularioPagoPage o FormularioLargoPage --
+            ver router.tsx). */}
         <Outlet />
       </main>
     </div>

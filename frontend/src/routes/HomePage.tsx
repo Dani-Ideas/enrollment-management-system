@@ -23,8 +23,8 @@ export function HomePage() {
             },
             {
               to: "/formulario-largo",
-              label: "Opción 3",
-              descripcion: "Formulario tradicional y largo (sin carrusel), 100% visual.",
+              label: "Inscripción (sin carrusel)",
+              descripcion: "El mismo trámite de inscripción, con el mismo backend real, pero como formulario tradicional largo en vez de carrusel.",
               icon: ClipboardListIcon,
             },
           ]}
