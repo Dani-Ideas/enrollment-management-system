@@ -12,10 +12,10 @@ export default defineConfig({
       "@": path.resolve(import.meta.dirname, "./src"),
     },
   },
-  // El WAR se despliega bajo /HelloJakarta-variante/, no en la raiz del dominio -- sin
+  // El WAR se despliega bajo /SistemaMatriculas/, no en la raiz del dominio -- sin
   // esto, los <script>/<link> del index.html generado apuntarian a rutas absolutas
   // equivocadas (la raiz del servidor en vez del context root del WAR).
-  base: "/HelloJakarta-variante/",
+  base: "/SistemaMatriculas/",
   build: {
     // El build de produccion cae directo dentro del WAR de Jakarta EE, para que
     // GlassFish lo sirva como parte del mismo artefacto desplegado (monolito).
@@ -26,7 +26,7 @@ export default defineConfig({
     // Solo aplica en `npm run dev` (localhost:5173) -- reenvia las llamadas a la API
     // hacia GlassFish sin que el navegador vea un origen distinto, asi no hace falta CORS.
     proxy: {
-      "/HelloJakarta-variante/api": "http://localhost:8080",
+      "/SistemaMatriculas/api": "http://localhost:8080",
     },
   },
 });

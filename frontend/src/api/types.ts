@@ -60,4 +60,19 @@ export interface ClaseDTO {
   cuposDisponibles:number;
 }
 
-//MatriculaDto (+ sus *RequestDto)
+export type EstadoMatricula = "EN_CURSO" | "COMPLETADA";
+
+export interface MatriculaDTO {
+  id: number;
+  estudianteId: number;
+  estudianteUsername: string;
+  clase: ClaseDTO;
+  estado: EstadoMatricula;
+  fechaInscripcion: string;
+  fechaCompletada: string | null;
+}
+
+export interface MatriculaRequestDTO {
+  estudianteId: number;
+  claseId: number;
+}

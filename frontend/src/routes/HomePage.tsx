@@ -1,4 +1,4 @@
-import { ClipboardListIcon, LogOutIcon, WalletIcon } from "lucide-react"
+import { ClipboardListIcon, GraduationCapIcon, LogOutIcon } from "lucide-react"
 import { PieMenu } from "../components/PieMenu"
 
 // Pagina de la ruta "/" (ver indexRoute en router.tsx). Es la que se ve dentro del
@@ -17,9 +17,9 @@ export function HomePage() {
             },
             {
               to: "/formulario-pago",
-              label: "Opción 2",
-              descripcion: "Carrusel de pago que avanza solo y crea un producto real en la base de datos al simular el pago.",
-              icon: WalletIcon,
+              label: "Inscripción",
+              descripcion: "Identificate como estudiante, elegí una materia de tu carrera, revisá el profesor y los cupos, y matriculate en una clase real.",
+              icon: GraduationCapIcon,
             },
             {
               to: "/formulario-largo",

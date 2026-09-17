@@ -1,4 +1,11 @@
-import type { FacturaDTO, ProductoDTO, SesionCajaDTO, UsuarioDTO } from "./types";
+import type {
+  CarreraDTO,
+  ClaseDTO,
+  EstudianteDTO,
+  MateriaDTO,
+  MatriculaDTO,
+  MatriculaRequestDTO,
+} from "./types";
 
 // Ruta relativa: en `npm run dev` la resuelve el proxy de vite.config.ts hacia GlassFish;
 // en produccion, el frontend vive dentro del mismo WAR, asi que resuelve al mismo origen.
@@ -30,69 +37,35 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return response.json();
 }
 
-export function fetchProductos(): Promise<ProductoDTO[]> {
-  return request<ProductoDTO[]>("/productos");
+// --- Carreras (solo lectura, dato estatico) ---
+
+export function fetchCarreras(): Promise<CarreraDTO[]> {
+  return request<CarreraDTO[]>("/carreras");
 }
 
-export function fetchFacturas(): Promise<FacturaDTO[]> {
-  return request<FacturaDTO[]>("/facturas");
+// --- Estudiante (identificacion, sin login -- ver FormularioPagoPage.tsx) ---
+
+export function fetchEstudiante(id: number): Promise<EstudianteDTO> {
+  return request<EstudianteDTO>(`/estudiantes/${id}`);
 }
 
-export type ProductoInput = Omit<ProductoDTO, "id">;
+// --- Materias (plan de estudio de una carrera) ---
 
-export function createProducto(producto: ProductoInput): Promise<ProductoDTO> {
-  return request<ProductoDTO>("/productos", {
+export function fetchMateriasPorCarrera(carreraId: number): Promise<MateriaDTO[]> {
+  return request<MateriaDTO[]>(`/materias?carreraId=${carreraId}`);
+}
+
+// --- Clases (ofertas concretas de una materia, con profesor y cupos) ---
+
+export function fetchClasesPorMateria(materiaId: number): Promise<ClaseDTO[]> {
+  return request<ClaseDTO[]>(`/clases?materiaId=${materiaId}`);
+}
+
+// --- Matricula (el paso de inscripcion en si) ---
+
+export function crearMatricula(matricula: MatriculaRequestDTO): Promise<MatriculaDTO> {
+  return request<MatriculaDTO>("/matriculas", {
     method: "POST",
-    body: JSON.stringify(producto),
+    body: JSON.stringify(matricula),
   });
-}
-
-export function updateProducto(id: number, producto: ProductoInput): Promise<ProductoDTO> {
-  return request<ProductoDTO>(`/productos/${id}`, {
-    method: "PUT",
-    body: JSON.stringify(producto),
-  });
-}
-
-export function deleteProducto(id: number): Promise<void> {
-  return request<void>(`/productos/${id}`, { method: "DELETE" });
-}
-
-// SesionCajaController solo expone listar/buscar/crear -- sin actualizar/eliminar por
-// REST (ver Documentation/bitacora-fixes.md), por eso aqui solo hay 2 funciones, no 5.
-export function fetchSesionesCaja(): Promise<SesionCajaDTO[]> {
-  return request<SesionCajaDTO[]>("/sesiones-caja");
-}
-
-export type SesionCajaInput = Pick<SesionCajaDTO, "cajero" | "locacion" | "montoApertura">;
-
-export function crearSesionCaja(sesion: SesionCajaInput): Promise<SesionCajaDTO> {
-  return request<SesionCajaDTO>("/sesiones-caja", {
-    method: "POST",
-    body: JSON.stringify(sesion),
-  });
-}
-
-export function fetchUsuarios(): Promise<UsuarioDTO[]> {
-  return request<UsuarioDTO[]>("/usuarios");
-}
-
-export type UsuarioInput = Omit<UsuarioDTO, "id">;
-
-export function createUsuario(usuario: UsuarioInput): Promise<UsuarioDTO> {
-  return request<UsuarioDTO>("/usuarios", {
-    method: "POST",
-    body: JSON.stringify(usuario),
-  });
-}
-
-export function updateUsuario(id: number, usuario: UsuarioInput): Promise<UsuarioDTO> {
-  return request<UsuarioDTO>(`/usuarios/${id}`, {
-    method: "PUT",
-    body: JSON.stringify(usuario),
-  });
-}
-
-export function deleteUsuario(id: number): Promise<void> {
-  return request<void>(`/usuarios/${id}`, { method: "DELETE" });
 }

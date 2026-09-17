@@ -86,12 +86,11 @@ const routeTree = rootRoute.addChildren([
 
 export const router = createRouter({
   routeTree,
-  // El WAR se despliega bajo /HelloJakarta-variante/, no en la raiz del dominio -- mismo
-  // problema que tuvimos con el "base" de Vite, misma solucion: decirle al router bajo
-  // que ruta real vive, para que arme los links correctos. Sin esto, <Link to="/productos">
-  // generaria un href de "/productos" a secas (raiz del dominio), en vez de
-  // "/HelloJakarta-variante/productos" (donde realmente vive el WAR).
-  basepath: "/HelloJakarta-variante",
+  // El WAR se despliega bajo /SistemaMatriculas/, no en la raiz del dominio -- mismo
+  // problema que el "base" de Vite (ver vite.config.ts): sin esto, <Link to="/materias">
+  // generaria un href de "/materias" a secas (raiz del dominio), en vez de
+  // "/SistemaMatriculas/materias" (donde realmente vive el WAR).
+  basepath: "/SistemaMatriculas",
 });
 
 // Registro de tipos: le da a TypeScript autocompletado y validacion de las rutas que

@@ -57,6 +57,14 @@ public class ClaseServiceImpl implements ClaseService {
     }
 
     @Override
+    public List<ClaseDto> listarPorMateria(Long materiaId) {
+        return claseRepository.findAll()
+                .filter(c -> c.getMateria().getId().equals(materiaId))
+                .map(this::toDtoConCupos)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public ClaseDto crear(ClaseRequestDto dto) {
         Materia materia = materiaRepository.findById(dto.materiaId())
                 .orElseThrow(() -> new ReglaDeNegocioException("No existe la materia " + dto.materiaId()));

@@ -8,6 +8,7 @@ import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -35,7 +36,10 @@ public class ClaseController {
     private UriInfo uriInfo;
 
     @GET
-    public Response listar() {
+    public Response listar(@QueryParam("materiaId") Long materiaId) {
+        if (materiaId != null) {
+            return Response.ok(claseService.listarPorMateria(materiaId)).build();
+        }
         return Response.ok(claseService.listar()).build();
     }
 
