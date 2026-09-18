@@ -1,0 +1,28 @@
+package org.example.rest;
+
+import jakarta.ejb.EJB;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import org.example.lib.MiniFormAmbService;
+
+import static org.example.rest.ApplicationConfig.Endpoints.AMBIENTES;
+
+// Solo lectura -- catalogo del dominio solicitud/implantacion. El path sigue siendo
+// "/ambientes" (Endpoints.AMBIENTES) -- el rename no cambia el contrato de la API.
+@Path(AMBIENTES)
+@Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
+public class MiniFormAmbController {
+
+    @EJB
+    private MiniFormAmbService miniFormAmbService;
+
+    @GET
+    public Response listar() {
+        return Response.ok(miniFormAmbService.listar()).build();
+    }
+}

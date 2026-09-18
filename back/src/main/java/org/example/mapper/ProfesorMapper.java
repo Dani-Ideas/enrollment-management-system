@@ -14,14 +14,4 @@ public interface ProfesorMapper {
     @Mapping(target = "carreraId", source = "carrera.id")
     @Mapping(target = "carreraNombre", source = "carrera.nombre")
     ProfesorDto toDto(Profesor profesor);
-
-    // Referencia por id -- ver CarreraMapper.desdeId. La usa ClaseServiceImpl.
-    default Profesor desdeId(Long id) {
-        if (id == null) {
-            return null;
-        }
-        Profesor profesor = new Profesor();
-        profesor.setId(id);
-        return profesor;
-    }
 }

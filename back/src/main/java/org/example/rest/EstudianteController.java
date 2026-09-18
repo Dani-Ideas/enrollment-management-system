@@ -73,3 +73,4 @@ public class EstudianteController {
         return Response.ok(estudianteService.historial(id)).build();
     }
 }
+

@@ -1,10 +1,10 @@
 import type {
-  CarreraDTO,
-  ClaseDTO,
-  EstudianteDTO,
-  MateriaDTO,
-  MatriculaDTO,
-  MatriculaRequestDTO,
+  AmbienteDTO,
+  EstadoDTO,
+  ImplantacionDTO,
+  ImplantacionRequestDTO,
+  ResponsableDTO,
+  SistemaDTO,
 } from "./types";
 
 // Ruta relativa: en `npm run dev` la resuelve el proxy de vite.config.ts hacia GlassFish;
@@ -37,35 +37,45 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return response.json();
 }
 
-// --- Carreras (solo lectura, dato estatico) ---
+// --- Dominio "solicitud/implantacion" -- unico dominio de negocio del front ---
 
-export function fetchCarreras(): Promise<CarreraDTO[]> {
-  return request<CarreraDTO[]>("/carreras");
+export function fetchEstados(): Promise<EstadoDTO[]> {
+  return request<EstadoDTO[]>("/estados");
 }
 
-// --- Estudiante (identificacion, sin login -- ver FormularioPagoPage.tsx) ---
-
-export function fetchEstudiante(id: number): Promise<EstudianteDTO> {
-  return request<EstudianteDTO>(`/estudiantes/${id}`);
+export function fetchSistemas(): Promise<SistemaDTO[]> {
+  return request<SistemaDTO[]>("/sistemas");
 }
 
-// --- Materias (plan de estudio de una carrera) ---
-
-export function fetchMateriasPorCarrera(carreraId: number): Promise<MateriaDTO[]> {
-  return request<MateriaDTO[]>(`/materias?carreraId=${carreraId}`);
+export function fetchResponsables(): Promise<ResponsableDTO[]> {
+  return request<ResponsableDTO[]>("/responsables");
 }
 
-// --- Clases (ofertas concretas de una materia, con profesor y cupos) ---
-
-export function fetchClasesPorMateria(materiaId: number): Promise<ClaseDTO[]> {
-  return request<ClaseDTO[]>(`/clases?materiaId=${materiaId}`);
+export function fetchAmbientes(): Promise<AmbienteDTO[]> {
+  return request<AmbienteDTO[]>("/ambientes");
 }
 
-// --- Matricula (el paso de inscripcion en si) ---
+export function fetchImplantaciones(): Promise<ImplantacionDTO[]> {
+  return request<ImplantacionDTO[]>("/implantaciones");
+}
 
-export function crearMatricula(matricula: MatriculaRequestDTO): Promise<MatriculaDTO> {
-  return request<MatriculaDTO>("/matriculas", {
+export function fetchImplantacion(id: number): Promise<ImplantacionDTO> {
+  return request<ImplantacionDTO>(`/implantaciones/${id}`);
+}
+
+export function crearImplantacion(dto: ImplantacionRequestDTO): Promise<ImplantacionDTO> {
+  return request<ImplantacionDTO>("/implantaciones", {
     method: "POST",
-    body: JSON.stringify(matricula),
+    body: JSON.stringify(dto),
+  });
+}
+
+export function actualizarImplantacion(
+  id: number,
+  dto: ImplantacionRequestDTO,
+): Promise<ImplantacionDTO> {
+  return request<ImplantacionDTO>(`/implantaciones/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(dto),
   });
 }

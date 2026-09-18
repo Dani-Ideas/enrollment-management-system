@@ -13,66 +13,59 @@
 
 
 //*-*-*-*-**-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*--*-*-*-*--*-*-*-*-*-*-*-*-*-*-*-*-*
+// Dominio "solicitud/implantacion" -- unico dominio de negocio del frontend
+// (el dominio academico de estudiantes/materias/clases/matriculas se retiro
+// del front, ver bitacora). Se llama "Implantacion" (no "Solicitud") para no
+// chocar con la tabla SOL_SOLICITUD, que es otra cosa y no se toco.
 
-export interface EstudianteRequestDTO {
-  username: string;
-  password: string;
-  carreraId: number;
-}
-
-export interface EstudianteDTO {
+export interface EstadoDTO {
   id: number;
-  username: string;
-  carreraId: number;
-  carreraNombre: string;
+  estado: string;
 }
 
-export interface ClaseRequestDTO {
-  materiaId: number;
-  profesorId: number;
-}
-
-export interface CarreraDTO {
+export interface SistemaDTO {
   id: number;
   nombre: string;
 }
 
-export interface MateriaDTO {
+export interface ResponsableDTO {
+  id: number;
+  nombreLargo: string;
+}
+
+export interface AmbienteDTO {
   id: number;
   nombre: string;
-  anio: number;
-  carreraId:number;
-  carreraNombre:string; 
 }
 
-export interface ProfesorDTO {
+// Forma de SALIDA -- aplanada a texto (igual que el SELECT original), no trae
+// objetos anidados.
+export interface ImplantacionDTO {
   id: number;
-  nombre: string;
-  carreraId:number;
-  carreraNombre:string; 
-  habilitaciones:MateriaDTO[];
+  estado: string;
+  sistema: string;
+  responsableProyecto: string;
+  responsableDesarrollo: string;
+  responsableImplantacion: string;
+  ambiente: string;
+  proyecto: string;
+  version: string;
+  descripcion: string | null;
+  fechaImplantacionPlanteada: string;
+  fechaImplantacionReal: string | null;
 }
 
-export interface ClaseDTO {
-  id: number;
-  materia: MateriaDTO;
-  profesor: ProfesorDTO;
-  cuposDisponibles:number;
-}
-
-export type EstadoMatricula = "EN_CURSO" | "COMPLETADA";
-
-export interface MatriculaDTO {
-  id: number;
-  estudianteId: number;
-  estudianteUsername: string;
-  clase: ClaseDTO;
-  estado: EstadoMatricula;
-  fechaInscripcion: string;
-  fechaCompletada: string | null;
-}
-
-export interface MatriculaRequestDTO {
-  estudianteId: number;
-  claseId: number;
+// Forma de ENTRADA -- las relaciones viajan como id suelto, no como texto.
+export interface ImplantacionRequestDTO {
+  estadoId: number;
+  sistemaId: number;
+  responsableProyectoId: number;
+  responsableDesarrolloId: number;
+  responsableImplantacionId: number;
+  ambienteId: number;
+  proyecto: string;
+  version: string;
+  descripcion: string | null;
+  fechaImplantacionPlanteada: string;
+  fechaImplantacionReal: string | null;
 }

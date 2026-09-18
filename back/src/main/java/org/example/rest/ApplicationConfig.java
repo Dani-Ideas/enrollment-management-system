@@ -36,16 +36,32 @@ public class ApplicationConfig extends ResourceConfig {
         public static final String CLASES = "/clases";
         public static final String ESTUDIANTES = "/estudiantes";
         public static final String MATRICULAS = "/matriculas";
+
+        // Dominio "solicitud/implantacion" -- separado del academico de arriba, comparte
+        // el mismo WAR/base de datos pero es un modulo sin relacion conceptual.
+        public static final String ESTADOS = "/estados";
+        public static final String SISTEMAS = "/sistemas";
+        public static final String RESPONSABLES = "/responsables";
+        public static final String AMBIENTES = "/ambientes";
+        public static final String IMPLANTACIONES = "/implantaciones";
     }
 
     public ApplicationConfig() {
-        // Controllers -- un endpoint por entidad
+        // Controllers -- dominio academico
         register(CarreraController.class);
         register(MateriaController.class);
         register(ProfesorController.class);
         register(ClaseController.class);
         register(EstudianteController.class);
         register(MatriculaController.class);
+        // Controllers -- dominio solicitud/implantacion (tabla/clases renombradas: antes
+        // Estado/Sistema/Responsable/Ambiente/Implantacion, ahora MiniFormEst/MiniFormSis/
+        // MiniFormResp/MiniFormAmb/Form -- los paths de Endpoints de arriba NO cambiaron)
+        register(MiniFormEstController.class);
+        register(MiniFormSisController.class);
+        register(MiniFormRespController.class);
+        register(MiniFormAmbController.class);
+        register(FormController.class);
         // Providers -- mappers de excepcion transversales a todos los Controller
         register(ReglaDeNegocioExceptionMapper.class);
         register(ValidationExceptionMapper.class);

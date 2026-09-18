@@ -10,7 +10,7 @@ import org.example.model.Estudiante;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-09-17T05:27:23-0600",
+    date = "2026-09-18T02:50:54-0600",
     comments = "version: 1.6.3, compiler: javac, environment: Java 21.0.12.1 (Arch Linux)"
 )
 @ApplicationScoped

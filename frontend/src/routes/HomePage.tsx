@@ -1,4 +1,4 @@
-import { ClipboardListIcon, GraduationCapIcon, LogOutIcon } from "lucide-react"
+import { ClipboardListIcon, FileTextIcon, LogOutIcon } from "lucide-react"
 import { PieMenu } from "../components/PieMenu"
 
 // Pagina de la ruta "/" (ver indexRoute en router.tsx). Es la que se ve dentro del
@@ -17,14 +17,14 @@ export function HomePage() {
             },
             {
               to: "/formulario-pago",
-              label: "Inscripción",
-              descripcion: "Identificate como estudiante, elegí una materia de tu carrera, revisá el profesor y los cupos, y matriculate en una clase real.",
-              icon: GraduationCapIcon,
+              label: "Solicitudes",
+              descripcion: "Creá una solicitud de implantación nueva o actualizá una existente, con el backend real.",
+              icon: FileTextIcon,
             },
             {
               to: "/formulario-largo",
-              label: "Inscripción (sin carrusel)",
-              descripcion: "El mismo trámite de inscripción, con el mismo backend real, pero como formulario tradicional largo en vez de carrusel.",
+              label: "Solicitudes (formulario completo)",
+              descripcion: "El mismo trámite, con el mismo backend real, más la opción de ver la lista completa de solicitudes existentes.",
               icon: ClipboardListIcon,
             },
           ]}
