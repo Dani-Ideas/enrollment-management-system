@@ -24,6 +24,7 @@ import {
   NavigationMenuList,
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Field, FieldDescription, FieldGroup, FieldLabel, FieldSet } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { NativeSelect } from "@/components/ui/native-select"
@@ -33,12 +34,39 @@ import { Spinner } from "@/components/ui/spinner"
 import {
   ArrowLeftIcon,
   CheckCircle2Icon,
+  FlaskConicalIcon,
+  GraduationCapIcon,
   PencilIcon,
   PlusIcon,
+  PresentationIcon,
   RotateCcwIcon,
   SearchIcon,
   TriangleAlertIcon,
 } from "lucide-react"
+
+// ============================================================================
+// Bloque EXPERIMENTAL (prueba de concepto) -- registro/modificacion de un
+// alumno o de un profesor+materia, con checklist segun cual se elija. Vive
+// SOLO en esta pagina, SOLO en el paso "Revisá antes de finalizar" de
+// "crear", y no manda nada al backend ni cambia lo que ya se envia con
+// crearImplantacion -- es puramente visual, para demostrar el flujo
+// (filtro por tipo -> checklist), nada mas. Los items de cada checklist son
+// ilustrativos, no corresponden a ningun endpoint real todavia.
+type TipoRegistroExperimental = "alumno" | "maestro"
+
+const CHECKLIST_ALUMNO = [
+  "Datos personales verificados",
+  "Documento de identidad entregado",
+  "Carrera asignada",
+  "Pago de matrícula confirmado",
+]
+
+const CHECKLIST_MAESTRO = [
+  "Perfil académico verificado",
+  "Materias asignadas",
+  "Contrato firmado",
+  "Horario de disponibilidad cargado",
+]
 
 type Accion = "crear" | "actualizar"
 
@@ -252,6 +280,7 @@ export function FormularioPagoPage() {
     buscarImplantacionMutation.reset()
     crearImplantacionMutation.reset()
     actualizarImplantacionMutation.reset()
+    reiniciarExperimental()
   }
 
   function elegirAccion(nueva: Accion) {
@@ -324,6 +353,35 @@ export function FormularioPagoPage() {
     maxStepRef.current = 1
     setMaxStep(1)
     api?.scrollTo(1)
+    reiniciarExperimental()
+  }
+
+  // --- Bloque experimental (ver comentario junto a los tipos, arriba) --
+  // estado 100% local, nunca se combina con camposADto() ni se manda en
+  // crearImplantacionMutation -- por eso no necesita su propia mutation.
+  const [tipoRegistroExperimental, setTipoRegistroExperimental] = useState<TipoRegistroExperimental | null>(null)
+  const [itemsMarcadosExperimental, setItemsMarcadosExperimental] = useState<Set<string>>(new Set())
+
+  function elegirTipoExperimental(tipo: TipoRegistroExperimental) {
+    setTipoRegistroExperimental(tipo)
+    setItemsMarcadosExperimental(new Set())
+  }
+
+  function alternarItemExperimental(item: string, marcado: boolean) {
+    setItemsMarcadosExperimental((anteriores) => {
+      const nuevos = new Set(anteriores)
+      if (marcado) {
+        nuevos.add(item)
+      } else {
+        nuevos.delete(item)
+      }
+      return nuevos
+    })
+  }
+
+  function reiniciarExperimental() {
+    setTipoRegistroExperimental(null)
+    setItemsMarcadosExperimental(new Set())
   }
 
   // --- Actualizar: elegir la solicitud, despues editarla ---
@@ -1022,6 +1080,83 @@ export function FormularioPagoPage() {
                           <dt className="text-muted-foreground">Fecha planteada</dt>
                           <dd>{campos.fechaPlanteada}</dd>
                         </dl>
+
+                        {/* Bloque EXPERIMENTAL -- ver comentario junto a
+                            TipoRegistroExperimental, arriba del componente.
+                            Puramente visual: no forma parte de camposADto()
+                            ni se manda con crearImplantacionMutation, esta
+                            solicitud de implantación se crea exactamente
+                            igual que antes de este bloque existir. */}
+                        <div className="space-y-3 rounded-lg border border-dashed border-primary/40 p-4">
+                          <div className="flex items-center gap-2">
+                            <FlaskConicalIcon className="size-4 text-primary" />
+                            <h4 className="text-sm font-medium">
+                              Experimental: registro de alumno/maestro
+                            </h4>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Prueba de concepto -- no crea ni modifica nada en la base de
+                            datos, ni viaja junto con la solicitud de implantación de
+                            arriba. Primero elegí si es un alumno o un maestro, después
+                            aparece un checklist según lo que elegiste.
+                          </p>
+
+                          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                            <button
+                              type="button"
+                              onClick={() => elegirTipoExperimental("alumno")}
+                              className={cn(
+                                "flex items-center justify-center gap-2 rounded-lg border p-3 text-sm hover:border-primary/40 hover:bg-primary/5",
+                                tipoRegistroExperimental === "alumno"
+                                  ? "border-primary bg-primary/5"
+                                  : "border-input",
+                              )}
+                            >
+                              <GraduationCapIcon className="size-4" />
+                              Registro/modificación de alumno
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => elegirTipoExperimental("maestro")}
+                              className={cn(
+                                "flex items-center justify-center gap-2 rounded-lg border p-3 text-sm hover:border-primary/40 hover:bg-primary/5",
+                                tipoRegistroExperimental === "maestro"
+                                  ? "border-primary bg-primary/5"
+                                  : "border-input",
+                              )}
+                            >
+                              <PresentationIcon className="size-4" />
+                              Registro/modificación de maestro
+                            </button>
+                          </div>
+
+                          {tipoRegistroExperimental && (
+                            <div className="space-y-2 border-t border-dashed border-input pt-3">
+                              <p className="text-xs font-medium text-muted-foreground">
+                                Checklist ({tipoRegistroExperimental === "alumno" ? "alumno" : "maestro"}
+                                ):
+                              </p>
+                              {(tipoRegistroExperimental === "alumno"
+                                ? CHECKLIST_ALUMNO
+                                : CHECKLIST_MAESTRO
+                              ).map((item) => (
+                                <label
+                                  key={item}
+                                  className="flex items-center gap-2 text-sm hover:cursor-pointer"
+                                >
+                                  <Checkbox
+                                    checked={itemsMarcadosExperimental.has(item)}
+                                    onCheckedChange={(marcado) =>
+                                      alternarItemExperimental(item, marcado === true)
+                                    }
+                                  />
+                                  {item}
+                                </label>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
                         <Button
                           onClick={() => crearImplantacionMutation.mutate(camposADto(campos))}
                           disabled={!formularioCompleto || crearImplantacionMutation.isPending}
