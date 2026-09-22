@@ -300,7 +300,10 @@ export function FormularioPagoPage() {
   // esta es la lista de las SOLICITUDES mismas.
   const implantacionesQuery = useQuery({
     queryKey: ["implantaciones"],
-    queryFn: fetchImplantaciones,
+    // fetchImplantaciones ahora acepta filtros opcionales (ver client.ts) -- sin
+    // envolver en una arrow function, TanStack Query le pasaria su propio objeto de
+    // contexto (queryKey/signal/...) como si fuera el parametro de filtros.
+    queryFn: () => fetchImplantaciones(),
     enabled: accion === "actualizar",
     staleTime: 10 * 1000,
   })

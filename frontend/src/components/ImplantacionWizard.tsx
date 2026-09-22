@@ -261,6 +261,9 @@ export function ImplantacionWizard() {
     setSolicitudIdActual(null)
     baselineIdRef.current = null
     setListaIdInput("")
+    setFiltroEstadoId("")
+    setFiltroSistemaId("")
+    setFiltroAmbienteId("")
     buscarImplantacionMutation.reset()
     crearImplantacionMutation.reset()
     actualizarImplantacionMutation.reset()
@@ -308,13 +311,39 @@ export function ImplantacionWizard() {
   }
   const catalogosListos = catalogosQuery.isSuccess
 
-  // --- Lista completa -- usada por "lista" (mostrar todo) y por
-  // "actualizar" (elegir de que solicitud partir). staleTime corto (10s):
-  // a diferencia de los catalogos de arriba, esta es la lista de las
-  // SOLICITUDES mismas, que es justo lo que este componente crea/edita.
+  // --- Filtros de la rama "lista" -- "" significa "sin filtrar por este campo" (mismo
+  // criterio que el <select> de Categoría en otras pantallas: la opcion vacia de arriba
+  // es la de "todos"). Se apoyan en ServiceArtifax del backend (la "mini base de datos" en
+  // memoria) via fetchImplantaciones(filtros) -- ver client.ts.
+  const [filtroEstadoId, setFiltroEstadoId] = useState("")
+  const [filtroSistemaId, setFiltroSistemaId] = useState("")
+  const [filtroAmbienteId, setFiltroAmbienteId] = useState("")
+
+  // --- Lista completa -- usada por "lista" (mostrar todo, con los 3 filtros de arriba) y
+  // por "actualizar" (elegir de que solicitud partir, sin filtros). staleTime corto (10s):
+  // a diferencia de los catalogos de arriba, esta es la lista de las SOLICITUDES mismas,
+  // que es justo lo que este componente crea/edita. Los filtros van en el queryKey para
+  // que TanStack Query trate cada combinacion como una consulta distinta (cachea cada una
+  // por separado, y vuelve a pedir sola en cuanto cambia algun filtro).
   const implantacionesQuery = useQuery({
-    queryKey: ["implantaciones"],
-    queryFn: fetchImplantaciones,
+    // Los filtros solo entran al queryKey (y a la peticion real) cuando accion === "lista"
+    // -- "actualizar" comparte esta misma query pero para elegir de que solicitud partir,
+    // nunca debe salir filtrada aunque hayan quedado filtros de una visita anterior a
+    // "lista" (ademas, empezarDeNuevo() los resetea al volver al inicio).
+    queryKey:
+      accion === "lista"
+        ? ["implantaciones", filtroEstadoId, filtroSistemaId, filtroAmbienteId]
+        : ["implantaciones"],
+    queryFn: () =>
+      fetchImplantaciones(
+        accion === "lista"
+          ? {
+              estadoId: filtroEstadoId === "" ? undefined : Number(filtroEstadoId),
+              sistemaId: filtroSistemaId === "" ? undefined : Number(filtroSistemaId),
+              ambienteId: filtroAmbienteId === "" ? undefined : Number(filtroAmbienteId),
+            }
+          : undefined,
+      ),
     enabled: accion === "lista" || accion === "actualizar",
     staleTime: 10 * 1000,
   })
@@ -513,6 +542,59 @@ export function ImplantacionWizard() {
                 {accion === "lista" && (
                   <div className="space-y-3">
                     <h3 className="text-sm font-medium">Solicitudes existentes</h3>
+
+                    {/* Los 3 filtros pegan directo contra ServiceArtifax en el backend
+                        (la "mini base de datos" en memoria) -- cambiar cualquiera dispara
+                        un refetch solo (van en el queryKey de implantacionesQuery), no
+                        filtran en el navegador sobre una lista ya traida completa. */}
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                      <Field>
+                        <FieldLabel htmlFor="filtro-estado">Estado</FieldLabel>
+                        <NativeSelect
+                          id="filtro-estado"
+                          value={filtroEstadoId}
+                          onChange={(e) => setFiltroEstadoId(e.target.value)}
+                        >
+                          <option value="">Todos</option>
+                          {estadosQuery.data?.map((es) => (
+                            <option key={es.id} value={es.id}>
+                              {es.estado}
+                            </option>
+                          ))}
+                        </NativeSelect>
+                      </Field>
+                      <Field>
+                        <FieldLabel htmlFor="filtro-sistema">Sistema</FieldLabel>
+                        <NativeSelect
+                          id="filtro-sistema"
+                          value={filtroSistemaId}
+                          onChange={(e) => setFiltroSistemaId(e.target.value)}
+                        >
+                          <option value="">Todos</option>
+                          {sistemasQuery.data?.map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.nombre}
+                            </option>
+                          ))}
+                        </NativeSelect>
+                      </Field>
+                      <Field>
+                        <FieldLabel htmlFor="filtro-ambiente">Ambiente</FieldLabel>
+                        <NativeSelect
+                          id="filtro-ambiente"
+                          value={filtroAmbienteId}
+                          onChange={(e) => setFiltroAmbienteId(e.target.value)}
+                        >
+                          <option value="">Todos</option>
+                          {ambientesQuery.data?.map((a) => (
+                            <option key={a.id} value={a.id}>
+                              {a.nombre}
+                            </option>
+                          ))}
+                        </NativeSelect>
+                      </Field>
+                    </div>
+
                     {implantacionesQuery.isLoading && (
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Spinner /> Cargando…
@@ -530,7 +612,11 @@ export function ImplantacionWizard() {
                     {implantacionesQuery.data?.length === 0 && (
                       <Alert>
                         <TriangleAlertIcon />
-                        <AlertTitle>Todavía no hay solicitudes cargadas</AlertTitle>
+                        <AlertTitle>
+                          {filtroEstadoId || filtroSistemaId || filtroAmbienteId
+                            ? "Ninguna solicitud coincide con esos filtros"
+                            : "Todavía no hay solicitudes cargadas"}
+                        </AlertTitle>
                       </Alert>
                     )}
                     <div className="space-y-2">

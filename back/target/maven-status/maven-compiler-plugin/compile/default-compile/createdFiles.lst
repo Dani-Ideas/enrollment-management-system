@@ -33,6 +33,7 @@ org/example/ejb/CarreraServiceImpl.class
 org/example/dto/ProfesorDto.class
 org/example/mapper/MatriculaMapper.class
 org/example/lib/MiniFormSisRepository.class
+org/example/rest/EndpointsController.class
 org/example/mapper/MatriculaMapperImpl.class
 org/example/rest/CarreraController.class
 org/example/rest/MateriaController.class

@@ -77,6 +77,7 @@
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/rest/CarreraController.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/rest/CatalogosImplantacionController.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/rest/ClaseController.java
+/home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/rest/EndpointsController.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/rest/EstudianteController.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/rest/FormController.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/rest/MateriaController.java

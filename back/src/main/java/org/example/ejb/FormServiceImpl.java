@@ -1,5 +1,6 @@
 package org.example.ejb;
 
+import jakarta.ejb.EJB;
 import jakarta.ejb.Stateless;
 import jakarta.inject.Inject;
 import org.example.dto.FormDto;
@@ -22,6 +23,13 @@ public class FormServiceImpl implements FormService {
 
     @Inject
     private FormRepository formRepository;
+
+    // ServiceArtifax cachea Form en memoria (ver esa clase, listarImplantaciones()) para
+    // poder filtrar por estado/sistema/ambiente sin ir a la BD -- cada escritura de aqui
+    // abajo tiene que avisarle, si no el cache se queda con datos viejos (mismo patron que
+    // Producto en HelloJakarta-variante).
+    @EJB
+    private ServiceArtifax serviceArtifax;
 
     // Necesita los 4 repositorios de catalogo para reemplazar, DESPUES de
     // formMapper.toEntity()/actualizarDesde(), los stubs por id que arma el Mapper por las
@@ -59,7 +67,9 @@ public class FormServiceImpl implements FormService {
     public FormDto crear(FormRequestDto dto) {
         Form form = formMapper.toEntity(dto);
         resolverRelaciones(form, dto);
-        return formMapper.toDto(formRepository.insert(form));
+        Form creado = formRepository.insert(form);
+        serviceArtifax.refrescarImplantacion(creado);
+        return formMapper.toDto(creado);
     }
 
     @Override
@@ -68,7 +78,9 @@ public class FormServiceImpl implements FormService {
                 .map(form -> {
                     formMapper.actualizarDesde(form, dto);
                     resolverRelaciones(form, dto);
-                    return formMapper.toDto(formRepository.update(form));
+                    Form actualizado = formRepository.update(form);
+                    serviceArtifax.refrescarImplantacion(actualizado);
+                    return formMapper.toDto(actualizado);
                 })
                 .orElse(null);
     }
