@@ -7,7 +7,7 @@ import org.example.model.MiniFormSis;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-09-22T10:11:55-0600",
+    date = "2026-09-22T10:20:32-0600",
     comments = "version: 1.6.3, compiler: javac, environment: Java 21.0.12.1 (Arch Linux)"
 )
 @ApplicationScoped

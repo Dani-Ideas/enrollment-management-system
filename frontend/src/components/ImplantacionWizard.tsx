@@ -279,7 +279,11 @@ export function ImplantacionWizard() {
   // actualizar), nunca en "lista" (ahi no hay ningun formulario que llenar).
   // "Tablas genericas": los 4 catalogos en UNA sola llamada (via axios), en vez de 4
   // useQuery independientes -- mismo staleTime largo de antes (dato estatico).
-  const catalogosHabilitados = accion === "crear" || accion === "actualizar"
+  // "lista" se agrego aqui porque los 3 <select> de filtro (Estado/Sistema/Ambiente, en
+  // la rama "lista" mas abajo) tambien necesitan los catalogos -- sin esto, catalogosQuery
+  // nunca se disparaba al entrar a "Ver lista" y los filtros se quedaban sin opciones
+  // (solo se veia "Todos").
+  const catalogosHabilitados = accion === "crear" || accion === "actualizar" || accion === "lista"
   const catalogosQuery = useQuery({
     queryKey: ["catalogos-implantacion"],
     queryFn: fetchTablasImplantacion,
