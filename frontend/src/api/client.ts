@@ -1,3 +1,4 @@
+import axios from "axios";
 import type {
   AmbienteDTO,
   EstadoDTO,
@@ -5,11 +6,21 @@ import type {
   ImplantacionRequestDTO,
   ResponsableDTO,
   SistemaDTO,
+  TablasImplantacionDTO,
 } from "./types";
 
 // Ruta relativa: en `npm run dev` la resuelve el proxy de vite.config.ts hacia GlassFish;
 // en produccion, el frontend vive dentro del mismo WAR, asi que resuelve al mismo origen.
 const API_BASE = "/SistemaMatriculas/api";
+
+// Cliente de axios, solo para "tablas genericas" -- el resto de este archivo sigue con el
+// helper request()/fetch() de siempre, sin tocarlo (mismo criterio que
+// HelloJakarta-variante: axios es literal lo que se pidio para este caso puntual, no un
+// reemplazo general de fetch).
+const axiosClient = axios.create({
+  baseURL: API_BASE,
+  headers: { "Content-Type": "application/json" },
+});
 
 async function parseErrorBody(response: Response): Promise<string> {
   try {
@@ -53,6 +64,13 @@ export function fetchResponsables(): Promise<ResponsableDTO[]> {
 
 export function fetchAmbientes(): Promise<AmbienteDTO[]> {
   return request<AmbienteDTO[]>("/ambientes");
+}
+
+// "Tablas genericas": UNA sola llamada para los 4 catalogos de arriba, en vez de
+// fetchEstados() + fetchSistemas() + fetchResponsables() + fetchAmbientes() por
+// separado -- pensada para usarse con useQuery de TanStack Query.
+export function fetchTablasImplantacion(): Promise<TablasImplantacionDTO> {
+  return axiosClient.get<TablasImplantacionDTO>("/catalogos-implantacion").then((res) => res.data);
 }
 
 export function fetchImplantaciones(): Promise<ImplantacionDTO[]> {

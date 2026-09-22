@@ -44,6 +44,10 @@ public class ApplicationConfig extends ResourceConfig {
         public static final String RESPONSABLES = "/responsables";
         public static final String AMBIENTES = "/ambientes";
         public static final String IMPLANTACIONES = "/implantaciones";
+
+        // "Tablas genericas" para el formulario de implantacion -- no es un recurso por
+        // entidad, es un bundle de los 4 catalogos de arriba en una sola respuesta.
+        public static final String CATALOGOS_IMPLANTACION = "/catalogos-implantacion";
     }
 
     public ApplicationConfig() {
@@ -62,6 +66,7 @@ public class ApplicationConfig extends ResourceConfig {
         register(MiniFormRespController.class);
         register(MiniFormAmbController.class);
         register(FormController.class);
+        register(CatalogosImplantacionController.class);
         // Providers -- mappers de excepcion transversales a todos los Controller
         register(ReglaDeNegocioExceptionMapper.class);
         register(ValidationExceptionMapper.class);

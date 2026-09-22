@@ -5,12 +5,9 @@ import { cn } from "@/lib/utils"
 import {
   actualizarImplantacion,
   crearImplantacion,
-  fetchAmbientes,
-  fetchEstados,
   fetchImplantacion,
   fetchImplantaciones,
-  fetchResponsables,
-  fetchSistemas,
+  fetchTablasImplantacion,
 } from "@/api/client"
 import type { ImplantacionDTO, ImplantacionRequestDTO } from "@/api/types"
 import { Button } from "@/components/ui/button"
@@ -263,33 +260,40 @@ export function FormularioPagoPage() {
     api?.scrollTo(1)
   }
 
-  // --- Catalogos para los <select> -- staleTime largo, dato estatico ---
-  const estadosQuery = useQuery({
-    queryKey: ["estados"],
-    queryFn: fetchEstados,
+  // --- Catalogos para los <select> -- "tablas genericas": los 4 en UNA sola llamada
+  // (via axios), en vez de 4 useQuery independientes -- mismo staleTime largo de antes
+  // (son datos estaticos, sembrados una vez, sin endpoint de escritura, no tiene sentido
+  // re-pedirlos seguido).
+  const catalogosQuery = useQuery({
+    queryKey: ["catalogos-implantacion"],
+    queryFn: fetchTablasImplantacion,
     enabled: accion !== null,
     staleTime: 5 * 60 * 1000,
   })
-  const sistemasQuery = useQuery({
-    queryKey: ["sistemas"],
-    queryFn: fetchSistemas,
-    enabled: accion !== null,
-    staleTime: 5 * 60 * 1000,
-  })
-  const responsablesQuery = useQuery({
-    queryKey: ["responsables"],
-    queryFn: fetchResponsables,
-    enabled: accion !== null,
-    staleTime: 5 * 60 * 1000,
-  })
-  const ambientesQuery = useQuery({
-    queryKey: ["ambientes"],
-    queryFn: fetchAmbientes,
-    enabled: accion !== null,
-    staleTime: 5 * 60 * 1000,
-  })
-  const catalogosListos =
-    estadosQuery.isSuccess && sistemasQuery.isSuccess && responsablesQuery.isSuccess && ambientesQuery.isSuccess
+  // Shims con la MISMA forma que antes tenian los 4 useQuery sueltos (.data/.isLoading/
+  // .isSuccess) -- el resto del archivo (~15 usos mas abajo) sigue leyendo
+  // estadosQuery.data, sistemasQuery.isLoading, etc. sin tener que tocar cada uno.
+  const estadosQuery = {
+    data: catalogosQuery.data?.estados,
+    isLoading: catalogosQuery.isLoading,
+    isSuccess: catalogosQuery.isSuccess,
+  }
+  const sistemasQuery = {
+    data: catalogosQuery.data?.sistemas,
+    isLoading: catalogosQuery.isLoading,
+    isSuccess: catalogosQuery.isSuccess,
+  }
+  const responsablesQuery = {
+    data: catalogosQuery.data?.responsables,
+    isLoading: catalogosQuery.isLoading,
+    isSuccess: catalogosQuery.isSuccess,
+  }
+  const ambientesQuery = {
+    data: catalogosQuery.data?.ambientes,
+    isLoading: catalogosQuery.isLoading,
+    isSuccess: catalogosQuery.isSuccess,
+  }
+  const catalogosListos = catalogosQuery.isSuccess
 
   // --- Lista completa -- solo hace falta en "actualizar" (elegir de que
   // solicitud partir). staleTime corto (10s): a diferencia de los catalogos,

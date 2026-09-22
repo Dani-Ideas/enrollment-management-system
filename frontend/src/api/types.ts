@@ -69,3 +69,13 @@ export interface ImplantacionRequestDTO {
   fechaImplantacionPlanteada: string;
   fechaImplantacionReal: string | null;
 }
+
+// "Tablas genericas": los 4 catalogos de arriba (Estado/Sistema/Responsable/Ambiente) en
+// un solo bundle -- espejo de TablasImplantacionDto.java del backend. Reemplaza los 4 GET
+// separados (fetchEstados + fetchSistemas + fetchResponsables + fetchAmbientes) por uno.
+export interface TablasImplantacionDTO {
+  estados: EstadoDTO[];
+  sistemas: SistemaDTO[];
+  responsables: ResponsableDTO[];
+  ambientes: AmbienteDTO[];
+}

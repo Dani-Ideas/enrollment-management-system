@@ -4,12 +4,9 @@ import { cn } from "@/lib/utils"
 import {
   actualizarImplantacion,
   crearImplantacion,
-  fetchAmbientes,
-  fetchEstados,
   fetchImplantacion,
   fetchImplantaciones,
-  fetchResponsables,
-  fetchSistemas,
+  fetchTablasImplantacion,
 } from "@/api/client"
 import type { ImplantacionDTO, ImplantacionRequestDTO } from "@/api/types"
 import { Button } from "@/components/ui/button"

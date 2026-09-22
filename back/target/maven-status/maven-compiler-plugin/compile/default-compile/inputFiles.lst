@@ -16,6 +16,7 @@
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/dto/MiniFormRespDto.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/dto/MiniFormSisDto.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/dto/ProfesorDto.java
+/home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/dto/TablasImplantacionDto.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/ejb/CarreraServiceImpl.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/ejb/ClaseServiceImpl.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/ejb/DatosIniciales.java
@@ -24,11 +25,10 @@
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/ejb/FormServiceImpl.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/ejb/MateriaServiceImpl.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/ejb/MatriculaServiceImpl.java
-/home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/ejb/MiniFormAmbServiceImpl.java
-/home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/ejb/MiniFormEstServiceImpl.java
-/home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/ejb/MiniFormRespServiceImpl.java
-/home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/ejb/MiniFormSisServiceImpl.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/ejb/ProfesorServiceImpl.java
+/home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/ejb/ServiceArtifax.java
+/home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/ejb/ServiceCreateModify.java
+/home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/ejb/ServiceRead.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/lib/CarreraRepository.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/lib/CarreraService.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/lib/ClaseRepository.java
@@ -42,13 +42,9 @@
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/lib/MatriculaRepository.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/lib/MatriculaService.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/lib/MiniFormAmbRepository.java
-/home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/lib/MiniFormAmbService.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/lib/MiniFormEstRepository.java
-/home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/lib/MiniFormEstService.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/lib/MiniFormRespRepository.java
-/home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/lib/MiniFormRespService.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/lib/MiniFormSisRepository.java
-/home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/lib/MiniFormSisService.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/lib/PasswordHasher.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/lib/ProfesorRepository.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/lib/ProfesorService.java
@@ -79,6 +75,7 @@
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/model/Profesor.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/rest/ApplicationConfig.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/rest/CarreraController.java
+/home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/rest/CatalogosImplantacionController.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/rest/ClaseController.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/rest/EstudianteController.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/rest/FormController.java
