@@ -132,7 +132,7 @@ export function fetchTablasInscripcion(): Promise<TablasInscripcionDTO> {
 export const CATALOGOS_INSCRIPCION_QUERY = {
   queryKey: ["catalogos-inscripcion"] as const,
   queryFn: fetchTablasInscripcion,
-  staleTime: 5 * 60 * 1000,
+  staleTime: Infinity,
 };
 
 // Filtros opcionales -- cada uno ausente/undefined significa "no filtrar por ese campo",

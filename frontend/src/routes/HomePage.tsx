@@ -1,24 +1,13 @@
-import { useEffect } from "react"
-import { useQueryClient } from "@tanstack/react-query"
 import { ClipboardListIcon, FileTextIcon, LogOutIcon } from "lucide-react"
-import { CATALOGOS_INSCRIPCION_QUERY } from "@/api/client"
 import { PieMenu } from "../components/PieMenu"
 
 // Pagina de la ruta "/" (ver indexRoute en router.tsx). Es la que se ve dentro del
 // <Outlet/> de RootLayout cuando entras a la app por primera vez.
+//
+// La precarga de "tablas genericas" (los 4 catalogos de inscripcion) ya NO vive aca --
+// se movio a RootLayout.tsx, que se monta sin importar en que URL arranca/recarga la
+// app (este componente, en cambio, solo se monta si entras/recargas por "/").
 export function HomePage() {
-  const queryClient = useQueryClient()
-
-  // Precarga "tablas genericas" (los 4 catalogos de inscripcion) apenas se entra al
-  // sitio -- CATALOGOS_INSCRIPCION_QUERY es el MISMO objeto (mismo queryKey/queryFn/
-  // staleTime) que usan FormularioPagoPage.tsx e InscripcionWizard.tsx, asi que cuando el
-  // usuario llegue a esas pantallas el useQuery encuentra el dato ya cacheado (dentro del
-  // staleTime de 5 min) en vez de pedirlo de nuevo. prefetchQuery no hace nada si ya hay
-  // datos frescos en cache -- correr esto en cada visita al Home no duplica pedidos.
-  useEffect(() => {
-    queryClient.prefetchQuery(CATALOGOS_INSCRIPCION_QUERY)
-  }, [queryClient])
-
   return (
     <>
       <section>
