@@ -27,9 +27,9 @@ public interface FormMapper extends RequestResponseMapper<Form, FormRequestDto, 
     @Override
     @Mapping(target = "estado", source = "estado.estado")
     @Mapping(target = "sistema", source = "sistema.nombre")
-    @Mapping(target = "responsableProyecto", source = "responsableProyecto.nombreLargo")
-    @Mapping(target = "responsableDesarrollo", source = "responsableDesarrollo.nombreLargo")
-    @Mapping(target = "responsableImplantacion", source = "responsableImplantacion.nombreLargo")
+    @Mapping(target = "jefeCarrera", source = "jefeCarrera.nombreLargo")
+    @Mapping(target = "maestro", source = "maestro.nombreLargo")
+    @Mapping(target = "carrera", source = "carrera.nombreLargo")
     @Mapping(target = "ambiente", source = "ambiente.nombre")
     FormDto toDto(Form form);
 
@@ -41,9 +41,9 @@ public interface FormMapper extends RequestResponseMapper<Form, FormRequestDto, 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "estado", source = "estadoId")
     @Mapping(target = "sistema", source = "sistemaId")
-    @Mapping(target = "responsableProyecto", source = "responsableProyectoId")
-    @Mapping(target = "responsableDesarrollo", source = "responsableDesarrolloId")
-    @Mapping(target = "responsableImplantacion", source = "responsableImplantacionId")
+    @Mapping(target = "jefeCarrera", source = "jefeCarreraId")
+    @Mapping(target = "maestro", source = "maestroId")
+    @Mapping(target = "carrera", source = "carreraId")
     @Mapping(target = "ambiente", source = "ambienteId")
     Form toEntity(FormRequestDto dto);
 

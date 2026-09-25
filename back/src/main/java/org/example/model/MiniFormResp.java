@@ -12,11 +12,6 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
-// Tabla MINIFORMRESP (antes CAT_RESPONSABLE/Responsable) -- catalogo del dominio
-// "solicitud/implantacion". El typo historico de la columna PK ("id_reponsable") se
-// corrige aca a proposito: ese typo se habia preservado antes porque asi vino en el SELECT
-// fuente real de esa tabla -- este rename ya es un esquema propio, sin ninguna atadura a
-// ese sistema externo.
 @Getter
 @Setter
 @Entity

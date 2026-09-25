@@ -13,14 +13,14 @@ public record FormDto(
         Long id,
         String estado,
         String sistema,
-        String responsableProyecto,
-        String responsableDesarrollo,
-        String responsableImplantacion,
+        String jefeCarrera,
+        String maestro,
+        String carrera,
         String ambiente,
         String proyecto,
         String version,
         String descripcion,
-        LocalDateTime fechaImplantacionPlanteada,
-        LocalDateTime fechaImplantacionReal
+        LocalDateTime fechaInscripcionPlanteada,
+        LocalDateTime fechaInscripcionReal
 ) implements Serializable {
 }

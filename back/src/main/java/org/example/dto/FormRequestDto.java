@@ -13,14 +13,14 @@ import java.time.LocalDateTime;
 public record FormRequestDto(
         @NotNull Long estadoId,
         @NotNull Long sistemaId,
-        @NotNull Long responsableProyectoId,
-        @NotNull Long responsableDesarrolloId,
-        @NotNull Long responsableImplantacionId,
+        @NotNull Long jefeCarreraId,
+        @NotNull Long maestroId,
+        @NotNull Long carreraId,
         @NotNull Long ambienteId,
         @NotNull @Size(max = 255) String proyecto,
         @NotNull @Size(max = 50) String version,
         String descripcion,
-        @NotNull LocalDateTime fechaImplantacionPlanteada,
-        LocalDateTime fechaImplantacionReal
+        @NotNull LocalDateTime fechaInscripcionPlanteada,
+        LocalDateTime fechaInscripcionReal
 ) implements Serializable {
 }

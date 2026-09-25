@@ -11,7 +11,7 @@ import org.example.ejb.ServiceArtifax;
 
 import static org.example.rest.ApplicationConfig.Endpoints.RESPONSABLES;
 
-// Solo lectura -- catalogo del dominio solicitud/implantacion. El path sigue siendo
+// Solo lectura -- catalogo del dominio solicitud/inscripcion. El path sigue siendo
 // "/responsables" (Endpoints.RESPONSABLES) -- el rename no cambia el contrato de la API.
 //
 // Migrado al trio generico -- ya NO usa MiniFormRespService (borrado), ahora ServiceArtifax.

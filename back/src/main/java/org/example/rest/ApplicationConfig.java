@@ -41,17 +41,21 @@ public class ApplicationConfig extends ResourceConfig {
         public static final String ESTUDIANTES = "/estudiantes";
         public static final String MATRICULAS = "/matriculas";
 
-        // Dominio "solicitud/implantacion" -- separado del academico de arriba, comparte
+        // Dominio "solicitud/inscripcion" -- separado del academico de arriba, comparte
         // el mismo WAR/base de datos pero es un modulo sin relacion conceptual.
         public static final String ESTADOS = "/estados";
         public static final String SISTEMAS = "/sistemas";
         public static final String RESPONSABLES = "/responsables";
         public static final String AMBIENTES = "/ambientes";
-        public static final String IMPLANTACIONES = "/implantaciones";
+        public static final String INSCRIPCIONES = "/inscripciones";
 
-        // "Tablas genericas" para el formulario de implantacion -- no es un recurso por
+        // "Formaciones complementarias" 1:N ligadas a una Inscripcion por FK -- endpoint
+        // propio, no vienen embebidas en /inscripciones.
+        public static final String FORMACIONES_COMPLEMENTARIAS = "/formaciones-complementarias";
+
+        // "Tablas genericas" para el formulario de inscripcion -- no es un recurso por
         // entidad, es un bundle de los 4 catalogos de arriba en una sola respuesta.
-        public static final String CATALOGOS_IMPLANTACION = "/catalogos-implantacion";
+        public static final String CATALOGOS_INSCRIPCION = "/catalogos-inscripcion";
 
         // El propio directorio de endpoints activos (ver REGISTRO_ACTIVO/listEndpoints()
         // abajo, y EndpointsController.java).
@@ -74,8 +78,9 @@ public class ApplicationConfig extends ResourceConfig {
         REGISTRO_ACTIVO.put(Endpoints.SISTEMAS, MiniFormSisController.class);
         REGISTRO_ACTIVO.put(Endpoints.RESPONSABLES, MiniFormRespController.class);
         REGISTRO_ACTIVO.put(Endpoints.AMBIENTES, MiniFormAmbController.class);
-        REGISTRO_ACTIVO.put(Endpoints.IMPLANTACIONES, FormController.class);
-        REGISTRO_ACTIVO.put(Endpoints.CATALOGOS_IMPLANTACION, CatalogosImplantacionController.class);
+        REGISTRO_ACTIVO.put(Endpoints.INSCRIPCIONES, FormController.class);
+        REGISTRO_ACTIVO.put(Endpoints.FORMACIONES_COMPLEMENTARIAS, FormacionComplementariaController.class);
+        REGISTRO_ACTIVO.put(Endpoints.CATALOGOS_INSCRIPCION, CatalogosInscripcionController.class);
     }
 
     // Expuesto por EndpointsController (GET /api/endpoints) -- el front lo consume en

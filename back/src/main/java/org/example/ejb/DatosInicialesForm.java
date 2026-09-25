@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 // Siembra 3 filas ficticias por catalogo (MiniFormEst/MiniFormSis/MiniFormResp/MiniFormAmb)
-// + 3 Form combinandolas -- dominio "solicitud/implantacion", separado del DatosIniciales
+// + 3 Form combinandolas -- dominio "solicitud/inscripcion", separado del DatosIniciales
 // academico (Carrera/Materia/...). @Singleton @Startup aparte, mismo criterio que
 // DatosIniciales: corre una sola vez al desplegar.
 @Singleton
@@ -116,21 +116,21 @@ public class DatosInicialesForm {
 
     private Form nuevoForm(
             MiniFormEst estado, MiniFormSis sistema,
-            MiniFormResp responsableProyecto, MiniFormResp responsableDesarrollo, MiniFormResp responsableImplantacion,
+            MiniFormResp jefeCarrera, MiniFormResp maestro, MiniFormResp carrera,
             MiniFormAmb ambiente, String proyecto, String version, String descripcion,
             LocalDateTime fechaPlanteada, LocalDateTime fechaReal) {
         Form form = new Form();
         form.setEstado(estado);
         form.setSistema(sistema);
-        form.setResponsableProyecto(responsableProyecto);
-        form.setResponsableDesarrollo(responsableDesarrollo);
-        form.setResponsableImplantacion(responsableImplantacion);
+        form.setJefeCarrera(jefeCarrera);
+        form.setMaestro(maestro);
+        form.setCarrera(carrera);
         form.setAmbiente(ambiente);
         form.setProyecto(proyecto);
         form.setVersion(version);
         form.setDescripcion(descripcion);
-        form.setFechaImplantacionPlanteada(fechaPlanteada);
-        form.setFechaImplantacionReal(fechaReal);
+        form.setFechaInscripcionPlanteada(fechaPlanteada);
+        form.setFechaInscripcionReal(fechaReal);
         return form;
     }
 }

@@ -12,7 +12,7 @@ public interface MiniFormRespMapper {
 
     // Referencia por id: mismo patron que CarreraMapper.desdeId -- arma un MiniFormResp
     // "stub" (solo id). Form usa MiniFormResp 3 veces con roles distintos
-    // (responsableProyecto/Desarrollo/Implantacion) -- este UNICO metodo Long->MiniFormResp
+    // (jefeCarrera/Desarrollo/Inscripcion) -- este UNICO metodo Long->MiniFormResp
     // resuelve las 3 relaciones en FormMapper, MapStruct no necesita uno por rol.
     default MiniFormResp desdeId(Long id) {
         if (id == null) {

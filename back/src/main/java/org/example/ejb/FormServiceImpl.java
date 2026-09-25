@@ -24,7 +24,7 @@ public class FormServiceImpl implements FormService {
     @Inject
     private FormRepository formRepository;
 
-    // ServiceArtifax cachea Form en memoria (ver esa clase, listarImplantaciones()) para
+    // ServiceArtifax cachea Form en memoria (ver esa clase, listarInscripciones()) para
     // poder filtrar por estado/sistema/ambiente sin ir a la BD -- cada escritura de aqui
     // abajo tiene que avisarle, si no el cache se queda con datos viejos (mismo patron que
     // Producto en HelloJakarta-variante).
@@ -68,7 +68,7 @@ public class FormServiceImpl implements FormService {
         Form form = formMapper.toEntity(dto);
         resolverRelaciones(form, dto);
         Form creado = formRepository.insert(form);
-        serviceArtifax.refrescarImplantacion(creado);
+        serviceArtifax.refrescarInscripcion(creado);
         return formMapper.toDto(creado);
     }
 
@@ -79,7 +79,7 @@ public class FormServiceImpl implements FormService {
                     formMapper.actualizarDesde(form, dto);
                     resolverRelaciones(form, dto);
                     Form actualizado = formRepository.update(form);
-                    serviceArtifax.refrescarImplantacion(actualizado);
+                    serviceArtifax.refrescarInscripcion(actualizado);
                     return formMapper.toDto(actualizado);
                 })
                 .orElse(null);
@@ -93,12 +93,12 @@ public class FormServiceImpl implements FormService {
                 .orElseThrow(() -> new ReglaDeNegocioException("No existe el estado " + dto.estadoId())));
         form.setSistema(miniFormSisRepository.findById(dto.sistemaId())
                 .orElseThrow(() -> new ReglaDeNegocioException("No existe el sistema " + dto.sistemaId())));
-        form.setResponsableProyecto(miniFormRespRepository.findById(dto.responsableProyectoId())
-                .orElseThrow(() -> new ReglaDeNegocioException("No existe el responsable " + dto.responsableProyectoId())));
-        form.setResponsableDesarrollo(miniFormRespRepository.findById(dto.responsableDesarrolloId())
-                .orElseThrow(() -> new ReglaDeNegocioException("No existe el responsable " + dto.responsableDesarrolloId())));
-        form.setResponsableImplantacion(miniFormRespRepository.findById(dto.responsableImplantacionId())
-                .orElseThrow(() -> new ReglaDeNegocioException("No existe el responsable " + dto.responsableImplantacionId())));
+        form.setJefeCarrera(miniFormRespRepository.findById(dto.jefeCarreraId())
+                .orElseThrow(() -> new ReglaDeNegocioException("No existe el responsable " + dto.jefeCarreraId())));
+        form.setMaestro(miniFormRespRepository.findById(dto.maestroId())
+                .orElseThrow(() -> new ReglaDeNegocioException("No existe el responsable " + dto.maestroId())));
+        form.setCarrera(miniFormRespRepository.findById(dto.carreraId())
+                .orElseThrow(() -> new ReglaDeNegocioException("No existe el responsable " + dto.carreraId())));
         form.setAmbiente(miniFormAmbRepository.findById(dto.ambienteId())
                 .orElseThrow(() -> new ReglaDeNegocioException("No existe el ambiente " + dto.ambienteId())));
     }

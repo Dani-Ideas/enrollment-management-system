@@ -13,7 +13,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 // Tabla MINIFORMSIS (antes CAT_SISTEMA/Sistema) -- "sistema" aqui es un sistema de TI sobre
-// el que se pide una implantacion (dominio "solicitud/implantacion"), sin relacion con el
+// el que se pide una inscripcion (dominio "solicitud/inscripcion"), sin relacion con el
 // nombre del proyecto SistemaMatriculas ni con ninguna entidad academica.
 @Getter
 @Setter

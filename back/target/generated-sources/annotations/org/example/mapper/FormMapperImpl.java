@@ -14,7 +14,7 @@ import org.example.model.MiniFormSis;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-09-22T10:30:47-0600",
+    date = "2026-09-25T03:26:03-0600",
     comments = "version: 1.6.3, compiler: javac, environment: Java 21.0.12.1 (Arch Linux)"
 )
 @ApplicationScoped
@@ -37,31 +37,31 @@ public class FormMapperImpl implements FormMapper {
 
         String estado = null;
         String sistema = null;
-        String responsableProyecto = null;
-        String responsableDesarrollo = null;
-        String responsableImplantacion = null;
+        String jefeCarrera = null;
+        String maestro = null;
+        String carrera = null;
         String ambiente = null;
         Long id = null;
         String proyecto = null;
         String version = null;
         String descripcion = null;
-        LocalDateTime fechaImplantacionPlanteada = null;
-        LocalDateTime fechaImplantacionReal = null;
+        LocalDateTime fechaInscripcionPlanteada = null;
+        LocalDateTime fechaInscripcionReal = null;
 
         estado = formEstadoEstado( form );
         sistema = formSistemaNombre( form );
-        responsableProyecto = formResponsableProyectoNombreLargo( form );
-        responsableDesarrollo = formResponsableDesarrolloNombreLargo( form );
-        responsableImplantacion = formResponsableImplantacionNombreLargo( form );
+        jefeCarrera = formJefeCarreraNombreLargo( form );
+        maestro = formMaestroNombreLargo( form );
+        carrera = formCarreraNombreLargo( form );
         ambiente = formAmbienteNombre( form );
         id = form.getId();
         proyecto = form.getProyecto();
         version = form.getVersion();
         descripcion = form.getDescripcion();
-        fechaImplantacionPlanteada = form.getFechaImplantacionPlanteada();
-        fechaImplantacionReal = form.getFechaImplantacionReal();
+        fechaInscripcionPlanteada = form.getFechaInscripcionPlanteada();
+        fechaInscripcionReal = form.getFechaInscripcionReal();
 
-        FormDto formDto = new FormDto( id, estado, sistema, responsableProyecto, responsableDesarrollo, responsableImplantacion, ambiente, proyecto, version, descripcion, fechaImplantacionPlanteada, fechaImplantacionReal );
+        FormDto formDto = new FormDto( id, estado, sistema, jefeCarrera, maestro, carrera, ambiente, proyecto, version, descripcion, fechaInscripcionPlanteada, fechaInscripcionReal );
 
         return formDto;
     }
@@ -76,15 +76,15 @@ public class FormMapperImpl implements FormMapper {
 
         form.setEstado( miniFormEstMapper.desdeId( dto.estadoId() ) );
         form.setSistema( miniFormSisMapper.desdeId( dto.sistemaId() ) );
-        form.setResponsableProyecto( miniFormRespMapper.desdeId( dto.responsableProyectoId() ) );
-        form.setResponsableDesarrollo( miniFormRespMapper.desdeId( dto.responsableDesarrolloId() ) );
-        form.setResponsableImplantacion( miniFormRespMapper.desdeId( dto.responsableImplantacionId() ) );
+        form.setJefeCarrera( miniFormRespMapper.desdeId( dto.jefeCarreraId() ) );
+        form.setMaestro( miniFormRespMapper.desdeId( dto.maestroId() ) );
+        form.setCarrera( miniFormRespMapper.desdeId( dto.carreraId() ) );
         form.setAmbiente( miniFormAmbMapper.desdeId( dto.ambienteId() ) );
         form.setProyecto( dto.proyecto() );
         form.setVersion( dto.version() );
         form.setDescripcion( dto.descripcion() );
-        form.setFechaImplantacionPlanteada( dto.fechaImplantacionPlanteada() );
-        form.setFechaImplantacionReal( dto.fechaImplantacionReal() );
+        form.setFechaInscripcionPlanteada( dto.fechaInscripcionPlanteada() );
+        form.setFechaInscripcionReal( dto.fechaInscripcionReal() );
 
         return form;
     }
@@ -97,15 +97,15 @@ public class FormMapperImpl implements FormMapper {
 
         form.setEstado( miniFormEstMapper.desdeId( dto.estadoId() ) );
         form.setSistema( miniFormSisMapper.desdeId( dto.sistemaId() ) );
-        form.setResponsableProyecto( miniFormRespMapper.desdeId( dto.responsableProyectoId() ) );
-        form.setResponsableDesarrollo( miniFormRespMapper.desdeId( dto.responsableDesarrolloId() ) );
-        form.setResponsableImplantacion( miniFormRespMapper.desdeId( dto.responsableImplantacionId() ) );
+        form.setJefeCarrera( miniFormRespMapper.desdeId( dto.jefeCarreraId() ) );
+        form.setMaestro( miniFormRespMapper.desdeId( dto.maestroId() ) );
+        form.setCarrera( miniFormRespMapper.desdeId( dto.carreraId() ) );
         form.setAmbiente( miniFormAmbMapper.desdeId( dto.ambienteId() ) );
         form.setProyecto( dto.proyecto() );
         form.setVersion( dto.version() );
         form.setDescripcion( dto.descripcion() );
-        form.setFechaImplantacionPlanteada( dto.fechaImplantacionPlanteada() );
-        form.setFechaImplantacionReal( dto.fechaImplantacionReal() );
+        form.setFechaInscripcionPlanteada( dto.fechaInscripcionPlanteada() );
+        form.setFechaInscripcionReal( dto.fechaInscripcionReal() );
     }
 
     private String formEstadoEstado(Form form) {
@@ -124,28 +124,28 @@ public class FormMapperImpl implements FormMapper {
         return sistema.getNombre();
     }
 
-    private String formResponsableProyectoNombreLargo(Form form) {
-        MiniFormResp responsableProyecto = form.getResponsableProyecto();
-        if ( responsableProyecto == null ) {
+    private String formJefeCarreraNombreLargo(Form form) {
+        MiniFormResp jefeCarrera = form.getJefeCarrera();
+        if ( jefeCarrera == null ) {
             return null;
         }
-        return responsableProyecto.getNombreLargo();
+        return jefeCarrera.getNombreLargo();
     }
 
-    private String formResponsableDesarrolloNombreLargo(Form form) {
-        MiniFormResp responsableDesarrollo = form.getResponsableDesarrollo();
-        if ( responsableDesarrollo == null ) {
+    private String formMaestroNombreLargo(Form form) {
+        MiniFormResp maestro = form.getMaestro();
+        if ( maestro == null ) {
             return null;
         }
-        return responsableDesarrollo.getNombreLargo();
+        return maestro.getNombreLargo();
     }
 
-    private String formResponsableImplantacionNombreLargo(Form form) {
-        MiniFormResp responsableImplantacion = form.getResponsableImplantacion();
-        if ( responsableImplantacion == null ) {
+    private String formCarreraNombreLargo(Form form) {
+        MiniFormResp carrera = form.getCarrera();
+        if ( carrera == null ) {
             return null;
         }
-        return responsableImplantacion.getNombreLargo();
+        return carrera.getNombreLargo();
     }
 
     private String formAmbienteNombre(Form form) {

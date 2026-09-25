@@ -11,7 +11,7 @@ import org.example.ejb.ServiceArtifax;
 
 import static org.example.rest.ApplicationConfig.Endpoints.SISTEMAS;
 
-// Solo lectura -- catalogo del dominio solicitud/implantacion. El path sigue siendo
+// Solo lectura -- catalogo del dominio solicitud/inscripcion. El path sigue siendo
 // "/sistemas" (Endpoints.SISTEMAS) -- el rename no cambia el contrato de la API.
 //
 // Migrado al trio generico -- ya NO usa MiniFormSisService (borrado), ahora ServiceArtifax.

@@ -18,14 +18,13 @@ import lombok.Setter;
 
 import java.time.LocalDateTime;
 
-// Tabla FORM (antes SOL_N_IMPLANTACION/Implantacion) -- la entidad principal del dominio
-// "solicitud/implantacion", renombrada en cascada a pedido. Distinta de "Solicitud" a
-// proposito: la tabla SOL_SOLICITUD ya existia de antes (sin tocar) y es un concepto
-// DISTINTO -- usar el mismo nombre en Java hubiera sido confuso.
+// Tabla FORM -- la entidad principal del dominio "solicitud/inscripcion". Distinta de
+// "Solicitud" a proposito: la tabla SOL_SOLICITUD ya existia de antes (sin tocar) y es un
+// concepto DISTINTO -- usar el mismo nombre en Java hubiera sido confuso.
 //
 // Las 6 relaciones son casi toda la tabla (MiniFormEst, MiniFormSis, 3x MiniFormResp con
 // roles distintos, MiniFormAmb) -- son FK hacia catalogos clave-valor chicos, no relaciones
-// de negocio complejas. Los nombres de campo Java (estado/sistema/responsableProyecto/...)
+// de negocio complejas. Los nombres de campo Java (estado/sistema/jefeCarrera/...)
 // NO cambiaron -- solo el TIPO de cada uno -- para no tocar ningun DTO ni el JSON de la API.
 @Getter
 @Setter
@@ -51,15 +50,15 @@ public class Form {
     // patron que el SELECT original (3 JOIN separados contra la tabla de responsables).
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_MINIFORMRESP_PROYECTO", nullable = false)
-    private MiniFormResp responsableProyecto;
+    private MiniFormResp jefeCarrera;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_MINIFORMRESP_DESARROLLO", nullable = false)
-    private MiniFormResp responsableDesarrollo;
+    private MiniFormResp maestro;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_MINIFORMRESP_IMPLANTACION", nullable = false)
-    private MiniFormResp responsableImplantacion;
+    private MiniFormResp carrera;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_MINIFORMAMB", nullable = false)
@@ -83,11 +82,11 @@ public class Form {
 
     @NotNull
     @Column(name = "FECHA_IMPLANTACION_PLANTEADA", nullable = false)
-    private LocalDateTime fechaImplantacionPlanteada;
+    private LocalDateTime fechaInscripcionPlanteada;
 
-    // Null hasta que la implantacion realmente se ejecuta.
+    // Null hasta que la inscripcion realmente se ejecuta.
     @Column(name = "FECHA_IMPLANTACION_REAL")
-    private LocalDateTime fechaImplantacionReal;
+    private LocalDateTime fechaInscripcionReal;
 
     public Form() {
     }

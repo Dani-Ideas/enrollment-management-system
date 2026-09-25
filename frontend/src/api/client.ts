@@ -1,22 +1,23 @@
-import axios from "axios";
+import axios, { type AxiosRequestConfig } from "axios";
 import type {
   AmbienteDTO,
+  FormacionComplementariaDTO,
+  FormacionComplementariaRequestDTO,
   EstadoDTO,
-  ImplantacionDTO,
-  ImplantacionRequestDTO,
+  InscripcionDTO,
+  InscripcionRequestDTO,
   ResponsableDTO,
   SistemaDTO,
-  TablasImplantacionDTO,
+  TablasInscripcionDTO,
 } from "./types";
 
 // Ruta relativa: en `npm run dev` la resuelve el proxy de vite.config.ts hacia GlassFish;
 // en produccion, el frontend vive dentro del mismo WAR, asi que resuelve al mismo origen.
 const API_BASE = "/SistemaMatriculas/api";
 
-// Cliente de axios, solo para "tablas genericas" -- el resto de este archivo sigue con el
-// helper request()/fetch() de siempre, sin tocarlo (mismo criterio que
-// HelloJakarta-variante: axios es literal lo que se pidio para este caso puntual, no un
-// reemplazo general de fetch).
+// UN SOLO cliente de axios para TODO este archivo, sin excepcion -- antes solo lo usaba
+// fetchTablasInscripcion() y el resto seguia con fetch()/RequestInit; ahora todas las
+// funciones de abajo pasan por request(), que a su vez pasa por este cliente.
 const axiosClient = axios.create({
   baseURL: API_BASE,
   headers: { "Content-Type": "application/json" },
@@ -24,15 +25,15 @@ const axiosClient = axios.create({
 
 // UNICA fuente de verdad de los paths que usa este archivo -- cada funcion de abajo
 // referencia una de estas constantes, nunca un string suelto escrito dos veces. Evita que
-// el mismo path quede tipeado en mas de un lugar y se desincronice por un typo (justo el
-// riesgo que se queria evitar).
+// el mismo path quede tipeado en mas de un lugar y se desincronice por un typo.
 const RUTAS = {
   estados: "/estados",
   sistemas: "/sistemas",
   responsables: "/responsables",
   ambientes: "/ambientes",
-  catalogosImplantacion: "/catalogos-implantacion",
-  implantaciones: "/implantaciones",
+  catalogosInscripcion: "/catalogos-inscripcion",
+  inscripciones: "/inscripciones",
+  formacionesComplementarias: "/formaciones-complementarias",
   endpoints: "/endpoints",
 } as const;
 
@@ -61,33 +62,39 @@ if (import.meta.env.DEV) {
     });
 }
 
-async function parseErrorBody(response: Response): Promise<string> {
-  try {
-    const body = await response.json();
+// Arma un mensaje legible a partir de un error de axios -- reemplaza al parseErrorBody()
+// que antes leia el body con response.json() (API de fetch); con axios el body de un
+// error ya viene parseado en error.response.data, no hace falta volver a leerlo.
+function mensajeDeError(error: unknown): string {
+  if (axios.isAxiosError(error)) {
+    const body: unknown = error.response?.data;
     if (typeof body === "object" && body !== null) {
-      return Object.values(body).join(", ");
+      const valores = Object.values(body as Record<string, unknown>);
+      if (valores.length > 0) {
+        return valores.join(", ");
+      }
     }
-  } catch {
-    // el body no era JSON valido, se usa el mensaje generico de abajo
+    if (error.response) {
+      return `${error.response.status} ${error.response.statusText}`;
+    }
+    return error.message;
   }
-  return `${response.status} ${response.statusText}`;
+  return error instanceof Error ? error.message : String(error);
 }
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, {
-    headers: { "Content-Type": "application/json" },
-    ...options,
-  });
-  if (!response.ok) {
-    throw new Error(await parseErrorBody(response));
+// Unico punto de salida hacia el backend para todo este archivo -- GET/POST/PUT, todos
+// pasan por aqui, todos por axiosClient. "config" es el AxiosRequestConfig normal
+// (method/data/params/...); por defecto es GET si no se especifica method.
+async function request<T>(path: string, config?: AxiosRequestConfig): Promise<T> {
+  try {
+    const response = await axiosClient.request<T>({ url: path, ...config });
+    return response.data;
+  } catch (error) {
+    throw new Error(mensajeDeError(error));
   }
-  if (response.status === 204) {
-    return undefined as T;
-  }
-  return response.json();
 }
 
-// --- Dominio "solicitud/implantacion" -- unico dominio de negocio del front ---
+// --- Dominio "solicitud/inscripcion" -- unico dominio de negocio del front ---
 
 export function fetchEstados(): Promise<EstadoDTO[]> {
   return request<EstadoDTO[]>(RUTAS.estados);
@@ -107,47 +114,79 @@ export function fetchAmbientes(): Promise<AmbienteDTO[]> {
 
 // "Tablas genericas": UNA sola llamada para los 4 catalogos de arriba, en vez de
 // fetchEstados() + fetchSistemas() + fetchResponsables() + fetchAmbientes() por
-// separado -- pensada para usarse con useQuery de TanStack Query.
-export function fetchTablasImplantacion(): Promise<TablasImplantacionDTO> {
-  return axiosClient.get<TablasImplantacionDTO>(RUTAS.catalogosImplantacion).then((res) => res.data);
+// separado. Es la que mas se usa en todo el front: el 100% de los PUT/POST de
+// inscripciones arman su InscripcionRequestDTO resolviendo nombre -> id contra estos
+// mismos catalogos (ver InscripcionWizard.tsx/FormularioPagoPage.tsx).
+export function fetchTablasInscripcion(): Promise<TablasInscripcionDTO> {
+  return request<TablasInscripcionDTO>(RUTAS.catalogosInscripcion);
 }
+
+// UNICA fuente de verdad de como se pide/cachea "tablas genericas" en TODA la app --
+// HomePage.tsx la precarga apenas se entra al sitio (queryClient.prefetchQuery con este
+// mismo objeto), y FormularioPagoPage.tsx/InscripcionWizard.tsx usan useQuery con este
+// MISMO objeto. TanStack Query identifica una entrada de cache por su queryKey -- si cada
+// lugar escribiera ["catalogos-inscripcion"] a mano, un solo caracter distinto (o incluso
+// nada distinto pero por las dudas) rompe el "compartir cache" sin avisar. Exportando un
+// solo objeto y haciendo spread (...CATALOGOS_INSCRIPCION_QUERY) en cada useQuery/
+// prefetchQuery, es IMPOSIBLE que se desincronicen.
+export const CATALOGOS_INSCRIPCION_QUERY = {
+  queryKey: ["catalogos-inscripcion"] as const,
+  queryFn: fetchTablasInscripcion,
+  staleTime: 5 * 60 * 1000,
+};
 
 // Filtros opcionales -- cada uno ausente/undefined significa "no filtrar por ese campo",
 // igual que antes devolvia todo (ver FormController.listar()/ServiceArtifax.
-// listarImplantaciones() en el backend, que cachean Implantacion en memoria justo para
-// esto). URLSearchParams solo agrega los que de verdad vengan con valor.
-export interface FiltrosImplantaciones {
+// listarInscripciones() en el backend, que cachean Inscripcion en memoria justo para
+// esto). axios omite del query string los params en undefined/null solo -- no hace falta
+// armar el URLSearchParams a mano.
+export interface FiltrosInscripciones {
   estadoId?: number;
   sistemaId?: number;
   ambienteId?: number;
 }
 
-export function fetchImplantaciones(filtros?: FiltrosImplantaciones): Promise<ImplantacionDTO[]> {
-  const params = new URLSearchParams();
-  if (filtros?.estadoId !== undefined) params.set("estadoId", String(filtros.estadoId));
-  if (filtros?.sistemaId !== undefined) params.set("sistemaId", String(filtros.sistemaId));
-  if (filtros?.ambienteId !== undefined) params.set("ambienteId", String(filtros.ambienteId));
-  const query = params.size > 0 ? `?${params.toString()}` : "";
-  return request<ImplantacionDTO[]>(`${RUTAS.implantaciones}${query}`);
-}
-
-export function fetchImplantacion(id: number): Promise<ImplantacionDTO> {
-  return request<ImplantacionDTO>(`${RUTAS.implantaciones}/${id}`);
-}
-
-export function crearImplantacion(dto: ImplantacionRequestDTO): Promise<ImplantacionDTO> {
-  return request<ImplantacionDTO>(RUTAS.implantaciones, {
-    method: "POST",
-    body: JSON.stringify(dto),
+export function fetchInscripciones(filtros?: FiltrosInscripciones): Promise<InscripcionDTO[]> {
+  return request<InscripcionDTO[]>(RUTAS.inscripciones, {
+    params: {
+      estadoId: filtros?.estadoId,
+      sistemaId: filtros?.sistemaId,
+      ambienteId: filtros?.ambienteId,
+    },
   });
 }
 
-export function actualizarImplantacion(
+export function fetchInscripcion(id: number): Promise<InscripcionDTO> {
+  return request<InscripcionDTO>(`${RUTAS.inscripciones}/${id}`);
+}
+
+export function crearInscripcion(dto: InscripcionRequestDTO): Promise<InscripcionDTO> {
+  return request<InscripcionDTO>(RUTAS.inscripciones, { method: "POST", data: dto });
+}
+
+export function actualizarInscripcion(
   id: number,
-  dto: ImplantacionRequestDTO,
-): Promise<ImplantacionDTO> {
-  return request<ImplantacionDTO>(`${RUTAS.implantaciones}/${id}`, {
-    method: "PUT",
-    body: JSON.stringify(dto),
-  });
+  dto: InscripcionRequestDTO,
+): Promise<InscripcionDTO> {
+  return request<InscripcionDTO>(`${RUTAS.inscripciones}/${id}`, { method: "PUT", data: dto });
+}
+
+// --- "Formaciones complementarias" 1:N ligadas a una Inscripcion por FK (inscripcionId) ---
+// Endpoint propio, aparte de /inscripciones -- se piden solo cuando hacen falta: al
+// crear/editar una Inscripcion, o al abrir "Ver detalle" en la lista.
+
+export function fetchFormacionesComplementariasPorInscripcion(inscripcionId: number): Promise<FormacionComplementariaDTO[]> {
+  return request<FormacionComplementariaDTO[]>(RUTAS.formacionesComplementarias, { params: { inscripcionId } });
+}
+
+export function crearFormacionComplementaria(dto: FormacionComplementariaRequestDTO): Promise<FormacionComplementariaDTO> {
+  return request<FormacionComplementariaDTO>(RUTAS.formacionesComplementarias, { method: "POST", data: dto });
+}
+
+export function actualizarFormacionComplementaria(id: number, dto: FormacionComplementariaRequestDTO): Promise<FormacionComplementariaDTO> {
+  return request<FormacionComplementariaDTO>(`${RUTAS.formacionesComplementarias}/${id}`, { method: "PUT", data: dto });
+}
+
+export function eliminarFormacionComplementaria(id: number): Promise<void> {
+  return request<void>(`${RUTAS.formacionesComplementarias}/${id}`, { method: "DELETE" });
 }

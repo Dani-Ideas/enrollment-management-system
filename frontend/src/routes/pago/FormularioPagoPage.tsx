@@ -3,13 +3,17 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
 import { cn } from "@/lib/utils"
 import {
-  actualizarImplantacion,
-  crearImplantacion,
-  fetchImplantacion,
-  fetchImplantaciones,
-  fetchTablasImplantacion,
+  actualizarFormacionComplementaria,
+  actualizarInscripcion,
+  CATALOGOS_INSCRIPCION_QUERY,
+  crearFormacionComplementaria,
+  crearInscripcion,
+  eliminarFormacionComplementaria,
+  fetchFormacionesComplementariasPorInscripcion,
+  fetchInscripcion,
+  fetchInscripciones,
 } from "@/api/client"
-import type { ImplantacionDTO, ImplantacionRequestDTO } from "@/api/types"
+import type { InscripcionDTO, InscripcionRequestDTO } from "@/api/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import {
@@ -24,7 +28,6 @@ import {
   NavigationMenuList,
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Field, FieldDescription, FieldGroup, FieldLabel, FieldSet } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { NativeSelect } from "@/components/ui/native-select"
@@ -34,53 +37,39 @@ import { Spinner } from "@/components/ui/spinner"
 import {
   ArrowLeftIcon,
   CheckCircle2Icon,
-  FlaskConicalIcon,
-  GraduationCapIcon,
+  ListPlusIcon,
   PencilIcon,
   PlusIcon,
-  PresentationIcon,
   RotateCcwIcon,
   SearchIcon,
+  Trash2Icon,
   TriangleAlertIcon,
 } from "lucide-react"
 
-// ============================================================================
-// Bloque EXPERIMENTAL (prueba de concepto) -- registro/modificacion de un
-// alumno o de un profesor+materia, con checklist segun cual se elija. Vive
-// SOLO en esta pagina, SOLO en el paso "Revisá antes de finalizar" de
-// "crear", y no manda nada al backend ni cambia lo que ya se envia con
-// crearImplantacion -- es puramente visual, para demostrar el flujo
-// (filtro por tipo -> checklist), nada mas. Los items de cada checklist son
-// ilustrativos, no corresponden a ningun endpoint real todavia.
-type TipoRegistroExperimental = "alumno" | "maestro"
-
-const CHECKLIST_ALUMNO = [
-  "Datos personales verificados",
-  "Documento de identidad entregado",
-  "Carrera asignada",
-  "Pago de matrícula confirmado",
-]
-
-const CHECKLIST_MAESTRO = [
-  "Perfil académico verificado",
-  "Materias asignadas",
-  "Contrato firmado",
-  "Horario de disponibilidad cargado",
-]
-
 type Accion = "crear" | "actualizar"
 
+// "Formaciones complementarias": lista 1:N ligada a una Inscripcion por FK (inscripcionId) -- ver
+// FormacionComplementaria.java / FormacionComplementariaController.java. Al CREAR, se juntan como simples
+// strings (todavia no hay inscripcionId) y se mandan uno por uno DESPUES de que la
+// Inscripcion ya existe (ver crearFormacionesMutation, encadenada en el onSuccess de
+// crearInscripcionMutation). Al ACTUALIZAR, cada fila ya tiene su id real (o null si se
+// agrego durante la edicion) -- ver FormacionComplementariaEditable/formacionesOriginalRef mas abajo.
+interface FormacionComplementariaEditable {
+  id: number | null
+  descripcion: string
+}
+
 // Campos del formulario en su forma "de UI": todo string (lo que dan los
-// <input>/<select> nativos) -- se convierten a numero/ImplantacionRequestDTO
+// <input>/<select> nativos) -- se convierten a numero/InscripcionRequestDTO
 // recien en el momento de mandar la peticion (ver camposADto). Un solo tipo
 // para crear Y editar porque son los mismos 11 campos del mismo
-// ImplantacionRequestDTO.
+// InscripcionRequestDTO.
 interface CamposFormulario {
   estadoId: string
   sistemaId: string
-  responsableProyectoId: string
-  responsableDesarrolloId: string
-  responsableImplantacionId: string
+  jefeCarreraId: string
+  maestroId: string
+  carreraId: string
   ambienteId: string
   proyecto: string
   version: string
@@ -92,9 +81,9 @@ interface CamposFormulario {
 const CAMPOS_VACIOS: CamposFormulario = {
   estadoId: "",
   sistemaId: "",
-  responsableProyectoId: "",
-  responsableDesarrolloId: "",
-  responsableImplantacionId: "",
+  jefeCarreraId: "",
+  maestroId: "",
+  carreraId: "",
   ambienteId: "",
   proyecto: "",
   version: "",
@@ -137,37 +126,37 @@ function totalPasos(accion: Accion | null): number {
   return 1
 }
 
-function renderDetalle(implantacion: ImplantacionDTO) {
+function renderDetalle(inscripcion: InscripcionDTO) {
   return (
     <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
       <dt className="text-muted-foreground">Proyecto</dt>
-      <dd>{implantacion.proyecto}</dd>
+      <dd>{inscripcion.proyecto}</dd>
       <dt className="text-muted-foreground">Versión</dt>
-      <dd>{implantacion.version}</dd>
+      <dd>{inscripcion.version}</dd>
       <dt className="text-muted-foreground">Estado</dt>
-      <dd>{implantacion.estado}</dd>
+      <dd>{inscripcion.estado}</dd>
       <dt className="text-muted-foreground">Sistema</dt>
-      <dd>{implantacion.sistema}</dd>
+      <dd>{inscripcion.sistema}</dd>
       <dt className="text-muted-foreground">Ambiente</dt>
-      <dd>{implantacion.ambiente}</dd>
-      <dt className="text-muted-foreground">Responsable de proyecto</dt>
-      <dd>{implantacion.responsableProyecto}</dd>
-      <dt className="text-muted-foreground">Responsable de desarrollo</dt>
-      <dd>{implantacion.responsableDesarrollo}</dd>
-      <dt className="text-muted-foreground">Responsable de implantación</dt>
-      <dd>{implantacion.responsableImplantacion}</dd>
+      <dd>{inscripcion.ambiente}</dd>
+      <dt className="text-muted-foreground">Jefe de Carrera</dt>
+      <dd>{inscripcion.jefeCarrera}</dd>
+      <dt className="text-muted-foreground">Maestro</dt>
+      <dd>{inscripcion.maestro}</dd>
+      <dt className="text-muted-foreground">Carrera</dt>
+      <dd>{inscripcion.carrera}</dd>
       <dt className="text-muted-foreground">Fecha planteada</dt>
-      <dd>{implantacion.fechaImplantacionPlanteada}</dd>
-      {implantacion.fechaImplantacionReal && (
+      <dd>{inscripcion.fechaInscripcionPlanteada}</dd>
+      {inscripcion.fechaInscripcionReal && (
         <>
           <dt className="text-muted-foreground">Fecha real</dt>
-          <dd>{implantacion.fechaImplantacionReal}</dd>
+          <dd>{inscripcion.fechaInscripcionReal}</dd>
         </>
       )}
-      {implantacion.descripcion && (
+      {inscripcion.descripcion && (
         <>
           <dt className="text-muted-foreground">Descripción</dt>
-          <dd>{implantacion.descripcion}</dd>
+          <dd>{inscripcion.descripcion}</dd>
         </>
       )}
     </dl>
@@ -175,7 +164,7 @@ function renderDetalle(implantacion: ImplantacionDTO) {
 }
 
 // ============================================================================
-// Carrusel para el dominio "solicitud/implantacion": primero pregunta, en un
+// Carrusel para el dominio "solicitud/inscripcion": primero pregunta, en un
 // choque de opciones mutuamente excluyente, si el tramite es CREAR una
 // solicitud nueva o ACTUALIZAR una existente -- recien ahi arma el resto de
 // los pasos. Cada eleccion (la accion, un catalogo, guardar) es en si misma
@@ -242,27 +231,27 @@ export function FormularioPagoPage() {
     setCampos((anteriores) => ({ ...anteriores, [campo]: valor }))
   }
 
-  function camposADto(c: CamposFormulario): ImplantacionRequestDTO {
+  function camposADto(c: CamposFormulario): InscripcionRequestDTO {
     return {
       estadoId: Number(c.estadoId),
       sistemaId: Number(c.sistemaId),
-      responsableProyectoId: Number(c.responsableProyectoId),
-      responsableDesarrolloId: Number(c.responsableDesarrolloId),
-      responsableImplantacionId: Number(c.responsableImplantacionId),
+      jefeCarreraId: Number(c.jefeCarreraId),
+      maestroId: Number(c.maestroId),
+      carreraId: Number(c.carreraId),
       ambienteId: Number(c.ambienteId),
       proyecto: c.proyecto,
       version: c.version,
       descripcion: c.descripcion.trim() === "" ? null : c.descripcion,
-      fechaImplantacionPlanteada: c.fechaPlanteada,
-      fechaImplantacionReal: c.fechaReal.trim() === "" ? null : c.fechaReal,
+      fechaInscripcionPlanteada: c.fechaPlanteada,
+      fechaInscripcionReal: c.fechaReal.trim() === "" ? null : c.fechaReal,
     }
   }
 
   const catalogoCompleto = campos.estadoId !== "" && campos.sistemaId !== "" && campos.ambienteId !== ""
   const responsablesCompletos =
-    campos.responsableProyectoId !== "" &&
-    campos.responsableDesarrolloId !== "" &&
-    campos.responsableImplantacionId !== ""
+    campos.jefeCarreraId !== "" &&
+    campos.maestroId !== "" &&
+    campos.carreraId !== ""
   const datosProyectoCompletos =
     campos.proyecto.trim() !== "" && campos.version.trim() !== "" && campos.fechaPlanteada !== ""
   const formularioCompleto = catalogoCompleto && responsablesCompletos && datosProyectoCompletos
@@ -277,10 +266,15 @@ export function FormularioPagoPage() {
     setSolicitudIdActual(null)
     baselineIdRef.current = null
     setListaIdInput("")
-    buscarImplantacionMutation.reset()
-    crearImplantacionMutation.reset()
-    actualizarImplantacionMutation.reset()
-    reiniciarExperimental()
+    buscarInscripcionMutation.reset()
+    crearInscripcionMutation.reset()
+    actualizarInscripcionMutation.reset()
+    setFormacionesNuevas([])
+    crearFormacionesMutation.reset()
+    setFormacionesEditables([])
+    formacionesOriginalRef.current = []
+    setGuardadoConfirmado(false)
+    sincronizarFormacionesMutation.reset()
   }
 
   function elegirAccion(nueva: Accion) {
@@ -293,11 +287,13 @@ export function FormularioPagoPage() {
   // (via axios), en vez de 4 useQuery independientes -- mismo staleTime largo de antes
   // (son datos estaticos, sembrados una vez, sin endpoint de escritura, no tiene sentido
   // re-pedirlos seguido).
+  // ...CATALOGOS_INSCRIPCION_QUERY (mismo queryKey/queryFn/staleTime que usa
+  // HomePage.tsx para precargar esto) -- asi comparten la MISMA entrada de cache de
+  // TanStack Query, nunca dos objetos con el mismo contenido escritos a mano en 2 lugares
+  // (eso podria desincronizarse sin que nadie lo note).
   const catalogosQuery = useQuery({
-    queryKey: ["catalogos-implantacion"],
-    queryFn: fetchTablasImplantacion,
+    ...CATALOGOS_INSCRIPCION_QUERY,
     enabled: accion !== null,
-    staleTime: 5 * 60 * 1000,
   })
   // Shims con la MISMA forma que antes tenian los 4 useQuery sueltos (.data/.isLoading/
   // .isSuccess) -- el resto del archivo (~15 usos mas abajo) sigue leyendo
@@ -327,21 +323,54 @@ export function FormularioPagoPage() {
   // --- Lista completa -- solo hace falta en "actualizar" (elegir de que
   // solicitud partir). staleTime corto (10s): a diferencia de los catalogos,
   // esta es la lista de las SOLICITUDES mismas.
-  const implantacionesQuery = useQuery({
-    queryKey: ["implantaciones"],
-    // fetchImplantaciones ahora acepta filtros opcionales (ver client.ts) -- sin
+  const inscripcionesQuery = useQuery({
+    queryKey: ["inscripciones"],
+    // fetchInscripciones ahora acepta filtros opcionales (ver client.ts) -- sin
     // envolver en una arrow function, TanStack Query le pasaria su propio objeto de
     // contexto (queryKey/signal/...) como si fuera el parametro de filtros.
-    queryFn: () => fetchImplantaciones(),
+    queryFn: () => fetchInscripciones(),
     enabled: accion === "actualizar",
     staleTime: 10 * 1000,
   })
 
-  // --- Crear: POST /implantaciones ---
-  const crearImplantacionMutation = useMutation({
-    mutationFn: crearImplantacion,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["implantaciones"] })
+  // --- Formaciones complementarias nuevas (paso "crear") -- simples strings todavia, la Inscripcion no
+  // existe hasta que se confirma "Finalizar y crear" mas abajo.
+  const [formacionesNuevas, setFormacionesNuevas] = useState<string[]>([])
+
+  function agregarFormacionNueva() {
+    setFormacionesNuevas((anteriores) => [...anteriores, ""])
+  }
+
+  function cambiarFormacionNueva(indice: number, valor: string) {
+    setFormacionesNuevas((anteriores) => anteriores.map((d, i) => (i === indice ? valor : d)))
+  }
+
+  function quitarFormacionNueva(indice: number) {
+    setFormacionesNuevas((anteriores) => anteriores.filter((_, i) => i !== indice))
+  }
+
+  // Se dispara SOLO despues de que crearInscripcionMutation ya confirmo la Inscripcion
+  // (ver su onSuccess, abajo) -- recien ahi existe el id real que necesita cada formación complementaria
+  // como FK. Un solo POST por formación complementaria (no hay bulk-create en el backend).
+  const crearFormacionesMutation = useMutation({
+    mutationFn: (args: { inscripcionId: number; descripciones: string[] }) =>
+      Promise.all(
+        args.descripciones.map((descripcion) =>
+          crearFormacionComplementaria({ inscripcionId: args.inscripcionId, descripcion }),
+        ),
+      ),
+  })
+
+  // --- Crear: POST /inscripciones, y encadenado, un POST /formaciones-complementarias por cada
+  // formación complementaria cargada en formacionesNuevas ---
+  const crearInscripcionMutation = useMutation({
+    mutationFn: crearInscripcion,
+    onSuccess: (creada) => {
+      queryClient.invalidateQueries({ queryKey: ["inscripciones"] })
+      const descripciones = formacionesNuevas.map((d) => d.trim()).filter((d) => d !== "")
+      if (descripciones.length > 0) {
+        crearFormacionesMutation.mutate({ inscripcionId: creada.id, descripciones })
+      }
       desbloquearHasta(4)
       api?.scrollTo(4)
     },
@@ -349,39 +378,12 @@ export function FormularioPagoPage() {
 
   function crearOtra() {
     setCampos(CAMPOS_VACIOS)
-    crearImplantacionMutation.reset()
+    crearInscripcionMutation.reset()
+    setFormacionesNuevas([])
+    crearFormacionesMutation.reset()
     maxStepRef.current = 1
     setMaxStep(1)
     api?.scrollTo(1)
-    reiniciarExperimental()
-  }
-
-  // --- Bloque experimental (ver comentario junto a los tipos, arriba) --
-  // estado 100% local, nunca se combina con camposADto() ni se manda en
-  // crearImplantacionMutation -- por eso no necesita su propia mutation.
-  const [tipoRegistroExperimental, setTipoRegistroExperimental] = useState<TipoRegistroExperimental | null>(null)
-  const [itemsMarcadosExperimental, setItemsMarcadosExperimental] = useState<Set<string>>(new Set())
-
-  function elegirTipoExperimental(tipo: TipoRegistroExperimental) {
-    setTipoRegistroExperimental(tipo)
-    setItemsMarcadosExperimental(new Set())
-  }
-
-  function alternarItemExperimental(item: string, marcado: boolean) {
-    setItemsMarcadosExperimental((anteriores) => {
-      const nuevos = new Set(anteriores)
-      if (marcado) {
-        nuevos.add(item)
-      } else {
-        nuevos.delete(item)
-      }
-      return nuevos
-    })
-  }
-
-  function reiniciarExperimental() {
-    setTipoRegistroExperimental(null)
-    setItemsMarcadosExperimental(new Set())
   }
 
   // --- Actualizar: elegir la solicitud, despues editarla ---
@@ -390,11 +392,42 @@ export function FormularioPagoPage() {
   const [baseline, setBaseline] = useState<CamposFormulario | null>(null)
   const baselineIdRef = useRef<number | null>(null)
 
-  const buscarImplantacionMutation = useMutation({ mutationFn: fetchImplantacion })
+  const buscarInscripcionMutation = useMutation({ mutationFn: fetchInscripcion })
+
+  // Formaciones complementarias de la solicitud elegida -- se piden aparte (no vienen embebidos en
+  // InscripcionDTO), justo cuando se elige una solicitud para editar.
+  const formacionesQuery = useQuery({
+    queryKey: ["formaciones-complementarias", solicitudIdActual],
+    queryFn: () => fetchFormacionesComplementariasPorInscripcion(solicitudIdActual!),
+    enabled: accion === "actualizar" && solicitudIdActual !== null,
+  })
+
+  // Lista editable (agregar/quitar/editar) -- arranca como copia de formacionesQuery.data
+  // (ver el useEffect de "baseline" mas abajo, que la siembra una sola vez por
+  // solicitud). id null = fila agregada durante esta edicion, todavia sin crear.
+  const [formacionesEditables, setFormacionesEditables] = useState<FormacionComplementariaEditable[]>([])
+  // Snapshot de como estaban las formaciones complementarias ANTES de editar -- se compara contra
+  // formacionesEditables para saber que crear/actualizar/borrar al guardar (ver
+  // sincronizarFormacionesMutation) y si "hubo cambios" en las formaciones complementarias.
+  const formacionesOriginalRef = useRef<FormacionComplementariaEditable[]>([])
+
+  function agregarFormacionComplementariaEditable() {
+    setFormacionesEditables((anteriores) => [...anteriores, { id: null, descripcion: "" }])
+  }
+
+  function cambiarFormacionComplementariaEditable(indice: number, valor: string) {
+    setFormacionesEditables((anteriores) =>
+      anteriores.map((el, i) => (i === indice ? { ...el, descripcion: valor } : el)),
+    )
+  }
+
+  function quitarFormacionComplementariaEditable(indice: number) {
+    setFormacionesEditables((anteriores) => anteriores.filter((_, i) => i !== indice))
+  }
 
   function elegirSolicitud(id: number) {
     setSolicitudIdActual(id)
-    buscarImplantacionMutation.mutate(id)
+    buscarInscripcionMutation.mutate(id)
   }
 
   function buscarPorIdInput() {
@@ -403,63 +436,120 @@ export function FormularioPagoPage() {
     elegirSolicitud(id)
   }
 
-  // Una vez que llega la solicitud elegida Y los 4 catalogos ya estan
+  // Una vez que llega la solicitud elegida, sus formaciones complementarias, Y los 4 catalogos ya estan
   // cargados, se arma el "baseline": los mismos 11 campos pero RESUELTOS a
-  // partir del DTO (que trae texto, no ids -- ImplantacionDTO viene aplanado
-  // a proposito, ver ImplantacionMapper.java). Esto es lo que te
-  // "pre-selecciona/pre-rellena" el formulario de edicion, para no tener que
-  // acordarte de lo que ya estaba cargado. baselineIdRef evita recalcular y
-  // rebotar al paso 2 si el efecto se re-ejecuta por otro motivo para la
+  // partir del DTO (que trae texto, no ids -- InscripcionDTO viene aplanado
+  // a proposito, ver InscripcionMapper.java) -- y de paso se siembra la lista editable
+  // de formaciones complementarias. Esto es lo que te "pre-selecciona/pre-rellena" el formulario de
+  // edicion, para no tener que acordarte de lo que ya estaba cargado. baselineIdRef evita
+  // recalcular y rebotar al paso 2 si el efecto se re-ejecuta por otro motivo para la
   // MISMA solicitud ya inicializada.
   useEffect(() => {
     if (accion !== "actualizar") return
-    if (!buscarImplantacionMutation.isSuccess || !catalogosListos) return
+    if (!buscarInscripcionMutation.isSuccess || !catalogosListos || !formacionesQuery.isSuccess) return
     if (baselineIdRef.current === solicitudIdActual) return
     baselineIdRef.current = solicitudIdActual
 
-    const dto = buscarImplantacionMutation.data
+    const dto = buscarInscripcionMutation.data
     const nuevoBaseline: CamposFormulario = {
       estadoId: String(estadosQuery.data!.find((e) => e.estado === dto.estado)?.id ?? ""),
       sistemaId: String(sistemasQuery.data!.find((s) => s.nombre === dto.sistema)?.id ?? ""),
-      responsableProyectoId: String(
-        responsablesQuery.data!.find((r) => r.nombreLargo === dto.responsableProyecto)?.id ?? "",
+      jefeCarreraId: String(
+        responsablesQuery.data!.find((r) => r.nombreLargo === dto.jefeCarrera)?.id ?? "",
       ),
-      responsableDesarrolloId: String(
-        responsablesQuery.data!.find((r) => r.nombreLargo === dto.responsableDesarrollo)?.id ?? "",
+      maestroId: String(
+        responsablesQuery.data!.find((r) => r.nombreLargo === dto.maestro)?.id ?? "",
       ),
-      responsableImplantacionId: String(
-        responsablesQuery.data!.find((r) => r.nombreLargo === dto.responsableImplantacion)?.id ?? "",
+      carreraId: String(
+        responsablesQuery.data!.find((r) => r.nombreLargo === dto.carrera)?.id ?? "",
       ),
       ambienteId: String(ambientesQuery.data!.find((a) => a.nombre === dto.ambiente)?.id ?? ""),
       proyecto: dto.proyecto,
       version: dto.version,
       descripcion: dto.descripcion ?? "",
-      fechaPlanteada: aInputDatetime(dto.fechaImplantacionPlanteada),
-      fechaReal: aInputDatetime(dto.fechaImplantacionReal),
+      fechaPlanteada: aInputDatetime(dto.fechaInscripcionPlanteada),
+      fechaReal: aInputDatetime(dto.fechaInscripcionReal),
     }
+    const formacionesIniciales = formacionesQuery.data.map((el) => ({ id: el.id, descripcion: el.descripcion }))
+    formacionesOriginalRef.current = formacionesIniciales
+    setFormacionesEditables(formacionesIniciales)
     setBaseline(nuevoBaseline)
     setCampos(nuevoBaseline)
     desbloquearHasta(2)
     api?.scrollTo(2)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accion, buscarImplantacionMutation.isSuccess, buscarImplantacionMutation.data, catalogosListos, solicitudIdActual])
+  }, [
+    accion,
+    buscarInscripcionMutation.isSuccess,
+    buscarInscripcionMutation.data,
+    catalogosListos,
+    formacionesQuery.isSuccess,
+    formacionesQuery.data,
+    solicitudIdActual,
+  ])
 
-  // El boton de guardar SOLO se habilita si hay un cambio real contra lo que
-  // ya estaba cargado.
+  // El boton de guardar SOLO se habilita si hay un cambio real contra lo que ya estaba
+  // cargado -- en los campos principales, en las formaciones complementarias, o en ambos.
   const huboCambios = baseline !== null && JSON.stringify(campos) !== JSON.stringify(baseline)
+  const huboCambiosFormaciones =
+    JSON.stringify(formacionesEditables) !== JSON.stringify(formacionesOriginalRef.current)
+  const hayAlgoQueGuardar = huboCambios || huboCambiosFormaciones
 
-  const actualizarImplantacionMutation = useMutation({
-    mutationFn: (dto: ImplantacionRequestDTO) => actualizarImplantacion(solicitudIdActual!, dto),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["implantaciones"] })
-      desbloquearHasta(3)
-      api?.scrollTo(3)
+  const actualizarInscripcionMutation = useMutation({
+    mutationFn: (dto: InscripcionRequestDTO) => actualizarInscripcion(solicitudIdActual!, dto),
+  })
+
+  // Sincroniza la lista de formaciones complementarias contra lo que se tenia antes: crea los que se
+  // agregaron (id null), actualiza los que cambiaron de texto, borra los que ya no estan
+  // en formacionesEditables. Un solo POST/PUT/DELETE por formación complementaria (no hay bulk en el
+  // backend) -- se disparan todos en paralelo con Promise.all.
+  const sincronizarFormacionesMutation = useMutation({
+    mutationFn: async (inscripcionId: number) => {
+      const originales = formacionesOriginalRef.current
+      const aCrear = formacionesEditables.filter((el) => el.id === null && el.descripcion.trim() !== "")
+      const aActualizar = formacionesEditables.filter((el): el is { id: number; descripcion: string } => {
+        if (el.id === null) return false
+        const original = originales.find((o) => o.id === el.id)
+        return original !== undefined && original.descripcion !== el.descripcion
+      })
+      const aBorrar = originales
+        .map((o) => o.id)
+        .filter((id): id is number => id !== null && !formacionesEditables.some((el) => el.id === id))
+
+      await Promise.all([
+        ...aCrear.map((el) => crearFormacionComplementaria({ inscripcionId, descripcion: el.descripcion })),
+        ...aActualizar.map((el) => actualizarFormacionComplementaria(el.id, { inscripcionId, descripcion: el.descripcion })),
+        ...aBorrar.map((id) => eliminarFormacionComplementaria(id)),
+      ])
     },
   })
 
-  function guardarCambios() {
-    if (!huboCambios || !formularioCompleto) return
-    actualizarImplantacionMutation.mutate(camposADto(campos))
+  // Guarda lo que haya cambiado -- campos principales, formaciones complementarias, o ambos -- y recien
+  // avanza al paso de confirmacion si TODO termino bien. Es una funcion async (no
+  // encadenada por onSuccess como crearInscripcionMutation) porque aca puede hacer
+  // falta 0, 1 o 2 peticiones segun que haya cambiado, y las dos deben terminar antes de
+  // mostrar la confirmacion.
+  const [guardadoConfirmado, setGuardadoConfirmado] = useState(false)
+
+  async function guardarCambios() {
+    if (!hayAlgoQueGuardar || !formularioCompleto || solicitudIdActual === null) return
+    try {
+      if (huboCambios) {
+        await actualizarInscripcionMutation.mutateAsync(camposADto(campos))
+      }
+      if (huboCambiosFormaciones) {
+        await sincronizarFormacionesMutation.mutateAsync(solicitudIdActual)
+      }
+      queryClient.invalidateQueries({ queryKey: ["inscripciones"] })
+      queryClient.invalidateQueries({ queryKey: ["formaciones-complementarias", solicitudIdActual] })
+      buscarInscripcionMutation.mutate(solicitudIdActual) // refresca el detalle para la confirmacion
+      setGuardadoConfirmado(true)
+      desbloquearHasta(3)
+      api?.scrollTo(3)
+    } catch {
+      // el error ya queda disponible en actualizarInscripcionMutation.error /
+      // sincronizarFormacionesMutation.error, segun cual haya fallado
+    }
   }
 
   function actualizarOtra() {
@@ -468,8 +558,12 @@ export function FormularioPagoPage() {
     baselineIdRef.current = null
     setCampos(CAMPOS_VACIOS)
     setListaIdInput("")
-    buscarImplantacionMutation.reset()
-    actualizarImplantacionMutation.reset()
+    setFormacionesEditables([])
+    formacionesOriginalRef.current = []
+    setGuardadoConfirmado(false)
+    buscarInscripcionMutation.reset()
+    actualizarInscripcionMutation.reset()
+    sincronizarFormacionesMutation.reset()
     maxStepRef.current = 1
     setMaxStep(1)
     api?.scrollTo(1)
@@ -486,7 +580,7 @@ export function FormularioPagoPage() {
         </Link>
       </Button>
 
-      <h2>Solicitudes de implantación</h2>
+      <h2>Solicitudes de inscripción</h2>
       <p className="mb-4 text-sm text-muted-foreground">
         Elegí si querés crear una solicitud nueva o actualizar una existente -- el
         formulario te va guiando paso a paso.
@@ -570,7 +664,7 @@ export function FormularioPagoPage() {
                         />
                         <Button
                           onClick={buscarPorIdInput}
-                          disabled={buscarImplantacionMutation.isPending || listaIdInput.trim() === ""}
+                          disabled={buscarInscripcionMutation.isPending || listaIdInput.trim() === ""}
                         >
                           <SearchIcon />
                           Buscar
@@ -581,7 +675,7 @@ export function FormularioPagoPage() {
                       </FieldDescription>
                     </FieldGroup>
 
-                    {buscarImplantacionMutation.isError && (
+                    {buscarInscripcionMutation.isError && (
                       <Alert variant="destructive">
                         <TriangleAlertIcon />
                         <AlertTitle>No se encontró esa solicitud</AlertTitle>
@@ -590,22 +684,22 @@ export function FormularioPagoPage() {
                     )}
 
                     <div className="space-y-2">
-                      {implantacionesQuery.isLoading && (
+                      {inscripcionesQuery.isLoading && (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Spinner /> Cargando lista…
                         </div>
                       )}
-                      {implantacionesQuery.data?.map((implantacion) => (
+                      {inscripcionesQuery.data?.map((inscripcion) => (
                         <button
-                          key={implantacion.id}
+                          key={inscripcion.id}
                           type="button"
-                          onClick={() => elegirSolicitud(implantacion.id)}
+                          onClick={() => elegirSolicitud(inscripcion.id)}
                           className="flex w-full items-center justify-between rounded-lg border border-input p-3 text-left text-sm hover:border-primary/40 hover:bg-primary/5"
                         >
                           <span>
-                            #{implantacion.id} · {implantacion.proyecto} ({implantacion.version})
+                            #{inscripcion.id} · {inscripcion.proyecto} ({inscripcion.version})
                           </span>
-                          <span className="text-xs text-muted-foreground">{implantacion.estado}</span>
+                          <span className="text-xs text-muted-foreground">{inscripcion.estado}</span>
                         </button>
                       ))}
                     </div>
@@ -696,11 +790,11 @@ export function FormularioPagoPage() {
                       </FieldDescription>
                       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <Field>
-                          <FieldLabel htmlFor="pago-resp-proyecto">Responsable de proyecto</FieldLabel>
+                          <FieldLabel htmlFor="pago-resp-proyecto">Jefe de Carrera</FieldLabel>
                           <NativeSelect
                             id="pago-resp-proyecto"
-                            value={campos.responsableProyectoId}
-                            onChange={(e) => setCampo("responsableProyectoId", e.target.value)}
+                            value={campos.jefeCarreraId}
+                            onChange={(e) => setCampo("jefeCarreraId", e.target.value)}
                           >
                             <option value="">
                               {responsablesQuery.isLoading ? "Cargando…" : "Seleccioná…"}
@@ -713,11 +807,11 @@ export function FormularioPagoPage() {
                           </NativeSelect>
                         </Field>
                         <Field>
-                          <FieldLabel htmlFor="pago-resp-desarrollo">Responsable de desarrollo</FieldLabel>
+                          <FieldLabel htmlFor="pago-resp-desarrollo">Maestro</FieldLabel>
                           <NativeSelect
                             id="pago-resp-desarrollo"
-                            value={campos.responsableDesarrolloId}
-                            onChange={(e) => setCampo("responsableDesarrolloId", e.target.value)}
+                            value={campos.maestroId}
+                            onChange={(e) => setCampo("maestroId", e.target.value)}
                           >
                             <option value="">
                               {responsablesQuery.isLoading ? "Cargando…" : "Seleccioná…"}
@@ -730,13 +824,13 @@ export function FormularioPagoPage() {
                           </NativeSelect>
                         </Field>
                         <Field>
-                          <FieldLabel htmlFor="pago-resp-implantacion">
-                            Responsable de implantación
+                          <FieldLabel htmlFor="pago-resp-inscripcion">
+                            Carrera
                           </FieldLabel>
                           <NativeSelect
-                            id="pago-resp-implantacion"
-                            value={campos.responsableImplantacionId}
-                            onChange={(e) => setCampo("responsableImplantacionId", e.target.value)}
+                            id="pago-resp-inscripcion"
+                            value={campos.carreraId}
+                            onChange={(e) => setCampo("carreraId", e.target.value)}
                           >
                             <option value="">
                               {responsablesQuery.isLoading ? "Cargando…" : "Seleccioná…"}
@@ -823,12 +917,12 @@ export function FormularioPagoPage() {
                               </Field>
                               <Field>
                                 <FieldLabel htmlFor="pago-edit-resp-proyecto">
-                                  Responsable de proyecto
+                                  Jefe de Carrera
                                 </FieldLabel>
                                 <NativeSelect
                                   id="pago-edit-resp-proyecto"
-                                  value={campos.responsableProyectoId}
-                                  onChange={(e) => setCampo("responsableProyectoId", e.target.value)}
+                                  value={campos.jefeCarreraId}
+                                  onChange={(e) => setCampo("jefeCarreraId", e.target.value)}
                                 >
                                   {responsablesQuery.data?.map((r) => (
                                     <option key={r.id} value={r.id}>
@@ -839,12 +933,12 @@ export function FormularioPagoPage() {
                               </Field>
                               <Field>
                                 <FieldLabel htmlFor="pago-edit-resp-desarrollo">
-                                  Responsable de desarrollo
+                                  Maestro
                                 </FieldLabel>
                                 <NativeSelect
                                   id="pago-edit-resp-desarrollo"
-                                  value={campos.responsableDesarrolloId}
-                                  onChange={(e) => setCampo("responsableDesarrolloId", e.target.value)}
+                                  value={campos.maestroId}
+                                  onChange={(e) => setCampo("maestroId", e.target.value)}
                                 >
                                   {responsablesQuery.data?.map((r) => (
                                     <option key={r.id} value={r.id}>
@@ -854,14 +948,14 @@ export function FormularioPagoPage() {
                                 </NativeSelect>
                               </Field>
                               <Field>
-                                <FieldLabel htmlFor="pago-edit-resp-implantacion">
-                                  Responsable de implantación
+                                <FieldLabel htmlFor="pago-edit-resp-inscripcion">
+                                  Carrera
                                 </FieldLabel>
                                 <NativeSelect
-                                  id="pago-edit-resp-implantacion"
-                                  value={campos.responsableImplantacionId}
+                                  id="pago-edit-resp-inscripcion"
+                                  value={campos.carreraId}
                                   onChange={(e) =>
-                                    setCampo("responsableImplantacionId", e.target.value)
+                                    setCampo("carreraId", e.target.value)
                                   }
                                 >
                                   {responsablesQuery.data?.map((r) => (
@@ -924,27 +1018,87 @@ export function FormularioPagoPage() {
                               />
                             </Field>
 
+                            {/* Formaciones complementarias ligadas a esta Inscripcion por FK -- se pueden
+                                agregar, quitar y editar libremente aca; el diff contra
+                                formacionesOriginalRef se resuelve recien al guardar (ver
+                                sincronizarFormacionesMutation). */}
+                            <Field>
+                              <FieldLabel>Formaciones complementarias</FieldLabel>
+                              <FieldDescription>
+                                Lista 1:N ligada a esta solicitud -- podés agregar filas
+                                nuevas, borrar las que ya no hagan falta, o editar el texto
+                                de las existentes.
+                              </FieldDescription>
+                              {formacionesQuery.isLoading && (
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                  <Spinner /> Cargando formaciones complementarias…
+                                </div>
+                              )}
+                              <div className="space-y-2">
+                                {formacionesEditables.map((formacion, indice) => (
+                                  <div key={indice} className="flex gap-2">
+                                    <Input
+                                      value={formacion.descripcion}
+                                      onChange={(e) => cambiarFormacionComplementariaEditable(indice, e.target.value)}
+                                      placeholder="Descripción de la formación complementaria"
+                                    />
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="icon"
+                                      onClick={() => quitarFormacionComplementariaEditable(indice)}
+                                      aria-label="Quitar formación complementaria"
+                                    >
+                                      <Trash2Icon />
+                                    </Button>
+                                  </div>
+                                ))}
+                              </div>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={agregarFormacionComplementariaEditable}
+                                className="w-fit"
+                              >
+                                <ListPlusIcon />
+                                Agregar formación complementaria
+                              </Button>
+                            </Field>
+
                             <Button
                               onClick={guardarCambios}
                               disabled={
-                                !huboCambios || !formularioCompleto || actualizarImplantacionMutation.isPending
+                                !hayAlgoQueGuardar ||
+                                !formularioCompleto ||
+                                actualizarInscripcionMutation.isPending ||
+                                sincronizarFormacionesMutation.isPending
                               }
                               className="w-fit"
                             >
                               Guardar cambios
                             </Button>
-                            {!huboCambios && (
+                            {!hayAlgoQueGuardar && (
                               <p className="text-xs text-muted-foreground">
-                                No se detectó ningún cambio todavía -- modificá algún campo para
-                                poder guardar.
+                                No se detectó ningún cambio todavía -- modificá algún campo o
+                                alguna formación complementaria para poder guardar.
                               </p>
                             )}
-                            {actualizarImplantacionMutation.isError && (
+                            {actualizarInscripcionMutation.isError && (
                               <Alert variant="destructive">
                                 <TriangleAlertIcon />
                                 <AlertTitle>No se pudo guardar el cambio</AlertTitle>
                                 <AlertDescription>
-                                  {(actualizarImplantacionMutation.error as Error).message}
+                                  {(actualizarInscripcionMutation.error as Error).message}
+                                </AlertDescription>
+                              </Alert>
+                            )}
+                            {sincronizarFormacionesMutation.isError && (
+                              <Alert variant="destructive">
+                                <TriangleAlertIcon />
+                                <AlertTitle>No se pudieron guardar las formaciones complementarias</AlertTitle>
+                                <AlertDescription>
+                                  {(sincronizarFormacionesMutation.error as Error).message}
                                 </AlertDescription>
                               </Alert>
                             )}
@@ -1026,13 +1180,19 @@ export function FormularioPagoPage() {
 
                 {accion === "actualizar" && (
                   <div className="space-y-4">
-                    {actualizarImplantacionMutation.data ? (
+                    {/* guardadoConfirmado (no actualizarInscripcionMutation.data): un
+                        guardado puede ser SOLO de formaciones complementarias, sin tocar los campos
+                        principales -- en ese caso actualizarInscripcionMutation nunca
+                        se dispara, pero igual hubo un guardado real que confirmar. El
+                        detalle se muestra con buscarInscripcionMutation.data, que
+                        guardarCambios() refresca al terminar. */}
+                    {guardadoConfirmado && buscarInscripcionMutation.data ? (
                       <>
                         <Alert>
                           <CheckCircle2Icon />
                           <AlertTitle>Solicitud #{solicitudIdActual} actualizada</AlertTitle>
                         </Alert>
-                        {renderDetalle(actualizarImplantacionMutation.data)}
+                        {renderDetalle(buscarInscripcionMutation.data)}
                         <Button onClick={actualizarOtra} className="w-fit">
                           Actualizar otra solicitud
                         </Button>
@@ -1050,15 +1210,45 @@ export function FormularioPagoPage() {
               <CarouselItem>
                 {accion === "crear" && (
                   <div className="space-y-4">
-                    {crearImplantacionMutation.isSuccess ? (
+                    {crearInscripcionMutation.isSuccess ? (
                       <>
                         <Alert>
                           <CheckCircle2Icon />
                           <AlertTitle>
-                            Solicitud #{crearImplantacionMutation.data.id} creada
+                            Solicitud #{crearInscripcionMutation.data.id} creada
                           </AlertTitle>
                         </Alert>
-                        {renderDetalle(crearImplantacionMutation.data)}
+                        {renderDetalle(crearInscripcionMutation.data)}
+
+                        {/* Estado del segundo paso encadenado (POST /formaciones-complementarias por
+                            cada fila de formacionesNuevas) -- se disparo solo en el
+                            onSuccess de crearInscripcionMutation, arriba. */}
+                        {crearFormacionesMutation.isPending && (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Spinner /> Creando formaciones complementarias…
+                          </div>
+                        )}
+                        {crearFormacionesMutation.isSuccess && crearFormacionesMutation.data.length > 0 && (
+                          <Alert>
+                            <CheckCircle2Icon />
+                            <AlertTitle>
+                              {crearFormacionesMutation.data.length} formación
+                              {crearFormacionesMutation.data.length === 1 ? "" : "es"} complementaria
+                              {crearFormacionesMutation.data.length === 1 ? "" : "s"} creada
+                              {crearFormacionesMutation.data.length === 1 ? "" : "s"}
+                            </AlertTitle>
+                          </Alert>
+                        )}
+                        {crearFormacionesMutation.isError && (
+                          <Alert variant="destructive">
+                            <TriangleAlertIcon />
+                            <AlertTitle>La solicitud se creó, pero fallaron las formaciones complementarias</AlertTitle>
+                            <AlertDescription>
+                              {(crearFormacionesMutation.error as Error).message}
+                            </AlertDescription>
+                          </Alert>
+                        )}
+
                         <Button onClick={crearOtra} className="w-fit">
                           Crear otra solicitud
                         </Button>
@@ -1081,95 +1271,61 @@ export function FormularioPagoPage() {
                           <dd>{campos.fechaPlanteada}</dd>
                         </dl>
 
-                        {/* Bloque EXPERIMENTAL -- ver comentario junto a
-                            TipoRegistroExperimental, arriba del componente.
-                            Puramente visual: no forma parte de camposADto()
-                            ni se manda con crearImplantacionMutation, esta
-                            solicitud de implantación se crea exactamente
-                            igual que antes de este bloque existir. */}
-                        <div className="space-y-3 rounded-lg border border-dashed border-primary/40 p-4">
-                          <div className="flex items-center gap-2">
-                            <FlaskConicalIcon className="size-4 text-primary" />
-                            <h4 className="text-sm font-medium">
-                              Experimental: registro de alumno/maestro
-                            </h4>
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            Prueba de concepto -- no crea ni modifica nada en la base de
-                            datos, ni viaja junto con la solicitud de implantación de
-                            arriba. Primero elegí si es un alumno o un maestro, después
-                            aparece un checklist según lo que elegiste.
-                          </p>
-
-                          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                            <button
-                              type="button"
-                              onClick={() => elegirTipoExperimental("alumno")}
-                              className={cn(
-                                "flex items-center justify-center gap-2 rounded-lg border p-3 text-sm hover:border-primary/40 hover:bg-primary/5",
-                                tipoRegistroExperimental === "alumno"
-                                  ? "border-primary bg-primary/5"
-                                  : "border-input",
-                              )}
-                            >
-                              <GraduationCapIcon className="size-4" />
-                              Registro/modificación de alumno
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => elegirTipoExperimental("maestro")}
-                              className={cn(
-                                "flex items-center justify-center gap-2 rounded-lg border p-3 text-sm hover:border-primary/40 hover:bg-primary/5",
-                                tipoRegistroExperimental === "maestro"
-                                  ? "border-primary bg-primary/5"
-                                  : "border-input",
-                              )}
-                            >
-                              <PresentationIcon className="size-4" />
-                              Registro/modificación de maestro
-                            </button>
-                          </div>
-
-                          {tipoRegistroExperimental && (
-                            <div className="space-y-2 border-t border-dashed border-input pt-3">
-                              <p className="text-xs font-medium text-muted-foreground">
-                                Checklist ({tipoRegistroExperimental === "alumno" ? "alumno" : "maestro"}
-                                ):
-                              </p>
-                              {(tipoRegistroExperimental === "alumno"
-                                ? CHECKLIST_ALUMNO
-                                : CHECKLIST_MAESTRO
-                              ).map((item) => (
-                                <label
-                                  key={item}
-                                  className="flex items-center gap-2 text-sm hover:cursor-pointer"
+                        {/* Formaciones complementarias ligadas por FK a la Inscripcion que se va a crear --
+                            todavia son solo texto (no hay inscripcionId hasta que el
+                            POST /inscripciones de abajo confirme). Se crean en cadena,
+                            uno por uno, en el onSuccess de crearInscripcionMutation. */}
+                        <Field>
+                          <FieldLabel>Formaciones complementarias</FieldLabel>
+                          <FieldDescription>
+                            Opcional -- se crean automáticamente después de la solicitud,
+                            ya con su id real como referencia.
+                          </FieldDescription>
+                          <div className="space-y-2">
+                            {formacionesNuevas.map((descripcion, indice) => (
+                              <div key={indice} className="flex gap-2">
+                                <Input
+                                  value={descripcion}
+                                  onChange={(e) => cambiarFormacionNueva(indice, e.target.value)}
+                                  placeholder="Descripción de la formación complementaria"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => quitarFormacionNueva(indice)}
+                                  aria-label="Quitar formación complementaria"
                                 >
-                                  <Checkbox
-                                    checked={itemsMarcadosExperimental.has(item)}
-                                    onCheckedChange={(marcado) =>
-                                      alternarItemExperimental(item, marcado === true)
-                                    }
-                                  />
-                                  {item}
-                                </label>
-                              ))}
-                            </div>
-                          )}
-                        </div>
+                                  <Trash2Icon />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={agregarFormacionNueva}
+                            className="w-fit"
+                          >
+                            <ListPlusIcon />
+                            Agregar formación complementaria
+                          </Button>
+                        </Field>
 
                         <Button
-                          onClick={() => crearImplantacionMutation.mutate(camposADto(campos))}
-                          disabled={!formularioCompleto || crearImplantacionMutation.isPending}
+                          onClick={() => crearInscripcionMutation.mutate(camposADto(campos))}
+                          disabled={!formularioCompleto || crearInscripcionMutation.isPending}
                           className="w-fit"
                         >
                           Finalizar y crear
                         </Button>
-                        {crearImplantacionMutation.isError && (
+                        {crearInscripcionMutation.isError && (
                           <Alert variant="destructive">
                             <TriangleAlertIcon />
                             <AlertTitle>No se pudo crear la solicitud</AlertTitle>
                             <AlertDescription>
-                              {(crearImplantacionMutation.error as Error).message}
+                              {(crearInscripcionMutation.error as Error).message}
                             </AlertDescription>
                           </Alert>
                         )}

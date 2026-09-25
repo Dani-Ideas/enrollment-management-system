@@ -11,7 +11,7 @@ import org.example.ejb.ServiceArtifax;
 
 import static org.example.rest.ApplicationConfig.Endpoints.ESTADOS;
 
-// Solo lectura -- catalogo del dominio solicitud/implantacion. El path sigue siendo
+// Solo lectura -- catalogo del dominio solicitud/inscripcion. El path sigue siendo
 // "/estados" (Endpoints.ESTADOS) a proposito -- el rename de tabla/clase no cambia el
 // contrato de la API, el frontend sigue funcionando sin tocarlo.
 //

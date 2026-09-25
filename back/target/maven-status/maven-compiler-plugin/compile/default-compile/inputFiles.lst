@@ -7,6 +7,8 @@
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/dto/EstudianteRequestDto.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/dto/FormDto.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/dto/FormRequestDto.java
+/home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/dto/FormacionComplementariaDto.java
+/home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/dto/FormacionComplementariaRequestDto.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/dto/LoginRequestDto.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/dto/MateriaDto.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/dto/MatriculaDto.java
@@ -16,7 +18,7 @@
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/dto/MiniFormRespDto.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/dto/MiniFormSisDto.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/dto/ProfesorDto.java
-/home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/dto/TablasImplantacionDto.java
+/home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/dto/TablasInscripcionDto.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/ejb/CarreraServiceImpl.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/ejb/ClaseServiceImpl.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/ejb/DatosIniciales.java
@@ -53,6 +55,7 @@
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/mapper/ClaseMapper.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/mapper/EstudianteMapper.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/mapper/FormMapper.java
+/home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/mapper/FormacionComplementariaMapper.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/mapper/MateriaMapper.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/mapper/MatriculaMapper.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/mapper/MiniFormAmbMapper.java
@@ -66,6 +69,7 @@
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/model/EstadoMatricula.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/model/Estudiante.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/model/Form.java
+/home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/model/FormacionComplementaria.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/model/Materia.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/model/Matricula.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/model/MiniFormAmb.java
@@ -75,11 +79,12 @@
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/model/Profesor.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/rest/ApplicationConfig.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/rest/CarreraController.java
-/home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/rest/CatalogosImplantacionController.java
+/home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/rest/CatalogosInscripcionController.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/rest/ClaseController.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/rest/EndpointsController.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/rest/EstudianteController.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/rest/FormController.java
+/home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/rest/FormacionComplementariaController.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/rest/MateriaController.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/rest/MatriculaController.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/rest/MiniFormAmbController.java

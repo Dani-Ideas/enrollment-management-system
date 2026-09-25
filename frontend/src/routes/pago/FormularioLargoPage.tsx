@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router"
-import { ImplantacionWizard } from "@/components/ImplantacionWizard"
+import { InscripcionWizard } from "@/components/InscripcionWizard"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -9,12 +9,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 
-// Version "larga" del formulario de implantaciones: mismo dominio, mismo
-// backend real, mismo componente ImplantacionWizard que se usa aca abajo --
-// la diferencia con "/formulario-pago" es que ahi el carrusel esta escrito
-// directo en esa pagina (sin la rama "ver lista"), y aca se delega al
-// componente ImplantacionWizard.tsx (que si incluye esa rama). Dos
-// presentaciones del mismo dominio, cada una con su propio alcance.
+// Version "larga" del formulario 
 export function FormularioLargoPage() {
   return (
     <section>
@@ -40,7 +35,7 @@ export function FormularioLargoPage() {
         además la opción de listar todas las solicitudes existentes.
       </p>
 
-      <ImplantacionWizard />
+      <InscripcionWizard />
     </section>
   )
 }

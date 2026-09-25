@@ -9,6 +9,7 @@ org/example/mapper/RequestResponseMapper.class
 org/example/dto/LoginRequestDto.class
 org/example/ejb/MateriaServiceImpl.class
 org/example/rest/MiniFormSisController.class
+org/example/rest/CatalogosInscripcionController.class
 org/example/lib/MateriaRepository.class
 org/example/lib/ProfesorRepository.class
 org/example/lib/ClaseRepository.class
@@ -20,12 +21,13 @@ org/example/mapper/MiniFormSisMapperImpl.class
 org/example/lib/MiniFormRespRepository.class
 org/example/lib/PasswordHasher.class
 org/example/mapper/MiniFormAmbMapper.class
-org/example/dto/TablasImplantacionDto.class
+org/example/mapper/FormacionComplementariaMapper.class
 org/example/lib/MiniFormEstRepository.class
 org/example/mapper/MiniFormEstMapperImpl.class
 org/example/dto/FormDto.class
 org/example/rest/ApplicationConfig.class
 org/example/ejb/EstudianteServiceImpl.class
+org/example/mapper/FormacionComplementariaMapperImpl.class
 org/example/rest/EstudianteController.class
 org/example/mapper/CarreraMapper.class
 org/example/mapper/MiniFormSisMapper.class
@@ -34,11 +36,13 @@ org/example/dto/ProfesorDto.class
 org/example/mapper/MatriculaMapper.class
 org/example/lib/MiniFormSisRepository.class
 org/example/rest/EndpointsController.class
+org/example/model/FormacionComplementaria.class
 org/example/mapper/MatriculaMapperImpl.class
 org/example/rest/CarreraController.class
 org/example/rest/MateriaController.class
 org/example/rest/ApplicationConfig$Endpoints.class
 org/example/model/Matricula.class
+org/example/dto/FormacionComplementariaRequestDto.class
 org/example/lib/MateriaService.class
 org/example/builder/MatriculaBuilder.class
 org/example/ejb/ProfesorServiceImpl.class
@@ -47,6 +51,7 @@ org/example/rest/ValidationExceptionMapper.class
 org/example/rest/MiniFormEstController.class
 org/example/lib/ReglaDeNegocioException.class
 org/example/dto/EstudianteRequestDto.class
+org/example/dto/TablasInscripcionDto.class
 org/example/lib/MiniFormAmbRepository.class
 org/example/rest/ProfesorController.class
 org/example/lib/ProfesorService.class
@@ -59,7 +64,6 @@ org/example/dto/MiniFormAmbDto.class
 org/example/model/Clase.class
 org/example/builder/ClaseBuilder.class
 org/example/mapper/FormMapperImpl.class
-org/example/rest/CatalogosImplantacionController.class
 org/example/ejb/DatosInicialesForm.class
 org/example/dto/MiniFormSisDto.class
 org/example/ejb/MatriculaServiceImpl.class
@@ -90,12 +94,14 @@ org/example/rest/ClaseController.class
 org/example/model/Estudiante.class
 org/example/lib/MatriculaService.class
 org/example/mapper/MateriaMapperImpl.class
+org/example/dto/FormacionComplementariaDto.class
 org/example/ejb/ServiceArtifax.class
 org/example/dto/MateriaDto.class
 org/example/dto/MiniFormRespDto.class
 org/example/ejb/DatosIniciales.class
 org/example/model/Profesor.class
 org/example/mapper/ClaseMapperImpl.class
+org/example/rest/FormacionComplementariaController.class
 org/example/dto/MatriculaRequestDto.class
 org/example/lib/CarreraRepository.class
 org/example/ejb/FormServiceImpl.class

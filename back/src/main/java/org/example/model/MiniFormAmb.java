@@ -13,7 +13,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 // Tabla MINIFORMAMB (antes CAT_AMBIENTE/Ambiente) -- ambiente de despliegue de una
-// implantacion (ej. "Produccion", "QA"), dominio "solicitud/implantacion".
+// inscripcion (ej. "Produccion", "QA"), dominio "solicitud/inscripcion".
 @Getter
 @Setter
 @Entity

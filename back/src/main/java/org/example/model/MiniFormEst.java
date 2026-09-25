@@ -13,7 +13,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
-// Tabla MINIFORMEST -- catalogo del dominio "solicitud/implantacion" (distinto del dominio
+// Tabla MINIFORMEST -- catalogo del dominio "solicitud/inscripcion" (distinto del dominio
 // academico del resto del proyecto). Nombre de tabla/entidad renombrado a pedido (antes
 // CAT_ESTADO/Estado) -- a diferencia del rename de MiniFormResp, aca no habia ningun typo
 // heredado de un sistema externo que preservar.
