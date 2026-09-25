@@ -1,7 +1,15 @@
-import { useEffect, useRef, useState } from "react"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Link } from "@tanstack/react-router"
 import { cn } from "@/lib/utils"
+import { Link } from "@tanstack/react-router"
+import { 
+  useEffect, 
+  useRef, 
+  useState 
+} from "react"
+import { 
+  useMutation, 
+  useQuery, 
+  useQueryClient 
+} from "@tanstack/react-query"
 import {
   actualizarFormacionComplementaria,
   actualizarInscripcion,
@@ -13,7 +21,9 @@ import {
   fetchInscripcion,
   fetchInscripciones,
 } from "@/api/client"
-import type { InscripcionDTO, InscripcionRequestDTO } from "@/api/types"
+import type { 
+  InscripcionDTO, 
+  InscripcionRequestDTO } from "@/api/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import {
