@@ -16,7 +16,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "MINIFORMRESP")
-public class MiniFormResp {
+public class MiniFormRespEty {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "miniformresp_seq")
@@ -29,6 +29,6 @@ public class MiniFormResp {
     @Column(name = "NOMBRE_LARGO", nullable = false)
     private String nombreLargo;
 
-    public MiniFormResp() {
+    public MiniFormRespEty() {
     }
 }

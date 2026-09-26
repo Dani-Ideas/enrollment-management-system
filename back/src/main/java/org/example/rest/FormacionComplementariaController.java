@@ -17,7 +17,8 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
 import org.example.dto.FormacionComplementariaDto;
 import org.example.dto.FormacionComplementariaRequestDto;
-import org.example.ejb.ServiceArtifax;
+import org.example.lib.ServiceArtifax;
+import org.example.lib.FormacionComplementariaService;
 
 import java.net.URI;
 
@@ -25,8 +26,12 @@ import static org.example.rest.ApplicationConfig.Endpoints.FORMACIONES_COMPLEMEN
 
 // "Formaciones complementarias" ligadas 1:N a una Inscripcion por FK (idInscripcion).
 // Endpoint propio, separado de /inscripciones a proposito -- no vienen embebidas en
-// FormDto ni en listarInscripciones(), el front las pide aparte (GET ?inscripcionId=X)
+// InscripcionDto ni en listarInscripciones(), el front las pide aparte (GET ?inscripcionId=X)
 // solo cuando hace falta (crear/editar una Inscripcion, o abrir "Ver detalle" en la lista).
+//
+// GET via ServiceArtifax (lectura/filtro en memoria); POST/PUT/DELETE via
+// FormacionComplementariaService (el que escribe de verdad) -- ServiceArtifax dejo de tener
+// metodos de escritura, un cache no los tiene.
 @Path(FORMACIONES_COMPLEMENTARIAS)
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
@@ -35,12 +40,15 @@ public class FormacionComplementariaController {
     @EJB
     private ServiceArtifax serviceArtifax;
 
+    @EJB
+    private FormacionComplementariaService formacionComplementariaService;
+
     @Context
     private UriInfo uriInfo;
 
     // inscripcionId es requerido en la practica (el front siempre lo manda), pero se deja
     // opcional a nivel HTTP -- omitirlo devuelve TODAS las formaciones, mismo criterio que
-    // listarInscripciones() en FormController.
+    // listarInscripciones() en InscripcionController.
     @GET
     public Response listar(@QueryParam("inscripcionId") Long inscripcionId) {
         return Response.ok(serviceArtifax.listarFormacionesComplementariasPorInscripcion(inscripcionId)).build();
@@ -48,7 +56,7 @@ public class FormacionComplementariaController {
 
     @POST
     public Response crear(@Valid FormacionComplementariaRequestDto dto) {
-        FormacionComplementariaDto creado = serviceArtifax.crearFormacionComplementaria(dto);
+        FormacionComplementariaDto creado = formacionComplementariaService.crear(dto);
         URI location = uriInfo.getAbsolutePathBuilder().path(String.valueOf(creado.id())).build();
         return Response.created(location).entity(creado).build();
     }
@@ -56,7 +64,7 @@ public class FormacionComplementariaController {
     @PUT
     @Path("/{id}")
     public Response actualizar(@PathParam("id") Long id, @Valid FormacionComplementariaRequestDto dto) {
-        FormacionComplementariaDto actualizado = serviceArtifax.actualizarFormacionComplementaria(id, dto);
+        FormacionComplementariaDto actualizado = formacionComplementariaService.actualizar(id, dto);
         if (actualizado == null) {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
@@ -66,7 +74,7 @@ public class FormacionComplementariaController {
     @DELETE
     @Path("/{id}")
     public Response eliminar(@PathParam("id") Long id) {
-        boolean eliminado = serviceArtifax.eliminarFormacionComplementaria(id);
+        boolean eliminado = formacionComplementariaService.eliminar(id);
         if (!eliminado) {
             return Response.status(Response.Status.NOT_FOUND).build();
         }

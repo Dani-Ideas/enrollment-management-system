@@ -94,3 +94,19 @@ export interface FormacionComplementariaRequestDTO {
   inscripcionId: number;
   descripcion: string;
 }
+
+// Forma de ENTRADA de POST /inscripciones -- espejo de InscripcionCompuestaRequestDto.java.
+// Une en UNA sola peticion la Inscripcion y sus formaciones complementarias (antes eran 2
+// peticiones: crear la Inscripcion, esperar el id real, y recien ahi un POST por cada
+// formación complementaria). "formacionesComplementarias" son solo las descripciones -- el
+// inscripcionId de cada una lo resuelve el backend, todavia no existe en el momento de crear.
+export interface InscripcionCompuestaRequestDTO {
+  inscripcion: InscripcionRequestDTO;
+  formacionesComplementarias: string[];
+}
+
+// Forma de SALIDA de POST /inscripciones -- espejo de InscripcionCompuestaDto.java.
+export interface InscripcionCompuestaDTO {
+  inscripcion: InscripcionDTO;
+  formacionesComplementarias: FormacionComplementariaDTO[];
+}

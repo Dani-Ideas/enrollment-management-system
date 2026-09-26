@@ -50,7 +50,6 @@ export function FormularioPagoPageTanstack() {
     api,
     form,
     campos,
-    camposADto,
     catalogoCompleto,
     responsablesCompletos,
     datosProyectoCompletos,
@@ -64,8 +63,8 @@ export function FormularioPagoPageTanstack() {
     agregarFormacionNueva,
     cambiarFormacionNueva,
     quitarFormacionNueva,
-    crearFormacionesMutation,
     crearInscripcionMutation,
+    crearInscripcionConFormaciones,
     crearOtra,
     listaIdInput,
     setListaIdInput,
@@ -373,31 +372,19 @@ export function FormularioPagoPageTanstack() {
                       <>
                         <Alert>
                           <CheckCircle2Icon />
-                          <AlertTitle>Solicitud #{crearInscripcionMutation.data.id} creada</AlertTitle>
+                          <AlertTitle>Solicitud #{crearInscripcionMutation.data.inscripcion.id} creada</AlertTitle>
                         </Alert>
-                        <DetalleInscripcion inscripcion={crearInscripcionMutation.data} />
+                        <DetalleInscripcion inscripcion={crearInscripcionMutation.data.inscripcion} />
 
-                        {crearFormacionesMutation.isPending && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Spinner /> Creando formaciones complementarias…
-                          </div>
-                        )}
-                        {crearFormacionesMutation.isSuccess && crearFormacionesMutation.data.length > 0 && (
+                        {crearInscripcionMutation.data.formacionesComplementarias.length > 0 && (
                           <Alert>
                             <CheckCircle2Icon />
                             <AlertTitle>
-                              {crearFormacionesMutation.data.length} formación
-                              {crearFormacionesMutation.data.length === 1 ? "" : "es"} complementaria
-                              {crearFormacionesMutation.data.length === 1 ? "" : "s"} creada
-                              {crearFormacionesMutation.data.length === 1 ? "" : "s"}
+                              {crearInscripcionMutation.data.formacionesComplementarias.length} formación
+                              {crearInscripcionMutation.data.formacionesComplementarias.length === 1 ? "" : "es"} complementaria
+                              {crearInscripcionMutation.data.formacionesComplementarias.length === 1 ? "" : "s"} creada
+                              {crearInscripcionMutation.data.formacionesComplementarias.length === 1 ? "" : "s"}
                             </AlertTitle>
-                          </Alert>
-                        )}
-                        {crearFormacionesMutation.isError && (
-                          <Alert variant="destructive">
-                            <TriangleAlertIcon />
-                            <AlertTitle>La solicitud se creó, pero fallaron las formaciones complementarias</AlertTitle>
-                            <AlertDescription>{(crearFormacionesMutation.error as Error).message}</AlertDescription>
                           </Alert>
                         )}
 
@@ -432,7 +419,7 @@ export function FormularioPagoPageTanstack() {
                         />
 
                         <Button
-                          onClick={() => crearInscripcionMutation.mutate(camposADto(campos))}
+                          onClick={crearInscripcionConFormaciones}
                           disabled={!formularioCompleto || crearInscripcionMutation.isPending}
                           className="w-fit"
                         >

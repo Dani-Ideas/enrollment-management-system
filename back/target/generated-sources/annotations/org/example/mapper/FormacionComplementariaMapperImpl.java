@@ -4,19 +4,19 @@ import jakarta.enterprise.context.ApplicationScoped;
 import javax.annotation.processing.Generated;
 import org.example.dto.FormacionComplementariaDto;
 import org.example.dto.FormacionComplementariaRequestDto;
-import org.example.model.Form;
-import org.example.model.FormacionComplementaria;
+import org.example.model.FormacionComplementariaEty;
+import org.example.model.InscripcionEty;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-09-25T03:26:03-0600",
+    date = "2026-09-25T22:21:53-0600",
     comments = "version: 1.6.3, compiler: javac, environment: Java 21.0.12.1 (Arch Linux)"
 )
 @ApplicationScoped
 public class FormacionComplementariaMapperImpl implements FormacionComplementariaMapper {
 
     @Override
-    public FormacionComplementariaDto toDto(FormacionComplementaria entidad) {
+    public FormacionComplementariaDto toDto(FormacionComplementariaEty entidad) {
         if ( entidad == null ) {
             return null;
         }
@@ -35,21 +35,21 @@ public class FormacionComplementariaMapperImpl implements FormacionComplementari
     }
 
     @Override
-    public FormacionComplementaria toEntity(FormacionComplementariaRequestDto dto) {
+    public FormacionComplementariaEty toEntity(FormacionComplementariaRequestDto dto) {
         if ( dto == null ) {
             return null;
         }
 
-        FormacionComplementaria formacionComplementaria = new FormacionComplementaria();
+        FormacionComplementariaEty formacionComplementariaEty = new FormacionComplementariaEty();
 
-        formacionComplementaria.setInscripcion( desdeId( dto.inscripcionId() ) );
-        formacionComplementaria.setDescripcion( dto.descripcion() );
+        formacionComplementariaEty.setInscripcion( desdeId( dto.inscripcionId() ) );
+        formacionComplementariaEty.setDescripcion( dto.descripcion() );
 
-        return formacionComplementaria;
+        return formacionComplementariaEty;
     }
 
-    private Long entidadInscripcionId(FormacionComplementaria formacionComplementaria) {
-        Form inscripcion = formacionComplementaria.getInscripcion();
+    private Long entidadInscripcionId(FormacionComplementariaEty formacionComplementariaEty) {
+        InscripcionEty inscripcion = formacionComplementariaEty.getInscripcion();
         if ( inscripcion == null ) {
             return null;
         }

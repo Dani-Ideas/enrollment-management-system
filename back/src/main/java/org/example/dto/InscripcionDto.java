@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 // ese reporte, no un grafo de entidades completo. Los campos NO se renombraron junto con
 // las tablas/clases (sigue siendo "estado"/"sistema"/...) para no romper el JSON que ya
 // consume el frontend.
-public record FormDto(
+public record InscripcionDto(
         Long id,
         String estado,
         String sistema,

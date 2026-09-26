@@ -18,7 +18,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "MINIFORMAMB")
-public class MiniFormAmb {
+public class MiniFormAmbEty {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "miniformamb_seq")
@@ -31,6 +31,6 @@ public class MiniFormAmb {
     @Column(name = "NOMBRE", nullable = false)
     private String nombre;
 
-    public MiniFormAmb() {
+    public MiniFormAmbEty() {
     }
 }

@@ -14,10 +14,13 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
-import org.example.dto.FormDto;
-import org.example.dto.FormRequestDto;
-import org.example.ejb.ServiceArtifax;
-import org.example.lib.FormService;
+import org.example.dto.InscripcionCompuestaDto;
+import org.example.dto.InscripcionCompuestaRequestDto;
+import org.example.dto.InscripcionDto;
+import org.example.dto.InscripcionRequestDto;
+import org.example.lib.ServiceArtifax;
+import org.example.lib.CatalogosInscripcionService;
+import org.example.lib.InscripcionService;
 
 import java.net.URI;
 
@@ -26,20 +29,28 @@ import static org.example.rest.ApplicationConfig.Endpoints.INSCRIPCIONES;
 // Endpoint principal del dominio solicitud/inscripcion -- GET lista, GET por id, POST
 // (crear), PUT (actualizar).
 //
-// crear()/buscar()/actualizar() SIGUEN en FormService (sin migrar al trio generico -- ese
+// buscar()/actualizar() SIGUEN en InscripcionService (sin migrar al trio generico -- ese
 // service resuelve 6 relaciones con reglas de negocio, migrarlo es aparte de lo que se
 // pidio aqui). listar() SI se movio a ServiceArtifax, porque el filtro por
 // estado/sistema/ambiente necesita la "mini base de datos" en memoria (ver
 // ServiceArtifax.listarInscripciones()) -- filtrar contra el Repository/BD en cada
 // llamada hubiera sido un query nuevo por combinacion de filtros, en vez de un
 // stream().filter() sobre lo que ya esta cargado.
+//
+// crear() recibe InscripcionCompuestaRequestDto (Inscripcion + N formaciones complementarias
+// opcionales) y delega a CatalogosInscripcionService -- UNA sola peticion HTTP, en vez de
+// que el cliente cree la Inscripcion, espere el id, y despues mande un POST por cada
+// formacion complementaria como antes.
 @Path(INSCRIPCIONES)
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
-public class FormController {
+public class InscripcionController {
 
     @EJB
-    private FormService formService;
+    private InscripcionService inscripcionService;
+
+    @EJB
+    private CatalogosInscripcionService catalogosInscripcionService;
 
     @EJB
     private ServiceArtifax serviceArtifax;
@@ -61,7 +72,7 @@ public class FormController {
     @GET
     @Path("/{id}")
     public Response buscar(@PathParam("id") Long id) {
-        FormDto dto = formService.buscarPorId(id);
+        InscripcionDto dto = inscripcionService.buscarPorId(id);
         if (dto == null) {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
@@ -69,16 +80,16 @@ public class FormController {
     }
 
     @POST
-    public Response crear(@Valid FormRequestDto dto) {
-        FormDto creada = formService.crear(dto);
-        URI location = uriInfo.getAbsolutePathBuilder().path(String.valueOf(creada.id())).build();
+    public Response crear(@Valid InscripcionCompuestaRequestDto dto) {
+        InscripcionCompuestaDto creada = catalogosInscripcionService.crearInscripcionConFormaciones(dto);
+        URI location = uriInfo.getAbsolutePathBuilder().path(String.valueOf(creada.inscripcion().id())).build();
         return Response.created(location).entity(creada).build();
     }
 
     @PUT
     @Path("/{id}")
-    public Response actualizar(@PathParam("id") Long id, @Valid FormRequestDto dto) {
-        FormDto actualizada = formService.actualizar(id, dto);
+    public Response actualizar(@PathParam("id") Long id, @Valid InscripcionRequestDto dto) {
+        InscripcionDto actualizada = inscripcionService.actualizar(id, dto);
         if (actualizada == null) {
             return Response.status(Response.Status.NOT_FOUND).build();
         }

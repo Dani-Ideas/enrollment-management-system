@@ -182,37 +182,29 @@ export function useInscripcionForm() {
     setFormacionesNuevas((anteriores) => anteriores.filter((_, i) => i !== indice))
   }
 
-  // Se dispara SOLO despues de que crearInscripcionMutation ya confirmo la
-  // Inscripcion -- recien ahi existe el id real que necesita cada formación
-  // complementaria como FK. Un solo POST por formación complementaria (no
-  // hay bulk-create en el backend).
-  const crearFormacionesMutation = useMutation({
-    mutationFn: (args: { inscripcionId: number; items: FormacionComplementariaEditable[] }) =>
-      Promise.all(
-        args.items.map((item) =>
-          crearFormacionComplementaria({ inscripcionId: args.inscripcionId, descripcion: item.descripcion }),
-        ),
-      ),
-  })
-
+  // UNA sola peticion HTTP: crea la Inscripcion y sus formaciones complementarias juntas
+  // (antes eran 2 pasos -- crear la Inscripcion, esperar el id real, y recien ahi un POST
+  // encadenado por cada formación complementaria -- ver InscripcionCompuestaRequestDTO).
   const crearInscripcionMutation = useMutation({
     mutationFn: crearInscripcion,
-    onSuccess: (creada) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inscripciones"] })
-      const items = formacionesNuevas.filter((el) => el.descripcion.trim() !== "")
-      if (items.length > 0) {
-        crearFormacionesMutation.mutate({ inscripcionId: creada.id, items })
-      }
       desbloquearHasta(4)
       api?.scrollTo(4)
     },
   })
 
+  function crearInscripcionConFormaciones() {
+    crearInscripcionMutation.mutate({
+      inscripcion: camposADto(campos),
+      formacionesComplementarias: formacionesNuevas.map((el) => el.descripcion),
+    })
+  }
+
   function crearOtra() {
     form.reset()
     crearInscripcionMutation.reset()
     setFormacionesNuevas([])
-    crearFormacionesMutation.reset()
     maxStepRef.current = 1
     setMaxStep(1)
     api?.scrollTo(1)
@@ -310,25 +302,41 @@ export function useInscripcionForm() {
 
   // Sincroniza la lista de formaciones complementarias contra lo que se
   // tenia antes: crea los que se agregaron (id null), actualiza los que
-  // cambiaron de texto, borra los que ya no estan.
+  // cambiaron de texto, borra los que ya no estan. Devuelve la lista YA
+  // sincronizada (con los ids reales que devolvio el backend para las filas
+  // creadas) -- guardarCambios() la usa para refrescar formacionesOriginalRef
+  // sin depender de un refetch + el useEffect de "baseline" (ese efecto solo
+  // corre UNA vez por solicitud, adrede, asi que nunca se va a enterar de este
+  // guardado por si solo).
   const sincronizarFormacionesMutation = useMutation({
-    mutationFn: async (inscripcionId: number) => {
+    mutationFn: async (inscripcionId: number): Promise<FormacionComplementariaEditable[]> => {
       const originales = formacionesOriginalRef.current
-      const aCrear = formacionesEditables.filter((el) => el.id === null && el.descripcion.trim() !== "")
-      const aActualizar = formacionesEditables.filter((el): el is { id: number; descripcion: string } => {
+      const actuales = formacionesEditables
+      const aCrear = actuales.filter((el) => el.id === null && el.descripcion.trim() !== "")
+      const aActualizar = actuales.filter((el): el is { id: number; descripcion: string } => {
         if (el.id === null) return false
         const original = originales.find((o) => o.id === el.id)
         return original !== undefined && original.descripcion !== el.descripcion
       })
       const aBorrar = originales
         .map((o) => o.id)
-        .filter((id): id is number => id !== null && !formacionesEditables.some((el) => el.id === id))
+        .filter((id): id is number => id !== null && !actuales.some((el) => el.id === id))
 
-      await Promise.all([
-        ...aCrear.map((el) => crearFormacionComplementaria({ inscripcionId, descripcion: el.descripcion })),
-        ...aActualizar.map((el) => actualizarFormacionComplementaria(el.id, { inscripcionId, descripcion: el.descripcion })),
-        ...aBorrar.map((id) => eliminarFormacionComplementaria(id)),
+      const [creadas] = await Promise.all([
+        Promise.all(aCrear.map((el) => crearFormacionComplementaria({ inscripcionId, descripcion: el.descripcion }))),
+        Promise.all(aActualizar.map((el) => actualizarFormacionComplementaria(el.id, { inscripcionId, descripcion: el.descripcion }))),
+        Promise.all(aBorrar.map((id) => eliminarFormacionComplementaria(id))),
       ])
+
+      // aCrear y "creadas" quedan en el mismo orden (Promise.all preserva el
+      // orden de entrada) -- se puede zippear por indice para saber que id
+      // real le toco a cada fila que antes tenia id null.
+      let indiceCreada = 0
+      return actuales.map((el) =>
+        el.id === null && el.descripcion.trim() !== ""
+          ? { id: creadas[indiceCreada++].id, descripcion: el.descripcion }
+          : el,
+      )
     },
   })
 
@@ -339,9 +347,16 @@ export function useInscripcionForm() {
     try {
       if (huboCambios) {
         await actualizarInscripcionMutation.mutateAsync(camposADto(campos))
+        // "campos" es exactamente lo que se acaba de guardar -- sin este
+        // reset, "baseline" queda con el valor viejo para siempre (el
+        // useEffect de arriba no vuelve a correr para esta misma solicitud),
+        // y huboCambios seguiria dando true aunque no haya nada nuevo.
+        setBaseline(campos)
       }
       if (huboCambiosFormaciones) {
-        await sincronizarFormacionesMutation.mutateAsync(solicitudIdActual)
+        const sincronizadas = await sincronizarFormacionesMutation.mutateAsync(solicitudIdActual)
+        formacionesOriginalRef.current = sincronizadas
+        setFormacionesEditables(sincronizadas)
       }
       queryClient.invalidateQueries({ queryKey: ["inscripciones"] })
       queryClient.invalidateQueries({ queryKey: ["formaciones-complementarias", solicitudIdActual] })
@@ -389,7 +404,6 @@ export function useInscripcionForm() {
     crearInscripcionMutation.reset()
     actualizarInscripcionMutation.reset()
     setFormacionesNuevas([])
-    crearFormacionesMutation.reset()
     setFormacionesEditables([])
     formacionesOriginalRef.current = []
     setGuardadoConfirmado(false)
@@ -429,8 +443,8 @@ export function useInscripcionForm() {
     agregarFormacionNueva,
     cambiarFormacionNueva,
     quitarFormacionNueva,
-    crearFormacionesMutation,
     crearInscripcionMutation,
+    crearInscripcionConFormaciones,
     crearOtra,
 
     listaIdInput,

@@ -53,9 +53,9 @@ type Accion = "lista" | "crear" | "actualizar"
 // FormacionComplementaria.java / FormacionComplementariaController.java. Mismo patron que
 // FormularioPagoPage.tsx (no se comparte el tipo entre los dos archivos a proposito, ver
 // el comentario de este componente mas abajo: son dos presentaciones separadas del mismo
-// dominio). Al CREAR, se juntan como simples strings (todavia no hay inscripcionId) y se
-// mandan uno por uno DESPUES de que la Inscripcion ya existe. Al ACTUALIZAR, cada fila ya
-// tiene su id real (o null si se agrego durante la edicion).
+// dominio). Al CREAR, se juntan como simples strings y viajan JUNTO con la Inscripcion en
+// la misma peticion (ver crearInscripcionConFormaciones, InscripcionCompuestaRequestDTO).
+// Al ACTUALIZAR, cada fila ya tiene su id real (o null si se agrego durante la edicion).
 interface FormacionComplementariaEditable {
   id: number | null
   descripcion: string
@@ -289,7 +289,6 @@ export function InscripcionWizard() {
     crearInscripcionMutation.reset()
     actualizarInscripcionMutation.reset()
     setFormacionesNuevas([])
-    crearFormacionesMutation.reset()
     setFormacionesEditables([])
     formacionesOriginalRef.current = []
     setGuardadoConfirmado(false)
@@ -410,38 +409,29 @@ export function InscripcionWizard() {
     setFormacionesNuevas((anteriores) => anteriores.filter((_, i) => i !== indice))
   }
 
-  // Se dispara SOLO despues de que crearInscripcionMutation ya confirmo la Inscripcion
-  // (ver su onSuccess, abajo) -- recien ahi existe el id real que necesita cada formación complementaria
-  // como FK. Un solo POST por formación complementaria (no hay bulk-create en el backend).
-  const crearFormacionesMutation = useMutation({
-    mutationFn: (args: { inscripcionId: number; descripciones: string[] }) =>
-      Promise.all(
-        args.descripciones.map((descripcion) =>
-          crearFormacionComplementaria({ inscripcionId: args.inscripcionId, descripcion }),
-        ),
-      ),
-  })
-
-  // --- Crear: POST /inscripciones, y encadenado, un POST /formaciones-complementarias por cada
-  // formación complementaria cargada en formacionesNuevas ---
+  // UNA sola peticion HTTP: crea la Inscripcion y sus formaciones complementarias juntas
+  // (antes eran 2 pasos -- crear la Inscripcion, esperar el id real, y recien ahi un POST
+  // encadenado por cada formación complementaria -- ver InscripcionCompuestaRequestDTO).
   const crearInscripcionMutation = useMutation({
     mutationFn: crearInscripcion,
-    onSuccess: (creada) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inscripciones"] })
-      const descripciones = formacionesNuevas.map((d) => d.trim()).filter((d) => d !== "")
-      if (descripciones.length > 0) {
-        crearFormacionesMutation.mutate({ inscripcionId: creada.id, descripciones })
-      }
       desbloquearHasta(4)
       api?.scrollTo(4)
     },
   })
 
+  function crearInscripcionConFormaciones() {
+    crearInscripcionMutation.mutate({
+      inscripcion: camposADto(campos),
+      formacionesComplementarias: formacionesNuevas,
+    })
+  }
+
   function crearOtra() {
     setCampos(CAMPOS_VACIOS)
     crearInscripcionMutation.reset()
     setFormacionesNuevas([])
-    crearFormacionesMutation.reset()
     maxStepRef.current = 1
     setMaxStep(1)
     api?.scrollTo(1)
@@ -569,25 +559,40 @@ export function InscripcionWizard() {
   // Sincroniza la lista de formaciones complementarias contra lo que se tenia antes: crea los que se
   // agregaron (id null), actualiza los que cambiaron de texto, borra los que ya no estan
   // en formacionesEditables. Un solo POST/PUT/DELETE por formación complementaria (no hay bulk en el
-  // backend) -- se disparan todos en paralelo con Promise.all.
+  // backend) -- se disparan todos en paralelo con Promise.all. Devuelve la lista YA
+  // sincronizada (con los ids reales que devolvio el backend para las filas creadas) --
+  // guardarCambios() la usa para refrescar formacionesOriginalRef sin depender de un
+  // refetch + el useEffect de "baseline" (ese efecto solo corre UNA vez por solicitud, a
+  // proposito, asi que nunca se va a enterar de este guardado por si solo).
   const sincronizarFormacionesMutation = useMutation({
-    mutationFn: async (inscripcionId: number) => {
+    mutationFn: async (inscripcionId: number): Promise<FormacionComplementariaEditable[]> => {
       const originales = formacionesOriginalRef.current
-      const aCrear = formacionesEditables.filter((el) => el.id === null && el.descripcion.trim() !== "")
-      const aActualizar = formacionesEditables.filter((el): el is { id: number; descripcion: string } => {
+      const actuales = formacionesEditables
+      const aCrear = actuales.filter((el) => el.id === null && el.descripcion.trim() !== "")
+      const aActualizar = actuales.filter((el): el is { id: number; descripcion: string } => {
         if (el.id === null) return false
         const original = originales.find((o) => o.id === el.id)
         return original !== undefined && original.descripcion !== el.descripcion
       })
       const aBorrar = originales
         .map((o) => o.id)
-        .filter((id): id is number => id !== null && !formacionesEditables.some((el) => el.id === id))
+        .filter((id): id is number => id !== null && !actuales.some((el) => el.id === id))
 
-      await Promise.all([
-        ...aCrear.map((el) => crearFormacionComplementaria({ inscripcionId, descripcion: el.descripcion })),
-        ...aActualizar.map((el) => actualizarFormacionComplementaria(el.id, { inscripcionId, descripcion: el.descripcion })),
-        ...aBorrar.map((id) => eliminarFormacionComplementaria(id)),
+      const [creadas] = await Promise.all([
+        Promise.all(aCrear.map((el) => crearFormacionComplementaria({ inscripcionId, descripcion: el.descripcion }))),
+        Promise.all(aActualizar.map((el) => actualizarFormacionComplementaria(el.id, { inscripcionId, descripcion: el.descripcion }))),
+        Promise.all(aBorrar.map((id) => eliminarFormacionComplementaria(id))),
       ])
+
+      // aCrear y "creadas" quedan en el mismo orden (Promise.all preserva el orden de
+      // entrada) -- se puede zippear por indice para saber que id real le toco a cada fila
+      // que antes tenia id null.
+      let indiceCreada = 0
+      return actuales.map((el) =>
+        el.id === null && el.descripcion.trim() !== ""
+          ? { id: creadas[indiceCreada++].id, descripcion: el.descripcion }
+          : el,
+      )
     },
   })
 
@@ -603,9 +608,16 @@ export function InscripcionWizard() {
     try {
       if (huboCambios) {
         await actualizarInscripcionMutation.mutateAsync(camposADto(campos))
+        // "campos" es exactamente lo que se acaba de guardar -- sin este reset, "baseline"
+        // queda con el valor viejo para siempre (el useEffect de arriba no vuelve a correr
+        // para esta misma solicitud), y huboCambios seguiria dando true aunque no haya
+        // nada nuevo.
+        setBaseline(campos)
       }
       if (huboCambiosFormaciones) {
-        await sincronizarFormacionesMutation.mutateAsync(solicitudIdActual)
+        const sincronizadas = await sincronizarFormacionesMutation.mutateAsync(solicitudIdActual)
+        formacionesOriginalRef.current = sincronizadas
+        setFormacionesEditables(sincronizadas)
       }
       queryClient.invalidateQueries({ queryKey: ["inscripciones"] })
       queryClient.invalidateQueries({ queryKey: ["formaciones-complementarias", solicitudIdActual] })
@@ -1414,37 +1426,20 @@ export function InscripcionWizard() {
                         <Alert>
                           <CheckCircle2Icon />
                           <AlertTitle>
-                            Solicitud #{crearInscripcionMutation.data.id} creada
+                            Solicitud #{crearInscripcionMutation.data.inscripcion.id} creada
                           </AlertTitle>
                         </Alert>
-                        {renderDetalle(crearInscripcionMutation.data)}
+                        {renderDetalle(crearInscripcionMutation.data.inscripcion)}
 
-                        {/* Estado del segundo paso encadenado (POST /formaciones-complementarias por
-                            cada fila de formacionesNuevas) -- se disparo solo en el
-                            onSuccess de crearInscripcionMutation, arriba. */}
-                        {crearFormacionesMutation.isPending && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Spinner /> Creando formaciones complementarias…
-                          </div>
-                        )}
-                        {crearFormacionesMutation.isSuccess && crearFormacionesMutation.data.length > 0 && (
+                        {crearInscripcionMutation.data.formacionesComplementarias.length > 0 && (
                           <Alert>
                             <CheckCircle2Icon />
                             <AlertTitle>
-                              {crearFormacionesMutation.data.length} formación
-                              {crearFormacionesMutation.data.length === 1 ? "" : "es"} complementaria
-                              {crearFormacionesMutation.data.length === 1 ? "" : "s"} creada
-                              {crearFormacionesMutation.data.length === 1 ? "" : "s"}
+                              {crearInscripcionMutation.data.formacionesComplementarias.length} formación
+                              {crearInscripcionMutation.data.formacionesComplementarias.length === 1 ? "" : "es"} complementaria
+                              {crearInscripcionMutation.data.formacionesComplementarias.length === 1 ? "" : "s"} creada
+                              {crearInscripcionMutation.data.formacionesComplementarias.length === 1 ? "" : "s"}
                             </AlertTitle>
-                          </Alert>
-                        )}
-                        {crearFormacionesMutation.isError && (
-                          <Alert variant="destructive">
-                            <TriangleAlertIcon />
-                            <AlertTitle>La solicitud se creó, pero fallaron las formaciones complementarias</AlertTitle>
-                            <AlertDescription>
-                              {(crearFormacionesMutation.error as Error).message}
-                            </AlertDescription>
                           </Alert>
                         )}
 
@@ -1472,8 +1467,8 @@ export function InscripcionWizard() {
 
                         {/* Formaciones complementarias ligadas por FK a la Inscripcion que se va a crear --
                             todavia son solo texto (no hay inscripcionId hasta que el
-                            POST /inscripciones de abajo confirme). Se crean en cadena,
-                            uno por uno, en el onSuccess de crearInscripcionMutation. */}
+                            backend confirme) -- viajan JUNTAS con la Inscripcion en la
+                            misma peticion, ver crearInscripcionConFormaciones(). */}
                         <Field>
                           <FieldLabel>Formaciones complementarias</FieldLabel>
                           <FieldDescription>
@@ -1513,7 +1508,7 @@ export function InscripcionWizard() {
                         </Field>
 
                         <Button
-                          onClick={() => crearInscripcionMutation.mutate(camposADto(campos))}
+                          onClick={crearInscripcionConFormaciones}
                           disabled={!formularioCompleto || crearInscripcionMutation.isPending}
                           className="w-fit"
                         >

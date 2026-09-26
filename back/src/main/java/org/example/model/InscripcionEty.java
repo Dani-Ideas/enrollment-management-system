@@ -18,51 +18,51 @@ import lombok.Setter;
 
 import java.time.LocalDateTime;
 
-// Tabla FORM -- la entidad principal del dominio "solicitud/inscripcion". Distinta de
-// "Solicitud" a proposito: la tabla SOL_SOLICITUD ya existia de antes (sin tocar) y es un
-// concepto DISTINTO -- usar el mismo nombre en Java hubiera sido confuso.
+// Tabla INSCRIPCION -- la entidad principal del dominio "solicitud/inscripcion". Distinta
+// de "Solicitud" a proposito: la tabla SOL_SOLICITUD ya existia de antes (sin tocar) y es
+// un concepto DISTINTO -- usar el mismo nombre en Java hubiera sido confuso.
 //
-// Las 6 relaciones son casi toda la tabla (MiniFormEst, MiniFormSis, 3x MiniFormResp con
-// roles distintos, MiniFormAmb) -- son FK hacia catalogos clave-valor chicos, no relaciones
+// Las 6 relaciones son casi toda la tabla (MiniFormEstEty, MiniFormSisEty, 3x MiniFormRespEty con
+// roles distintos, MiniFormAmbEty) -- son FK hacia catalogos clave-valor chicos, no relaciones
 // de negocio complejas. Los nombres de campo Java (estado/sistema/jefeCarrera/...)
 // NO cambiaron -- solo el TIPO de cada uno -- para no tocar ningun DTO ni el JSON de la API.
 @Getter
 @Setter
 @Entity
-@Table(name = "FORM")
-public class Form {
+@Table(name = "INSCRIPCION")
+public class InscripcionEty {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "form_seq")
-    @SequenceGenerator(name = "form_seq", sequenceName = "FORM_SEQ", allocationSize = 1)
-    @Column(name = "ID_FORM")
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "inscripcion_seq")
+    @SequenceGenerator(name = "inscripcion_seq", sequenceName = "INSCRIPCION_SEQ", allocationSize = 1)
+    @Column(name = "ID_INSCRIPCION")
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_MINIFORMEST", nullable = false)
-    private MiniFormEst estado;
+    private MiniFormEstEty estado;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_MINIFORMSIS", nullable = false)
-    private MiniFormSis sistema;
+    private MiniFormSisEty sistema;
 
-    // Mismo tipo (MiniFormResp) usado 3 veces con roles distintos -- exactamente el mismo
+    // Mismo tipo (MiniFormRespEty) usado 3 veces con roles distintos -- exactamente el mismo
     // patron que el SELECT original (3 JOIN separados contra la tabla de responsables).
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_MINIFORMRESP_PROYECTO", nullable = false)
-    private MiniFormResp jefeCarrera;
+    private MiniFormRespEty jefeCarrera;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_MINIFORMRESP_DESARROLLO", nullable = false)
-    private MiniFormResp maestro;
+    private MiniFormRespEty maestro;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_MINIFORMRESP_IMPLANTACION", nullable = false)
-    private MiniFormResp carrera;
+    private MiniFormRespEty carrera;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_MINIFORMAMB", nullable = false)
-    private MiniFormAmb ambiente;
+    private MiniFormAmbEty ambiente;
 
     @NotNull
     @Size(max = 255)
@@ -88,6 +88,6 @@ public class Form {
     @Column(name = "FECHA_IMPLANTACION_REAL")
     private LocalDateTime fechaInscripcionReal;
 
-    public Form() {
+    public InscripcionEty() {
     }
 }

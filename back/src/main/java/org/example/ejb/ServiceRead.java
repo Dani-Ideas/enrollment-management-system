@@ -8,7 +8,7 @@ import java.util.List;
 
 // UN SOLO service de lectura para TODOS los Controllers -- mismo patron que
 // HelloJakarta-variante (ver su bitacora-fixes.md incidente #29). "Generico" aqui es
-// literal: no conoce MiniFormEst/MiniFormSis/etc., solo Class<T> -- por eso usa
+// literal: no conoce MiniFormEstEty/MiniFormSisEty/etc., solo Class<T> -- por eso usa
 // EntityManager directo en vez de los XRepository de Jakarta Data (esos son uno por
 // entidad, no se pueden invocar por reflexion sin volverse fragil).
 //

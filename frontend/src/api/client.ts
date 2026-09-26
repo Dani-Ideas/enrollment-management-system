@@ -4,6 +4,8 @@ import type {
   FormacionComplementariaDTO,
   FormacionComplementariaRequestDTO,
   EstadoDTO,
+  InscripcionCompuestaDTO,
+  InscripcionCompuestaRequestDTO,
   InscripcionDTO,
   InscripcionRequestDTO,
   ResponsableDTO,
@@ -160,8 +162,11 @@ export function fetchInscripcion(id: number): Promise<InscripcionDTO> {
   return request<InscripcionDTO>(`${RUTAS.inscripciones}/${id}`);
 }
 
-export function crearInscripcion(dto: InscripcionRequestDTO): Promise<InscripcionDTO> {
-  return request<InscripcionDTO>(RUTAS.inscripciones, { method: "POST", data: dto });
+// UNA sola peticion HTTP: crea la Inscripcion y sus formaciones complementarias juntas --
+// el backend resuelve el FK internamente, ya no hace falta esperar el id real y mandar un
+// POST por cada formación complementaria desde el cliente (ver InscripcionCompuestaRequestDTO).
+export function crearInscripcion(dto: InscripcionCompuestaRequestDTO): Promise<InscripcionCompuestaDTO> {
+  return request<InscripcionCompuestaDTO>(RUTAS.inscripciones, { method: "POST", data: dto });
 }
 
 export function actualizarInscripcion(

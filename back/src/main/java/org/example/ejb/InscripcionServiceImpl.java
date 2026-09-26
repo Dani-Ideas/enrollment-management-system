@@ -3,28 +3,29 @@ package org.example.ejb;
 import jakarta.ejb.EJB;
 import jakarta.ejb.Stateless;
 import jakarta.inject.Inject;
-import org.example.dto.FormDto;
-import org.example.dto.FormRequestDto;
-import org.example.lib.FormRepository;
-import org.example.lib.FormService;
+import org.example.dto.InscripcionDto;
+import org.example.dto.InscripcionRequestDto;
+import org.example.lib.InscripcionRepository;
+import org.example.lib.InscripcionService;
 import org.example.lib.MiniFormAmbRepository;
 import org.example.lib.MiniFormEstRepository;
 import org.example.lib.MiniFormRespRepository;
 import org.example.lib.MiniFormSisRepository;
 import org.example.lib.ReglaDeNegocioException;
-import org.example.mapper.FormMapper;
-import org.example.model.Form;
+import org.example.lib.ServiceArtifax;
+import org.example.mapper.InscripcionMapper;
+import org.example.model.InscripcionEty;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Stateless
-public class FormServiceImpl implements FormService {
+public class InscripcionServiceImpl implements InscripcionService {
 
     @Inject
-    private FormRepository formRepository;
+    private InscripcionRepository inscripcionRepository;
 
-    // ServiceArtifax cachea Form en memoria (ver esa clase, listarInscripciones()) para
+    // ServiceArtifax cachea InscripcionEty en memoria (ver esa clase, listarInscripciones()) para
     // poder filtrar por estado/sistema/ambiente sin ir a la BD -- cada escritura de aqui
     // abajo tiene que avisarle, si no el cache se queda con datos viejos (mismo patron que
     // Producto en HelloJakarta-variante).
@@ -32,9 +33,9 @@ public class FormServiceImpl implements FormService {
     private ServiceArtifax serviceArtifax;
 
     // Necesita los 4 repositorios de catalogo para reemplazar, DESPUES de
-    // formMapper.toEntity()/actualizarDesde(), los stubs por id que arma el Mapper por las
+    // inscripcionMapper.toEntity()/actualizarDesde(), los stubs por id que arma el Mapper por las
     // entidades REALES -- hacen falta completas (no solo el id) para que
-    // FormMapper.toDto() pueda aplanarlas a texto legible en la respuesta, y de paso valida
+    // InscripcionMapper.toDto() pueda aplanarlas a texto legible en la respuesta, y de paso valida
     // que cada id exista de verdad (409 limpio en vez de una FK constraint cruda).
     @Inject
     private MiniFormEstRepository miniFormEstRepository;
@@ -49,38 +50,38 @@ public class FormServiceImpl implements FormService {
     private MiniFormAmbRepository miniFormAmbRepository;
 
     @Inject
-    private FormMapper formMapper;
+    private InscripcionMapper inscripcionMapper;
 
     @Override
-    public List<FormDto> listar() {
-        return formRepository.findAll()
-                .map(formMapper::toDto)
+    public List<InscripcionDto> listar() {
+        return inscripcionRepository.findAll()
+                .map(inscripcionMapper::toDto)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public FormDto buscarPorId(Long id) {
-        return formRepository.findById(id).map(formMapper::toDto).orElse(null);
+    public InscripcionDto buscarPorId(Long id) {
+        return inscripcionRepository.findById(id).map(inscripcionMapper::toDto).orElse(null);
     }
 
     @Override
-    public FormDto crear(FormRequestDto dto) {
-        Form form = formMapper.toEntity(dto);
-        resolverRelaciones(form, dto);
-        Form creado = formRepository.insert(form);
+    public InscripcionDto crear(InscripcionRequestDto dto) {
+        InscripcionEty inscripcion = inscripcionMapper.toEntity(dto);
+        resolverRelaciones(inscripcion, dto);
+        InscripcionEty creado = inscripcionRepository.insert(inscripcion);
         serviceArtifax.refrescarInscripcion(creado);
-        return formMapper.toDto(creado);
+        return inscripcionMapper.toDto(creado);
     }
 
     @Override
-    public FormDto actualizar(Long id, FormRequestDto dto) {
-        return formRepository.findById(id)
-                .map(form -> {
-                    formMapper.actualizarDesde(form, dto);
-                    resolverRelaciones(form, dto);
-                    Form actualizado = formRepository.update(form);
+    public InscripcionDto actualizar(Long id, InscripcionRequestDto dto) {
+        return inscripcionRepository.findById(id)
+                .map(inscripcion -> {
+                    inscripcionMapper.actualizarDesde(inscripcion, dto);
+                    resolverRelaciones(inscripcion, dto);
+                    InscripcionEty actualizado = inscripcionRepository.update(inscripcion);
                     serviceArtifax.refrescarInscripcion(actualizado);
-                    return formMapper.toDto(actualizado);
+                    return inscripcionMapper.toDto(actualizado);
                 })
                 .orElse(null);
     }
@@ -88,18 +89,18 @@ public class FormServiceImpl implements FormService {
     // Comun a crear() y actualizar() -- el Mapper ya dejo la entidad con los 6 stubs (solo
     // id) y los campos propios copiados; esto los reemplaza por las entidades REALES (con
     // 404/409 limpio si algun id no existe).
-    private void resolverRelaciones(Form form, FormRequestDto dto) {
-        form.setEstado(miniFormEstRepository.findById(dto.estadoId())
+    private void resolverRelaciones(InscripcionEty inscripcion, InscripcionRequestDto dto) {
+        inscripcion.setEstado(miniFormEstRepository.findById(dto.estadoId())
                 .orElseThrow(() -> new ReglaDeNegocioException("No existe el estado " + dto.estadoId())));
-        form.setSistema(miniFormSisRepository.findById(dto.sistemaId())
+        inscripcion.setSistema(miniFormSisRepository.findById(dto.sistemaId())
                 .orElseThrow(() -> new ReglaDeNegocioException("No existe el sistema " + dto.sistemaId())));
-        form.setJefeCarrera(miniFormRespRepository.findById(dto.jefeCarreraId())
+        inscripcion.setJefeCarrera(miniFormRespRepository.findById(dto.jefeCarreraId())
                 .orElseThrow(() -> new ReglaDeNegocioException("No existe el responsable " + dto.jefeCarreraId())));
-        form.setMaestro(miniFormRespRepository.findById(dto.maestroId())
+        inscripcion.setMaestro(miniFormRespRepository.findById(dto.maestroId())
                 .orElseThrow(() -> new ReglaDeNegocioException("No existe el responsable " + dto.maestroId())));
-        form.setCarrera(miniFormRespRepository.findById(dto.carreraId())
+        inscripcion.setCarrera(miniFormRespRepository.findById(dto.carreraId())
                 .orElseThrow(() -> new ReglaDeNegocioException("No existe el responsable " + dto.carreraId())));
-        form.setAmbiente(miniFormAmbRepository.findById(dto.ambienteId())
+        inscripcion.setAmbiente(miniFormAmbRepository.findById(dto.ambienteId())
                 .orElseThrow(() -> new ReglaDeNegocioException("No existe el ambiente " + dto.ambienteId())));
     }
 }

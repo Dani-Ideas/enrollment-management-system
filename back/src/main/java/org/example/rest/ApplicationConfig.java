@@ -78,7 +78,7 @@ public class ApplicationConfig extends ResourceConfig {
         REGISTRO_ACTIVO.put(Endpoints.SISTEMAS, MiniFormSisController.class);
         REGISTRO_ACTIVO.put(Endpoints.RESPONSABLES, MiniFormRespController.class);
         REGISTRO_ACTIVO.put(Endpoints.AMBIENTES, MiniFormAmbController.class);
-        REGISTRO_ACTIVO.put(Endpoints.INSCRIPCIONES, FormController.class);
+        REGISTRO_ACTIVO.put(Endpoints.INSCRIPCIONES, InscripcionController.class);
         REGISTRO_ACTIVO.put(Endpoints.FORMACIONES_COMPLEMENTARIAS, FormacionComplementariaController.class);
         REGISTRO_ACTIVO.put(Endpoints.CATALOGOS_INSCRIPCION, CatalogosInscripcionController.class);
     }
