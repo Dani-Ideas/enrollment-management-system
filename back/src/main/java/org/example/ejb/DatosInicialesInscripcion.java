@@ -50,7 +50,12 @@ public class DatosInicialesInscripcion {
         List<MiniFormEstEty> estados = List.of(
                 miniFormEstRepository.insert(nuevoEstado("Pendiente")),
                 miniFormEstRepository.insert(nuevoEstado("En progreso")),
-                miniFormEstRepository.insert(nuevoEstado("Completada"))
+                miniFormEstRepository.insert(nuevoEstado("Completada")),
+                // "Cancelada" -- estado terminal: una vez que una Inscripcion pasa a este
+                // estado, el front bloquea la edicion (sigue pudiendose consultar). No es una
+                // regla de negocio del backend -- este endpoint sigue aceptando el mismo PUT
+                // de siempre, la restriccion es puramente de UI.
+                miniFormEstRepository.insert(nuevoEstado("Cancelada"))
         );
 
         List<MiniFormSisEty> sistemas = List.of(
