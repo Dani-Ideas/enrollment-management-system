@@ -574,6 +574,32 @@ export function FormularioPagoPage() {
     }
   }
 
+  // Una solicitud cancelada es un estado terminal a nivel de UI -- se sigue pudiendo
+  // consultar, pero deja de ser editable. No es una regla del backend (el PUT sigue
+  // aceptando cualquier estado); "Cancelada" es solo un valor mas del catalogo de
+  // estados (ver DatosInicialesInscripcion.java), y esta constante busca su id para poder
+  // mandarlo en el PUT de cancelarSolicitud().
+  const estadoCanceladaId = estadosQuery.data?.find((e) => e.estado === "Cancelada")?.id
+  const solicitudCancelada = buscarInscripcionMutation.data?.estado === "Cancelada"
+
+  // Cancela contra lo ULTIMO CONFIRMADO (baseline), no contra "campos" -- si el usuario
+  // tenia ediciones a medias sin guardar, cancelar las descarta en vez de mezclarlas con
+  // el cambio de estado (son dos acciones distintas: "cancelar" no es "guardar y cancelar").
+  async function cancelarSolicitud() {
+    if (!baseline || estadoCanceladaId === undefined || solicitudIdActual === null) return
+    try {
+      const dto = { ...camposADto(baseline), estadoId: estadoCanceladaId }
+      await actualizarInscripcionMutation.mutateAsync(dto)
+      const nuevoBaseline: CamposFormulario = { ...baseline, estadoId: String(estadoCanceladaId) }
+      setBaseline(nuevoBaseline)
+      setCampos(nuevoBaseline)
+      queryClient.invalidateQueries({ queryKey: ["inscripciones"] })
+      buscarInscripcionMutation.mutate(solicitudIdActual)
+    } catch {
+      // el error ya queda disponible en actualizarInscripcionMutation.error
+    }
+  }
+
   function actualizarOtra() {
     setSolicitudIdActual(null)
     setBaseline(null)
@@ -888,10 +914,19 @@ export function FormularioPagoPage() {
                     ) : (
                       <>
                         <p className="text-sm text-muted-foreground">
-                          Editando la solicitud #{solicitudIdActual}. Ya está precargada con lo
-                          que tenía antes -- modificá lo que haga falta, el botón de guardar
-                          recién se habilita si cambió algo.
+                          {solicitudCancelada
+                            ? `Consultando la solicitud #${solicitudIdActual}.`
+                            : `Editando la solicitud #${solicitudIdActual}. Ya está precargada con lo que tenía antes -- modificá lo que haga falta, el botón de guardar recién se habilita si cambió algo.`}
                         </p>
+                        {solicitudCancelada && (
+                          <Alert variant="destructive">
+                            <TriangleAlertIcon />
+                            <AlertTitle>Esta solicitud está cancelada</AlertTitle>
+                            <AlertDescription>
+                              Se puede seguir consultando, pero ya no admite cambios.
+                            </AlertDescription>
+                          </Alert>
+                        )}
                         <FieldGroup>
                           <FieldSet>
                             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -901,6 +936,7 @@ export function FormularioPagoPage() {
                                   id="pago-edit-estado"
                                   value={campos.estadoId}
                                   onChange={(e) => setCampo("estadoId", e.target.value)}
+                                  disabled={solicitudCancelada}
                                 >
                                   {estadosQuery.data?.map((e) => (
                                     <option key={e.id} value={e.id}>
@@ -915,6 +951,7 @@ export function FormularioPagoPage() {
                                   id="pago-edit-sistema"
                                   value={campos.sistemaId}
                                   onChange={(e) => setCampo("sistemaId", e.target.value)}
+                                  disabled={solicitudCancelada}
                                 >
                                   {sistemasQuery.data?.map((s) => (
                                     <option key={s.id} value={s.id}>
@@ -929,6 +966,7 @@ export function FormularioPagoPage() {
                                   id="pago-edit-ambiente"
                                   value={campos.ambienteId}
                                   onChange={(e) => setCampo("ambienteId", e.target.value)}
+                                  disabled={solicitudCancelada}
                                 >
                                   {ambientesQuery.data?.map((a) => (
                                     <option key={a.id} value={a.id}>
@@ -945,6 +983,7 @@ export function FormularioPagoPage() {
                                   id="pago-edit-resp-proyecto"
                                   value={campos.jefeCarreraId}
                                   onChange={(e) => setCampo("jefeCarreraId", e.target.value)}
+                                  disabled={solicitudCancelada}
                                 >
                                   {responsablesQuery.data?.map((r) => (
                                     <option key={r.id} value={r.id}>
@@ -961,6 +1000,7 @@ export function FormularioPagoPage() {
                                   id="pago-edit-resp-desarrollo"
                                   value={campos.maestroId}
                                   onChange={(e) => setCampo("maestroId", e.target.value)}
+                                  disabled={solicitudCancelada}
                                 >
                                   {responsablesQuery.data?.map((r) => (
                                     <option key={r.id} value={r.id}>
@@ -979,6 +1019,7 @@ export function FormularioPagoPage() {
                                   onChange={(e) =>
                                     setCampo("carreraId", e.target.value)
                                   }
+                                  disabled={solicitudCancelada}
                                 >
                                   {responsablesQuery.data?.map((r) => (
                                     <option key={r.id} value={r.id}>
@@ -995,6 +1036,7 @@ export function FormularioPagoPage() {
                                 id="pago-edit-proyecto"
                                 value={campos.proyecto}
                                 onChange={(e) => setCampo("proyecto", e.target.value)}
+                                disabled={solicitudCancelada}
                                 required
                               />
                             </Field>
@@ -1004,6 +1046,7 @@ export function FormularioPagoPage() {
                                 id="pago-edit-version"
                                 value={campos.version}
                                 onChange={(e) => setCampo("version", e.target.value)}
+                                disabled={solicitudCancelada}
                                 required
                               />
                             </Field>
@@ -1016,6 +1059,7 @@ export function FormularioPagoPage() {
                                 type="datetime-local"
                                 value={campos.fechaPlanteada}
                                 onChange={(e) => setCampo("fechaPlanteada", e.target.value)}
+                                disabled={solicitudCancelada}
                                 required
                               />
                             </Field>
@@ -1028,6 +1072,7 @@ export function FormularioPagoPage() {
                                 type="datetime-local"
                                 value={campos.fechaReal}
                                 onChange={(e) => setCampo("fechaReal", e.target.value)}
+                                disabled={solicitudCancelada}
                               />
                             </Field>
                             <Field>
@@ -1037,13 +1082,15 @@ export function FormularioPagoPage() {
                                 value={campos.descripcion}
                                 onChange={(e) => setCampo("descripcion", e.target.value)}
                                 placeholder="Opcional…"
+                                disabled={solicitudCancelada}
                               />
                             </Field>
 
                             {/* Formaciones complementarias ligadas a esta Inscripcion por FK -- se pueden
                                 agregar, quitar y editar libremente aca; el diff contra
                                 formacionesOriginalRef se resuelve recien al guardar (ver
-                                sincronizarFormacionesMutation). */}
+                                sincronizarFormacionesMutation). Bloqueadas tambien si la
+                                solicitud esta cancelada. */}
                             <Field>
                               <FieldLabel>Formaciones complementarias</FieldLabel>
                               <FieldDescription>
@@ -1063,6 +1110,7 @@ export function FormularioPagoPage() {
                                       value={formacion.descripcion}
                                       onChange={(e) => cambiarFormacionComplementariaEditable(indice, e.target.value)}
                                       placeholder="Descripción de la formación complementaria"
+                                      disabled={solicitudCancelada}
                                     />
                                     <Button
                                       type="button"
@@ -1070,6 +1118,7 @@ export function FormularioPagoPage() {
                                       size="icon"
                                       onClick={() => quitarFormacionComplementariaEditable(indice)}
                                       aria-label="Quitar formación complementaria"
+                                      disabled={solicitudCancelada}
                                     >
                                       <Trash2Icon />
                                     </Button>
@@ -1081,6 +1130,7 @@ export function FormularioPagoPage() {
                                 variant="outline"
                                 size="sm"
                                 onClick={agregarFormacionComplementariaEditable}
+                                disabled={solicitudCancelada}
                                 className="w-fit"
                               >
                                 <ListPlusIcon />
@@ -1088,19 +1138,32 @@ export function FormularioPagoPage() {
                               </Button>
                             </Field>
 
-                            <Button
-                              onClick={guardarCambios}
-                              disabled={
-                                !hayAlgoQueGuardar ||
-                                !formularioCompleto ||
-                                actualizarInscripcionMutation.isPending ||
-                                sincronizarFormacionesMutation.isPending
-                              }
-                              className="w-fit"
-                            >
-                              Guardar cambios
-                            </Button>
-                            {!hayAlgoQueGuardar && (
+                            {!solicitudCancelada && (
+                              <div className="flex flex-wrap gap-2">
+                                <Button
+                                  onClick={guardarCambios}
+                                  disabled={
+                                    !hayAlgoQueGuardar ||
+                                    !formularioCompleto ||
+                                    actualizarInscripcionMutation.isPending ||
+                                    sincronizarFormacionesMutation.isPending
+                                  }
+                                  className="w-fit"
+                                >
+                                  Guardar cambios
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="destructive"
+                                  onClick={cancelarSolicitud}
+                                  disabled={estadoCanceladaId === undefined || actualizarInscripcionMutation.isPending}
+                                  className="w-fit"
+                                >
+                                  Cancelar solicitud
+                                </Button>
+                              </div>
+                            )}
+                            {!solicitudCancelada && !hayAlgoQueGuardar && (
                               <p className="text-xs text-muted-foreground">
                                 No se detectó ningún cambio todavía -- modificá algún campo o
                                 alguna formación complementaria para poder guardar.
