@@ -83,15 +83,6 @@ public class InscripcionServiceImpl implements InscripcionService {
     }
 
     @Override
-    public InscripcionDto crear(InscripcionRequestDto dto) {
-        InscripcionEty inscripcion = inscripcionMapper.toEntity(dto);
-        resolverRelaciones(inscripcion, dto);
-        InscripcionEty creado = inscripcionRepository.insert(inscripcion);
-        serviceArtifax.refrescarInscripcion(creado);
-        return inscripcionMapper.toDto(creado);
-    }
-
-    @Override
     public InscripcionDto actualizar(Long id, InscripcionRequestDto dto) {
         return inscripcionRepository.findById(id)
                 .map(inscripcion -> {

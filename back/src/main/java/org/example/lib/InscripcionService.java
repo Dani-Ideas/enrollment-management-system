@@ -19,8 +19,6 @@ public interface InscripcionService {
 
     InscripcionDto buscarPorId(Long id);
 
-    InscripcionDto crear(InscripcionRequestDto dto);
-
     InscripcionDto actualizar(Long id, InscripcionRequestDto dto);
 
     // UNA sola peticion HTTP: crea la Inscripcion y sus formaciones complementarias juntas,
