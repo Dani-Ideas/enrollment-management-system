@@ -7,8 +7,8 @@
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/dto/EstudianteRequestDto.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/dto/FormacionComplementariaDto.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/dto/FormacionComplementariaRequestDto.java
-/home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/dto/InscripcionCompuestaDto.java
-/home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/dto/InscripcionCompuestaRequestDto.java
+/home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/dto/InscripcionConFormacionComplementariaDto.java
+/home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/dto/InscripcionConFormacionComplementariaRequestDto.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/dto/InscripcionDto.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/dto/InscripcionRequestDto.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/dto/LoginRequestDto.java
@@ -27,7 +27,6 @@
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/ejb/DatosIniciales.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/ejb/DatosInicialesInscripcion.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/ejb/EstudianteServiceImpl.java
-/home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/ejb/FormacionComplementariaServiceImpl.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/ejb/InscripcionServiceImpl.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/ejb/MateriaServiceImpl.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/ejb/MatriculaServiceImpl.java
@@ -42,7 +41,6 @@
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/lib/ClaseService.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/lib/EstudianteRepository.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/lib/EstudianteService.java
-/home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/lib/FormacionComplementariaService.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/lib/InscripcionRepository.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/lib/InscripcionService.java
 /home/robute/IdeaProjects/SistemaMatriculas/back/src/main/java/org/example/lib/MateriaRepository.java

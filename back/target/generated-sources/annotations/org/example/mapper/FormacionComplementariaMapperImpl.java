@@ -9,7 +9,7 @@ import org.example.model.InscripcionEty;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-09-25T22:25:53-0600",
+    date = "2026-10-02T08:21:46-0600",
     comments = "version: 1.6.3, compiler: javac, environment: Java 21.0.12.1 (Arch Linux)"
 )
 @ApplicationScoped

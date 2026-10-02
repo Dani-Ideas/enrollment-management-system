@@ -16,8 +16,8 @@ import java.util.List;
 // (Estado/Sistema/Responsable/Ambiente), de InscripcionEty (para filtrar por
 // estado/sistema/ambiente sin ir a la BD) y de FormacionComplementariaEty (para filtrar por
 // inscripcionId). Un cache no tiene metodos de creacion/edicion/eliminacion -- esos viven
-// en InscripcionService/FormacionComplementariaService, que escriben de verdad en la base y
-// despues avisan ACA (refrescarInscripcion/refrescarFormacionComplementaria/
+// en InscripcionService (duenio de las dos entidades, 1:N), que escribe de verdad en la
+// base y despues avisa ACA (refrescarInscripcion/refrescarFormacionComplementaria/
 // removerFormacionComplementaria) para que el mapa en memoria no quede desactualizado.
 // Unica implementacion: ServiceArtifaxImpl.
 public interface ServiceArtifax {
@@ -44,8 +44,8 @@ public interface ServiceArtifax {
     // inscripcionId null = todas las formaciones complementarias, de cualquier inscripcion.
     List<FormacionComplementariaDto> listarFormacionesComplementariasPorInscripcion(Long inscripcionId);
 
-    // Llamados por FormacionComplementariaServiceImpl DESPUES de escribir de verdad en la
-    // base -- UNICOS puntos de entrada para que una escritura real se refleje en el mapa.
+    // Llamados por InscripcionServiceImpl DESPUES de escribir de verdad en la base --
+    // UNICOS puntos de entrada para que una escritura real se refleje en el mapa.
     void refrescarFormacionComplementaria(FormacionComplementariaEty entidad);
 
     void removerFormacionComplementaria(Long id);

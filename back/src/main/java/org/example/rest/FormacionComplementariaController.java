@@ -17,8 +17,8 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
 import org.example.dto.FormacionComplementariaDto;
 import org.example.dto.FormacionComplementariaRequestDto;
+import org.example.lib.InscripcionService;
 import org.example.lib.ServiceArtifax;
-import org.example.lib.FormacionComplementariaService;
 
 import java.net.URI;
 
@@ -29,9 +29,10 @@ import static org.example.rest.ApplicationConfig.Endpoints.FORMACIONES_COMPLEMEN
 // InscripcionDto ni en listarInscripciones(), el front las pide aparte (GET ?inscripcionId=X)
 // solo cuando hace falta (crear/editar una Inscripcion, o abrir "Ver detalle" en la lista).
 //
-// GET via ServiceArtifax (lectura/filtro en memoria); POST/PUT/DELETE via
-// FormacionComplementariaService (el que escribe de verdad) -- ServiceArtifax dejo de tener
-// metodos de escritura, un cache no los tiene.
+// GET via ServiceArtifax (lectura/filtro en memoria); POST/PUT/DELETE via InscripcionService
+// -- es el lado "N" de la misma relacion 1:N, no amerita un service propio (ver
+// InscripcionService.java). ServiceArtifax dejo de tener metodos de escritura, un cache no
+// los tiene.
 @Path(FORMACIONES_COMPLEMENTARIAS)
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
@@ -41,7 +42,7 @@ public class FormacionComplementariaController {
     private ServiceArtifax serviceArtifax;
 
     @EJB
-    private FormacionComplementariaService formacionComplementariaService;
+    private InscripcionService inscripcionService;
 
     @Context
     private UriInfo uriInfo;
@@ -56,7 +57,7 @@ public class FormacionComplementariaController {
 
     @POST
     public Response crear(@Valid FormacionComplementariaRequestDto dto) {
-        FormacionComplementariaDto creado = formacionComplementariaService.crear(dto);
+        FormacionComplementariaDto creado = inscripcionService.crearFormacionComplementaria(dto);
         URI location = uriInfo.getAbsolutePathBuilder().path(String.valueOf(creado.id())).build();
         return Response.created(location).entity(creado).build();
     }
@@ -64,7 +65,7 @@ public class FormacionComplementariaController {
     @PUT
     @Path("/{id}")
     public Response actualizar(@PathParam("id") Long id, @Valid FormacionComplementariaRequestDto dto) {
-        FormacionComplementariaDto actualizado = formacionComplementariaService.actualizar(id, dto);
+        FormacionComplementariaDto actualizado = inscripcionService.actualizarFormacionComplementaria(id, dto);
         if (actualizado == null) {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
@@ -74,7 +75,7 @@ public class FormacionComplementariaController {
     @DELETE
     @Path("/{id}")
     public Response eliminar(@PathParam("id") Long id) {
-        boolean eliminado = formacionComplementariaService.eliminar(id);
+        boolean eliminado = inscripcionService.eliminarFormacionComplementaria(id);
         if (!eliminado) {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
