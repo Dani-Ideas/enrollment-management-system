@@ -47,6 +47,9 @@ import { Spinner } from "@/components/ui/spinner"
 import { toast } from "@/components/ui/toast"
 import {
   ArrowLeftIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  ListIcon,
   ListPlusIcon,
   PencilIcon,
   PlusIcon,
@@ -56,7 +59,7 @@ import {
   TriangleAlertIcon,
 } from "lucide-react"
 
-type Accion = "crear" | "actualizar"
+type Accion = "lista" | "crear" | "actualizar"
 
 // "Formaciones complementarias": lista 1:N ligada a una Inscripcion por FK (inscripcionId) -- ver
 // FormacionComplementaria.java / FormacionComplementariaController.java. Al CREAR, se juntan como simples
@@ -119,6 +122,7 @@ function aInputDatetime(iso: string | null): string {
 // alla de su ultimo paso real.
 function etiquetaPaso(accion: Accion | null, indice: number): string {
   if (indice === 0) return "Elegir acción"
+  if (accion === "lista") return indice === 1 ? "Lista de solicitudes" : ""
   if (accion === "actualizar") {
     return { 1: "Elegir solicitud", 2: "Editar campos", 3: "Confirmación" }[indice] ?? ""
   }
@@ -131,6 +135,7 @@ function etiquetaPaso(accion: Accion | null, indice: number): string {
 }
 
 function totalPasos(accion: Accion | null): number {
+  if (accion === "lista") return 2
   if (accion === "actualizar") return 4
   if (accion === "crear") return 5
   return 1
@@ -276,6 +281,10 @@ export function FormularioPagoPage() {
     setSolicitudIdActual(null)
     baselineIdRef.current = null
     setListaIdInput("")
+    setFiltroEstadoId("")
+    setFiltroSistemaId("")
+    setFiltroAmbienteId("")
+    setDetalleAbiertoId(null)
     buscarInscripcionMutation.reset()
     crearInscripcionMutation.reset()
     actualizarInscripcionMutation.reset()
@@ -329,18 +338,72 @@ export function FormularioPagoPage() {
   }
   const catalogosListos = catalogosQuery.isSuccess
 
-  // --- Lista completa -- solo hace falta en "actualizar" (elegir de que
-  // solicitud partir). staleTime corto (10s): a diferencia de los catalogos,
-  // esta es la lista de las SOLICITUDES mismas.
+  // --- Filtros de la rama "lista" -- "" significa "sin filtrar por este campo" (la
+  // opcion vacia de arriba de cada <select> es la de "todos"). Mismo criterio que
+  // InscripcionWizard.tsx: se apoyan en ServiceArtifax del backend (la "mini base de
+  // datos" en memoria) via fetchInscripciones(filtros) -- ver client.ts.
+  const [filtroEstadoId, setFiltroEstadoId] = useState("")
+  const [filtroSistemaId, setFiltroSistemaId] = useState("")
+  const [filtroAmbienteId, setFiltroAmbienteId] = useState("")
+
+  // --- "Ver detalle" en la rama "lista" -- por fila, colapsado por default. Al abrir una
+  // fila se piden sus formaciones complementarias (no vienen embebidas en InscripcionDTO).
+  const [detalleAbiertoId, setDetalleAbiertoId] = useState<number | null>(null)
+  function alternarDetalle(id: number) {
+    setDetalleAbiertoId((actual) => (actual === id ? null : id))
+  }
+  const detalleFormacionesQuery = useQuery({
+    queryKey: ["formaciones-complementarias", detalleAbiertoId],
+    queryFn: () => fetchFormacionesComplementariasPorInscripcion(detalleAbiertoId!),
+    enabled: detalleAbiertoId !== null,
+  })
+
+  // --- Lista completa -- usada por "lista" (con los 3 filtros de arriba) y por
+  // "actualizar" (elegir de que solicitud partir, SIN filtros). staleTime corto (10s): a
+  // diferencia de los catalogos, esta es la lista de las SOLICITUDES mismas. Los filtros
+  // van en el queryKey para que TanStack Query trate cada combinacion como una consulta
+  // distinta y vuelva a pedir sola en cuanto cambia alguno.
   const inscripcionesQuery = useQuery({
-    queryKey: ["inscripciones"],
-    // fetchInscripciones ahora acepta filtros opcionales (ver client.ts) -- sin
-    // envolver en una arrow function, TanStack Query le pasaria su propio objeto de
-    // contexto (queryKey/signal/...) como si fuera el parametro de filtros.
-    queryFn: () => fetchInscripciones(),
-    enabled: accion === "actualizar",
+    queryKey:
+      accion === "lista"
+        ? ["inscripciones", filtroEstadoId, filtroSistemaId, filtroAmbienteId]
+        : ["inscripciones"],
+    // Envuelto en una arrow function -- si no, TanStack Query le pasaria su propio objeto
+    // de contexto (queryKey/signal/...) como si fuera el parametro de filtros.
+    queryFn: () =>
+      fetchInscripciones(
+        accion === "lista"
+          ? {
+              estadoId: filtroEstadoId === "" ? undefined : Number(filtroEstadoId),
+              sistemaId: filtroSistemaId === "" ? undefined : Number(filtroSistemaId),
+              ambienteId: filtroAmbienteId === "" ? undefined : Number(filtroAmbienteId),
+            }
+          : undefined,
+      ),
+    enabled: accion === "lista" || accion === "actualizar",
     staleTime: 10 * 1000,
   })
+
+  // useQuery (v5) no tiene onError -- los errores de carga se avisan con toast desde aca,
+  // igual que los de las mutations de esta pagina. Depende de .error (no de .isError) para
+  // que un nuevo fallo con otra combinacion de filtros vuelva a avisar.
+  useEffect(() => {
+    if (!inscripcionesQuery.error) return
+    toast.add({
+      type: "error",
+      title: "No se pudo cargar la lista",
+      description: inscripcionesQuery.error.message,
+    })
+  }, [inscripcionesQuery.error])
+
+  useEffect(() => {
+    if (!detalleFormacionesQuery.error) return
+    toast.add({
+      type: "error",
+      title: "No se pudieron cargar las formaciones complementarias",
+      description: detalleFormacionesQuery.error.message,
+    })
+  }, [detalleFormacionesQuery.error])
 
   // --- Formaciones complementarias nuevas (paso "crear") -- simples strings todavia, la Inscripcion no
   // existe hasta que se confirma "Finalizar y crear" mas abajo.
@@ -660,8 +723,8 @@ export function FormularioPagoPage() {
 
       <h2>Solicitudes de inscripción</h2>
       <p className="mb-4 text-sm text-muted-foreground">
-        Elegí si querés crear una solicitud nueva o actualizar una existente -- el
-        formulario te va guiando paso a paso.
+        Elegí si querés consultar las solicitudes, crear una nueva o actualizar una
+        existente -- el formulario te va guiando paso a paso.
       </p>
 
       <NavigationMenu className="mb-4 max-w-none justify-start">
@@ -705,7 +768,15 @@ export function FormularioPagoPage() {
             <CarouselContent>
               {/* --- Paso 0: elegir que hacer (mutuamente excluyente) --- */}
               <CarouselItem>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <button
+                    type="button"
+                    onClick={() => elegirAccion("lista")}
+                    className="flex flex-col items-center gap-2 rounded-lg border border-input p-4 text-sm hover:border-primary/40 hover:bg-primary/5"
+                  >
+                    <ListIcon className="size-5" />
+                    Consultar solicitudes
+                  </button>
                   <button
                     type="button"
                     onClick={() => elegirAccion("crear")}
@@ -727,6 +798,132 @@ export function FormularioPagoPage() {
 
               {/* --- Paso 1 --- */}
               <CarouselItem>
+                {accion === "lista" && (
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-medium">Consultar solicitudes</h3>
+
+                    {/* Los 3 filtros pegan directo contra ServiceArtifax en el backend --
+                        cambiar cualquiera dispara un refetch solo (van en el queryKey de
+                        inscripcionesQuery), no filtran en el navegador. */}
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                      <Field>
+                        <FieldLabel htmlFor="pago-filtro-estado">Estado</FieldLabel>
+                        <NativeSelect
+                          id="pago-filtro-estado"
+                          value={filtroEstadoId}
+                          onChange={(e) => setFiltroEstadoId(e.target.value)}
+                        >
+                          <option value="">Todos</option>
+                          {estadosQuery.data?.map((es) => (
+                            <option key={es.id} value={es.id}>
+                              {es.estado}
+                            </option>
+                          ))}
+                        </NativeSelect>
+                      </Field>
+                      <Field>
+                        <FieldLabel htmlFor="pago-filtro-sistema">Sistema</FieldLabel>
+                        <NativeSelect
+                          id="pago-filtro-sistema"
+                          value={filtroSistemaId}
+                          onChange={(e) => setFiltroSistemaId(e.target.value)}
+                        >
+                          <option value="">Todos</option>
+                          {sistemasQuery.data?.map((si) => (
+                            <option key={si.id} value={si.id}>
+                              {si.nombre}
+                            </option>
+                          ))}
+                        </NativeSelect>
+                      </Field>
+                      <Field>
+                        <FieldLabel htmlFor="pago-filtro-ambiente">Ambiente</FieldLabel>
+                        <NativeSelect
+                          id="pago-filtro-ambiente"
+                          value={filtroAmbienteId}
+                          onChange={(e) => setFiltroAmbienteId(e.target.value)}
+                        >
+                          <option value="">Todos</option>
+                          {ambientesQuery.data?.map((a) => (
+                            <option key={a.id} value={a.id}>
+                              {a.nombre}
+                            </option>
+                          ))}
+                        </NativeSelect>
+                      </Field>
+                    </div>
+
+                    {inscripcionesQuery.isLoading && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Spinner /> Cargando…
+                      </div>
+                    )}
+                    {inscripcionesQuery.data?.length === 0 && (
+                      <Alert>
+                        <TriangleAlertIcon />
+                        <AlertTitle>
+                          {filtroEstadoId || filtroSistemaId || filtroAmbienteId
+                            ? "Ninguna solicitud coincide con esos filtros"
+                            : "Todavía no hay solicitudes cargadas"}
+                        </AlertTitle>
+                      </Alert>
+                    )}
+                    <div className="space-y-2">
+                      {inscripcionesQuery.data?.map((inscripcion) => {
+                        const abierto = detalleAbiertoId === inscripcion.id
+                        return (
+                          <div key={inscripcion.id} className="rounded-lg border border-input p-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-sm font-medium">
+                                #{inscripcion.id} · {inscripcion.proyecto} ({inscripcion.version}) ·{" "}
+                                {inscripcion.estado}
+                              </p>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => alternarDetalle(inscripcion.id)}
+                              >
+                                {abierto ? <ChevronUpIcon /> : <ChevronDownIcon />}
+                                Ver detalle
+                              </Button>
+                            </div>
+                            {abierto && (
+                              <div className="mt-3 space-y-3 border-t border-dashed border-input pt-3">
+                                {renderDetalle(inscripcion)}
+                                <div>
+                                  <p className="mb-1 text-xs font-medium text-muted-foreground">
+                                    Formaciones complementarias
+                                  </p>
+                                  {detalleFormacionesQuery.isLoading && (
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                      <Spinner /> Cargando formaciones complementarias…
+                                    </div>
+                                  )}
+                                  {detalleFormacionesQuery.data?.length === 0 && (
+                                    <p className="text-sm text-muted-foreground">Sin formaciones complementarias.</p>
+                                  )}
+                                  <ul className="list-disc space-y-1 pl-5">
+                                    {detalleFormacionesQuery.data?.map((formacion) => (
+                                      <li key={formacion.id} className="text-sm">
+                                        {formacion.descripcion}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                    <Button variant="outline" onClick={empezarDeNuevo} className="w-fit">
+                      <RotateCcwIcon />
+                      Elegir otra acción
+                    </Button>
+                  </div>
+                )}
+
                 {accion === "actualizar" && (
                   <div className="space-y-4">
                     <FieldGroup>
