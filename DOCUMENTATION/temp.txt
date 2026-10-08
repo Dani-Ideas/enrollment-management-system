@@ -1,0 +1,110 @@
+¿Por qué el select de filtro de inscripciones en FormularioLargoPage.tsx sigue
+funcionando después del refactor de FormacionComplementaria?
+================================================================================
+
+Resumen corto: porque ese select NUNCA dependió de nada de lo que se tocó en
+el refactor. Filtra sobre InscripcionEty (el padre), y todo lo que se cambió
+fue sobre cómo se CREA FormacionComplementaria (el hijo) y sobre dónde vive
+su CRUD. El camino de LECTURA/LISTADO de Inscripcion no se movió ni un poco.
+
+1) Dónde está el select en el código
+-------------------------------------
+FormularioLargoPage.tsx (frontend/src/routes/pago/FormularioLargoPage.tsx) no
+tiene lógica propia: solo pone el breadcrumb/título y renderiza
+<InscripcionWizard /> (componente compartido, usado también por
+FormularioPagoPage.tsx).
+
+Los 3 <select> de filtro (Estado / Sistema / Ambiente) viven dentro de
+InscripcionWizard.tsx, en la pestaña "lista" (líneas ~730-780):
+
+  const [filtroEstadoId, setFiltroEstadoId]     = useState("")
+  const [filtroSistemaId, setFiltroSistemaId]   = useState("")
+  const [filtroAmbienteId, setFiltroAmbienteId] = useState("")
+
+Son simples <NativeSelect> controlados por estos 3 useState, sin relación
+directa con FormacionComplementaria.
+
+2) Cómo se dispara la petición
+-------------------------------
+Cambiar cualquiera de los 3 selects actualiza su useState, y eso cambia la
+queryKey de un useQuery (InscripcionWizard.tsx ~línea 373):
+
+  const inscripcionesQuery = useQuery({
+    queryKey: accion === "lista"
+      ? ["inscripciones", filtroEstadoId, filtroSistemaId, filtroAmbienteId]
+      : ["inscripciones"],
+    queryFn: () => fetchInscripciones(
+      accion === "lista"
+        ? {
+            estadoId:   filtroEstadoId   === "" ? undefined : Number(filtroEstadoId),
+            sistemaId:  filtroSistemaId  === "" ? undefined : Number(filtroSistemaId),
+            ambienteId: filtroAmbienteId === "" ? undefined : Number(filtroAmbienteId),
+          }
+        : undefined,
+    ),
+    ...
+  })
+
+TanStack Query ve que cambió la queryKey y vuelve a pedir sola (ese es el
+"auto-fetch" al tocar un select). staleTime corto (10s) a propósito, porque
+esta misma lista es la que el usuario puede estar creando/editando en otra
+pestaña del wizard.
+
+3) La petición HTTP real
+--------------------------
+fetchInscripciones() (frontend/src/api/client.ts, línea 151) pega:
+
+  GET /inscripciones?estadoId=X&sistemaId=Y&ambienteId=Z
+
+axios omite del query string cualquier parámetro undefined, así que un
+filtro vacío ("") simplemente no se manda.
+
+4) Qué hace el backend con eso (el punto clave)
+-------------------------------------------------
+InscripcionController.listar() (rest/InscripcionController.java, método
+GET sin @Path adicional) recibe los 3 @QueryParam opcionales y llama:
+
+  serviceArtifax.listarInscripciones(estadoId, sistemaId, ambienteId)
+
+Eso vive en ServiceArtifaxImpl.java y NO fue tocado por el refactor de
+FormacionComplementaria:
+
+  public List<InscripcionDto> listarInscripciones(Long estadoId, Long sistemaId, Long ambienteId) {
+      return inscripciones.values().stream()
+              .filter(f -> estadoId == null   || Objects.equals(f.getEstado().getId(), estadoId))
+              .filter(f -> sistemaId == null  || Objects.equals(f.getSistema().getId(), sistemaId))
+              .filter(f -> ambienteId == null || Objects.equals(f.getAmbiente().getId(), ambienteId))
+              .map(inscripcionMapper::toDto)
+              .collect(Collectors.toList());
+  }
+
+Es un filtro en memoria sobre el mapa `inscripciones` (el "cache" de
+ServiceArtifax), null en cualquier parámetro = "no filtrar por ese campo".
+Exactamente el mismo método, sin cambios, desde antes del refactor.
+
+5) Por qué sigue funcionando sin que nadie lo tocara a propósito
+--------------------------------------------------------------------
+El refactor de esta sesión tocó exclusivamente:
+
+  - Cómo se CREA una Inscripcion + sus FormacionComplementaria juntas
+    (InscripcionConFormacionComplementariaRequestDto, @OneToMany cascade,
+    @AfterMapping en InscripcionMapper, InscripcionService.crearConFormaciones()).
+  - Dónde vive el CRUD individual de FormacionComplementaria (ahora dentro
+    de InscripcionService, antes en un FormacionComplementariaService que
+    se borró).
+
+Nunca tocó:
+  - InscripcionController.listar() (GET /inscripciones).
+  - ServiceArtifax.listarInscripciones() / su implementación.
+  - El mapa en memoria `inscripciones` de ServiceArtifaxImpl ni cómo se
+    llena (sigue siendo refrescarInscripcion(), llamado igual que antes
+    en crear()/actualizar()/crearConFormaciones()).
+  - El contrato HTTP de ese endpoint (mismos query params, mismo DTO de
+    salida InscripcionDto).
+
+Es decir: el select filtra sobre el PADRE de la relación 1:N (Inscripcion),
+y todo lo que cambió en el refactor fue del lado del HIJO (FormacionComplementaria)
+y de cómo se arman juntos al crear. Como esos son dos caminos de código
+completamente separados (uno es listar/filtrar Inscripcion, el otro es
+crear/editar FormacionComplementaria), el refactor no tenía forma de
+romper el select aunque quisiera.

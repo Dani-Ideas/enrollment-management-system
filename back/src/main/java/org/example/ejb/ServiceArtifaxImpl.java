@@ -163,8 +163,8 @@ public class ServiceArtifaxImpl implements ServiceArtifax {
                 .collect(Collectors.toList());
     }
 
-    // Hooks de refresco -- llamados por FormacionComplementariaServiceImpl DESPUES de que
-    // ya escribio de verdad en la base (mismo patron que refrescarInscripcion() de arriba).
+    // Hooks de refresco -- llamados por InscripcionServiceImpl DESPUES de que ya escribio
+    // de verdad en la base (mismo patron que refrescarInscripcion() de arriba).
     // ServiceArtifax es un CACHE, no una base de datos: nunca llama el mismo a
     // ServiceCreateModify -- por eso estos dos metodos son los UNICOS puntos de entrada
     // para que una escritura real se refleje en el mapa en memoria.

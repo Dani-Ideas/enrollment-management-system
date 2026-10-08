@@ -22,7 +22,7 @@ public interface FormacionComplementariaMapper
     // toEntity(): id lo genera la base; "inscripcion" llega como stub (solo id, via
     // desdeId() de abajo) a partir de inscripcionId -- igual que InscripcionMapper resuelve sus
     // 6 relaciones. A diferencia de InscripcionEty, aqui SI hace falta reemplazar el stub por la
-    // InscripcionEty real antes de persistir (ver FormacionComplementariaServiceImpl.crear()) --
+    // InscripcionEty real antes de persistir (ver InscripcionServiceImpl.crearFormacionComplementaria()) --
     // em.persist() de una entidad con una @ManyToOne apuntando a un stub desprendido (solo
     // id, nunca buscado/adjuntado) no es seguro con EclipseLink, mismo motivo por el que
     // InscripcionServiceImpl.resolverRelaciones() nunca persiste sus stubs tal cual.
