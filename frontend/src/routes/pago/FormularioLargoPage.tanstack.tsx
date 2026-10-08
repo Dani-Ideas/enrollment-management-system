@@ -20,9 +20,7 @@ export function FormularioLargoPageTanstack() {
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link to="/">Inicio</Link>
-              </BreadcrumbLink>
+              <BreadcrumbLink render={<Link to="/" />}>Inicio</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>

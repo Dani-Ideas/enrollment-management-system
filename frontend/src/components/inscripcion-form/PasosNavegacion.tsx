@@ -26,7 +26,7 @@ export function PasosNavegacion({
   const pasos = Array.from({ length: totalPasos(accion) }, (_, i) => etiquetaPaso(accion, i))
 
   return (
-    <NavigationMenu viewport={false} className="mb-4 max-w-none justify-start">
+    <NavigationMenu className="mb-4 max-w-none justify-start">
       <NavigationMenuList className="flex-wrap justify-start gap-1">
         {pasos.map((titulo, indice) => {
           const desbloqueado = indice <= maxStep

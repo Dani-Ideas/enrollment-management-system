@@ -90,11 +90,9 @@ export function FormularioPagoPageTanstack() {
 
   return (
     <section className="max-w-2xl">
-      <Button variant="outline" size="sm" asChild className="mb-4">
-        <Link to="/">
-          <ArrowLeftIcon />
-          Volver al menú principal
-        </Link>
+      <Button variant="outline" size="sm" className="mb-4" nativeButton={false} render={<Link to="/" />}>
+        <ArrowLeftIcon />
+        Volver al menú principal
       </Button>
 
       <h2>Solicitudes de inscripción (variante TanStack Form)</h2>

@@ -44,9 +44,9 @@ import { NativeSelect } from "@/components/ui/native-select"
 import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Spinner } from "@/components/ui/spinner"
+import { toast } from "@/components/ui/toast"
 import {
   ArrowLeftIcon,
-  CheckCircle2Icon,
   ListPlusIcon,
   PencilIcon,
   PlusIcon,
@@ -363,10 +363,22 @@ export function FormularioPagoPage() {
   // encadenado por cada formación complementaria -- ver InscripcionCompuestaRequestDTO).
   const crearInscripcionMutation = useMutation({
     mutationFn: crearInscripcion,
-    onSuccess: () => {
+    onSuccess: (creada) => {
+      const cantidad = creada.formacionesComplementarias.length
+      toast.add({
+        type: "success",
+        title: `Solicitud #${creada.inscripcion.id} creada`,
+        description:
+          cantidad > 0
+            ? `${cantidad} formación${cantidad === 1 ? "" : "es"} complementaria${cantidad === 1 ? "" : "s"} creada${cantidad === 1 ? "" : "s"}`
+            : undefined,
+      })
       queryClient.invalidateQueries({ queryKey: ["inscripciones"] })
       desbloquearHasta(4)
       api?.scrollTo(4)
+    },
+    onError: (error) => {
+      toast.add({ type: "error", title: "No se pudo crear la solicitud", description: error.message })
     },
   })
 
@@ -392,7 +404,16 @@ export function FormularioPagoPage() {
   const [baseline, setBaseline] = useState<CamposFormulario | null>(null)
   const baselineIdRef = useRef<number | null>(null)
 
-  const buscarInscripcionMutation = useMutation({ mutationFn: fetchInscripcion })
+  const buscarInscripcionMutation = useMutation({
+    mutationFn: fetchInscripcion,
+    onError: () => {
+      toast.add({
+        type: "error",
+        title: "No se encontró esa solicitud",
+        description: "Revisá el número e intentá de nuevo.",
+      })
+    },
+  })
 
   // Formaciones complementarias de la solicitud elegida -- se piden aparte (no vienen embebidos en
   // InscripcionDTO), justo cuando se elige una solicitud para editar.
@@ -497,6 +518,9 @@ export function FormularioPagoPage() {
 
   const actualizarInscripcionMutation = useMutation({
     mutationFn: (dto: InscripcionRequestDTO) => actualizarInscripcion(solicitudIdActual!, dto),
+    onError: (error) => {
+      toast.add({ type: "error", title: "No se pudo guardar el cambio", description: error.message })
+    },
   })
 
   // Sincroniza la lista de formaciones complementarias contra lo que se tenia antes: crea los que se
@@ -537,6 +561,13 @@ export function FormularioPagoPage() {
           : el,
       )
     },
+    onError: (error) => {
+      toast.add({
+        type: "error",
+        title: "No se pudieron guardar las formaciones complementarias",
+        description: error.message,
+      })
+    },
   })
 
   // Guarda lo que haya cambiado -- campos principales, formaciones complementarias, o ambos -- y recien
@@ -565,12 +596,13 @@ export function FormularioPagoPage() {
       queryClient.invalidateQueries({ queryKey: ["inscripciones"] })
       queryClient.invalidateQueries({ queryKey: ["formaciones-complementarias", solicitudIdActual] })
       buscarInscripcionMutation.mutate(solicitudIdActual) // refresca el detalle para la confirmacion
+      toast.add({ type: "success", title: `Solicitud #${solicitudIdActual} actualizada` })
       setGuardadoConfirmado(true)
       desbloquearHasta(3)
       api?.scrollTo(3)
     } catch {
-      // el error ya queda disponible en actualizarInscripcionMutation.error /
-      // sincronizarFormacionesMutation.error, segun cual haya fallado
+      // el toast de error ya lo muestra el onError de actualizarInscripcionMutation /
+      // sincronizarFormacionesMutation, segun cual haya fallado
     }
   }
 
@@ -596,7 +628,7 @@ export function FormularioPagoPage() {
       queryClient.invalidateQueries({ queryKey: ["inscripciones"] })
       buscarInscripcionMutation.mutate(solicitudIdActual)
     } catch {
-      // el error ya queda disponible en actualizarInscripcionMutation.error
+      // el toast de error ya lo muestra el onError de actualizarInscripcionMutation
     }
   }
 
@@ -621,11 +653,9 @@ export function FormularioPagoPage() {
 
   return (
     <section className="max-w-2xl">
-      <Button variant="outline" size="sm" asChild className="mb-4">
-        <Link to="/">
-          <ArrowLeftIcon />
-          Volver al menú principal
-        </Link>
+      <Button variant="outline" size="sm" className="mb-4" nativeButton={false} render={<Link to="/" />}>
+        <ArrowLeftIcon />
+        Volver al menú principal
       </Button>
 
       <h2>Solicitudes de inscripción</h2>
@@ -634,7 +664,7 @@ export function FormularioPagoPage() {
         formulario te va guiando paso a paso.
       </p>
 
-      <NavigationMenu viewport={false} className="mb-4 max-w-none justify-start">
+      <NavigationMenu className="mb-4 max-w-none justify-start">
         <NavigationMenuList className="flex-wrap justify-start gap-1">
           {pasos.map((titulo, indice) => {
             const desbloqueado = indice <= maxStep
@@ -722,14 +752,6 @@ export function FormularioPagoPage() {
                         O elegí una directamente de la lista de abajo.
                       </FieldDescription>
                     </FieldGroup>
-
-                    {buscarInscripcionMutation.isError && (
-                      <Alert variant="destructive">
-                        <TriangleAlertIcon />
-                        <AlertTitle>No se encontró esa solicitud</AlertTitle>
-                        <AlertDescription>Revisá el número e intentá de nuevo.</AlertDescription>
-                      </Alert>
-                    )}
 
                     <div className="space-y-2">
                       {inscripcionesQuery.isLoading && (
@@ -1169,24 +1191,6 @@ export function FormularioPagoPage() {
                                 alguna formación complementaria para poder guardar.
                               </p>
                             )}
-                            {actualizarInscripcionMutation.isError && (
-                              <Alert variant="destructive">
-                                <TriangleAlertIcon />
-                                <AlertTitle>No se pudo guardar el cambio</AlertTitle>
-                                <AlertDescription>
-                                  {(actualizarInscripcionMutation.error as Error).message}
-                                </AlertDescription>
-                              </Alert>
-                            )}
-                            {sincronizarFormacionesMutation.isError && (
-                              <Alert variant="destructive">
-                                <TriangleAlertIcon />
-                                <AlertTitle>No se pudieron guardar las formaciones complementarias</AlertTitle>
-                                <AlertDescription>
-                                  {(sincronizarFormacionesMutation.error as Error).message}
-                                </AlertDescription>
-                              </Alert>
-                            )}
                           </FieldSet>
                         </FieldGroup>
                       </>
@@ -1273,10 +1277,6 @@ export function FormularioPagoPage() {
                         guardarCambios() refresca al terminar. */}
                     {guardadoConfirmado && buscarInscripcionMutation.data ? (
                       <>
-                        <Alert>
-                          <CheckCircle2Icon />
-                          <AlertTitle>Solicitud #{solicitudIdActual} actualizada</AlertTitle>
-                        </Alert>
                         {renderDetalle(buscarInscripcionMutation.data)}
                         <Button onClick={actualizarOtra} className="w-fit">
                           Actualizar otra solicitud
@@ -1297,25 +1297,7 @@ export function FormularioPagoPage() {
                   <div className="space-y-4">
                     {crearInscripcionMutation.isSuccess ? (
                       <>
-                        <Alert>
-                          <CheckCircle2Icon />
-                          <AlertTitle>
-                            Solicitud #{crearInscripcionMutation.data.inscripcion.id} creada
-                          </AlertTitle>
-                        </Alert>
                         {renderDetalle(crearInscripcionMutation.data.inscripcion)}
-
-                        {crearInscripcionMutation.data.formacionesComplementarias.length > 0 && (
-                          <Alert>
-                            <CheckCircle2Icon />
-                            <AlertTitle>
-                              {crearInscripcionMutation.data.formacionesComplementarias.length} formación
-                              {crearInscripcionMutation.data.formacionesComplementarias.length === 1 ? "" : "es"} complementaria
-                              {crearInscripcionMutation.data.formacionesComplementarias.length === 1 ? "" : "s"} creada
-                              {crearInscripcionMutation.data.formacionesComplementarias.length === 1 ? "" : "s"}
-                            </AlertTitle>
-                          </Alert>
-                        )}
 
                         <Button onClick={crearOtra} className="w-fit">
                           Crear otra solicitud
@@ -1388,15 +1370,6 @@ export function FormularioPagoPage() {
                         >
                           Finalizar y crear
                         </Button>
-                        {crearInscripcionMutation.isError && (
-                          <Alert variant="destructive">
-                            <TriangleAlertIcon />
-                            <AlertTitle>No se pudo crear la solicitud</AlertTitle>
-                            <AlertDescription>
-                              {(crearInscripcionMutation.error as Error).message}
-                            </AlertDescription>
-                          </Alert>
-                        )}
                       </>
                     )}
                   </div>

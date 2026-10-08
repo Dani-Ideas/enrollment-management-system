@@ -26,8 +26,8 @@ export function SalirSitioPage() {
       </Alert>
 
       <div className="flex gap-2">
-        <Button variant="outline" asChild>
-          <Link to="/">Cancelar</Link>
+        <Button variant="outline" nativeButton={false} render={<Link to="/" />}>
+          Cancelar
         </Button>
         <Button onClick={continuar}>
           <ExternalLinkIcon />

@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Outlet } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { CATALOGOS_INSCRIPCION_QUERY } from "@/api/client";
+import { Toaster } from "@/components/ui/toast";
 
 // Este componente es el "marco" fijo de toda la app: se renderiza SIEMPRE, sin importar
 // en que pagina estes. Es el component: de rootRoute en router.tsx -- por eso el header
@@ -37,6 +38,10 @@ export function RootLayout() {
             ver router.tsx). */}
         <Outlet />
       </main>
+
+      {/* Contenedor UNICO de los toasts de toda la app -- cualquier pagina los dispara con
+          toast.add() (ver components/ui/toast.tsx) y aparecen aqui. */}
+      <Toaster />
     </div>
   );
 }

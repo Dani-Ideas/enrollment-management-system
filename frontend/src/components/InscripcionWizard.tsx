@@ -652,7 +652,7 @@ export function InscripcionWizard() {
 
   return (
     <div className="space-y-4">
-      <NavigationMenu viewport={false} className="max-w-none justify-start">
+      <NavigationMenu className="max-w-none justify-start">
         <NavigationMenuList className="flex-wrap justify-start gap-1">
           {pasos.map((titulo, indice) => {
             const desbloqueado = indice <= maxStep
