@@ -1,24 +1,23 @@
 package org.example.lib;
 
-import org.example.dto.FormacionComplementariaDto;
-import org.example.dto.InscripcionDto;
 import org.example.dto.MiniFormAmbDto;
 import org.example.dto.MiniFormEstDto;
 import org.example.dto.MiniFormRespDto;
 import org.example.dto.MiniFormSisDto;
 import org.example.dto.TablasInscripcionDto;
-import org.example.model.FormacionComplementariaEty;
-import org.example.model.InscripcionEty;
 
 import java.util.List;
 
 // "Base de datos artifax" (en memoria): cache de LECTURA de los 4 catalogos estaticos
-// (Estado/Sistema/Responsable/Ambiente), de InscripcionEty (para filtrar por
-// estado/sistema/ambiente sin ir a la BD) y de FormacionComplementariaEty (para filtrar por
-// inscripcionId). Un cache no tiene metodos de creacion/edicion/eliminacion -- esos viven
-// en InscripcionService (duenio de las dos entidades, 1:N), que escribe de verdad en la
-// base y despues avisa ACA (refrescarInscripcion/refrescarFormacionComplementaria/
-// removerFormacionComplementaria) para que el mapa en memoria no quede desactualizado.
+// (Estado/Sistema/Responsable/Ambiente) -- son tablas basicas, estaticas el 99% del
+// tiempo, y nunca se escriben desde ningun endpoint de este proyecto.
+//
+// InscripcionEty y FormacionComplementariaEty NO se cachean aca -- cambian todo el tiempo
+// (se crean/editan/borran constantemente), cachear eso deja de ser "una base de datos en
+// cache de tablas estaticas" y pasa a ser reimplementar la base de datos en memoria. Esas
+// dos leen siempre directo del Repository (InscripcionRepository/
+// FormacionComplementariaRepository, via InscripcionService).
+//
 // Unica implementacion: ServiceArtifaxImpl.
 public interface ServiceArtifax {
 
@@ -33,20 +32,4 @@ public interface ServiceArtifax {
     // "Tablas genericas": los 4 catalogos de arriba en un solo bundle -- ver
     // TablasInscripcionDto/CatalogosInscripcionController.
     TablasInscripcionDto tablasInscripcion();
-
-    // Filtro de la "mini base de datos" en memoria -- cada parametro null significa "no
-    // filtrar por este campo" (asi listarInscripciones(null, null, null) devuelve todo).
-    List<InscripcionDto> listarInscripciones(Long estadoId, Long sistemaId, Long ambienteId);
-
-    // Llamado por InscripcionServiceImpl DESPUES de escribir de verdad en la base.
-    void refrescarInscripcion(InscripcionEty entidad);
-
-    // inscripcionId null = todas las formaciones complementarias, de cualquier inscripcion.
-    List<FormacionComplementariaDto> listarFormacionesComplementariasPorInscripcion(Long inscripcionId);
-
-    // Llamados por InscripcionServiceImpl DESPUES de escribir de verdad en la base --
-    // UNICOS puntos de entrada para que una escritura real se refleje en el mapa.
-    void refrescarFormacionComplementaria(FormacionComplementariaEty entidad);
-
-    void removerFormacionComplementaria(Long id);
 }

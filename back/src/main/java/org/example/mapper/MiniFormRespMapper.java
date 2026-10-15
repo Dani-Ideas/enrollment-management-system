@@ -1,25 +1,30 @@
 package org.example.mapper;
 
+import jakarta.inject.Inject;
 import org.example.dto.MiniFormRespDto;
+import org.example.lib.MiniFormRespRepository;
+import org.example.lib.ReglaDeNegocioException;
 import org.example.model.MiniFormRespEty;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingConstants;
 
+// Ver MiniFormEstMapper -- mismo criterio: desdeId() resuelve la FK contra la base aca
+// mismo, via CDI. InscripcionEty usa MiniFormRespEty 3 veces con roles distintos
+// (jefeCarrera/maestro/carrera) -- este UNICO metodo Long->MiniFormRespEty resuelve las 3
+// relaciones en InscripcionMapper, no hace falta uno por rol.
 @Mapper(componentModel = MappingConstants.ComponentModel.CDI)
-public interface MiniFormRespMapper {
+public abstract class MiniFormRespMapper {
 
-    MiniFormRespDto toDto(MiniFormRespEty responsable);
+    @Inject
+    private MiniFormRespRepository miniFormRespRepository;
 
-    // Referencia por id: mismo patron que CarreraMapper.desdeId -- arma un MiniFormRespEty
-    // "stub" (solo id). InscripcionEty usa MiniFormRespEty 3 veces con roles distintos
-    // (jefeCarrera/Desarrollo/Inscripcion) -- este UNICO metodo Long->MiniFormRespEty
-    // resuelve las 3 relaciones en InscripcionMapper, MapStruct no necesita uno por rol.
-    default MiniFormRespEty desdeId(Long id) {
+    public abstract MiniFormRespDto toDto(MiniFormRespEty responsable);
+
+    public MiniFormRespEty desdeId(Long id) {
         if (id == null) {
             return null;
         }
-        MiniFormRespEty responsable = new MiniFormRespEty();
-        responsable.setId(id);
-        return responsable;
+        return miniFormRespRepository.findById(id)
+                .orElseThrow(() -> new ReglaDeNegocioException("No existe el responsable " + id));
     }
 }

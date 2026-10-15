@@ -7,8 +7,8 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.processing.Generated;
 import org.example.dto.FormacionComplementariaDto;
+import org.example.dto.FormacionComplementariaRequestDto;
 import org.example.dto.InscripcionConFormacionComplementariaDto;
-import org.example.dto.InscripcionConFormacionComplementariaRequestDto;
 import org.example.dto.InscripcionDto;
 import org.example.dto.InscripcionRequestDto;
 import org.example.model.FormacionComplementariaEty;
@@ -20,7 +20,7 @@ import org.example.model.MiniFormSisEty;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-10-08T06:40:36-0600",
+    date = "2026-10-15T00:59:13-0600",
     comments = "version: 1.6.3, compiler: javac, environment: Java 21.0.12.1 (Arch Linux)"
 )
 @ApplicationScoped
@@ -36,6 +36,34 @@ public class InscripcionMapperImpl implements InscripcionMapper {
     private MiniFormAmbMapper miniFormAmbMapper;
     @Inject
     private FormacionComplementariaMapper formacionComplementariaMapper;
+
+    @Override
+    public List<InscripcionDto> toDto(List<InscripcionEty> entities) {
+        if ( entities == null ) {
+            return null;
+        }
+
+        List<InscripcionDto> list = new ArrayList<InscripcionDto>( entities.size() );
+        for ( InscripcionEty inscripcionEty : entities ) {
+            list.add( toDto( inscripcionEty ) );
+        }
+
+        return list;
+    }
+
+    @Override
+    public List<InscripcionEty> toEntity(List<InscripcionRequestDto> dtos) {
+        if ( dtos == null ) {
+            return null;
+        }
+
+        List<InscripcionEty> list = new ArrayList<InscripcionEty>( dtos.size() );
+        for ( InscripcionRequestDto inscripcionRequestDto : dtos ) {
+            list.add( toEntity( inscripcionRequestDto ) );
+        }
+
+        return list;
+    }
 
     @Override
     public InscripcionDto toDto(InscripcionEty inscripcion) {
@@ -82,12 +110,12 @@ public class InscripcionMapperImpl implements InscripcionMapper {
 
         InscripcionEty inscripcionEty = new InscripcionEty();
 
-        inscripcionEty.setEstado( miniFormEstMapper.desdeId( dto.estadoId() ) );
-        inscripcionEty.setSistema( miniFormSisMapper.desdeId( dto.sistemaId() ) );
-        inscripcionEty.setJefeCarrera( miniFormRespMapper.desdeId( dto.jefeCarreraId() ) );
-        inscripcionEty.setMaestro( miniFormRespMapper.desdeId( dto.maestroId() ) );
-        inscripcionEty.setCarrera( miniFormRespMapper.desdeId( dto.carreraId() ) );
-        inscripcionEty.setAmbiente( miniFormAmbMapper.desdeId( dto.ambienteId() ) );
+        inscripcionEty.setEstado( miniFormEstMapper.desdeId( dto.estado() ) );
+        inscripcionEty.setSistema( miniFormSisMapper.desdeId( dto.sistema() ) );
+        inscripcionEty.setJefeCarrera( miniFormRespMapper.desdeId( dto.jefeCarrera() ) );
+        inscripcionEty.setMaestro( miniFormRespMapper.desdeId( dto.maestro() ) );
+        inscripcionEty.setCarrera( miniFormRespMapper.desdeId( dto.carrera() ) );
+        inscripcionEty.setAmbiente( miniFormAmbMapper.desdeId( dto.ambiente() ) );
         inscripcionEty.setProyecto( dto.proyecto() );
         inscripcionEty.setVersion( dto.version() );
         inscripcionEty.setDescripcion( dto.descripcion() );
@@ -103,12 +131,12 @@ public class InscripcionMapperImpl implements InscripcionMapper {
             return;
         }
 
-        inscripcion.setEstado( miniFormEstMapper.desdeId( dto.estadoId() ) );
-        inscripcion.setSistema( miniFormSisMapper.desdeId( dto.sistemaId() ) );
-        inscripcion.setJefeCarrera( miniFormRespMapper.desdeId( dto.jefeCarreraId() ) );
-        inscripcion.setMaestro( miniFormRespMapper.desdeId( dto.maestroId() ) );
-        inscripcion.setCarrera( miniFormRespMapper.desdeId( dto.carreraId() ) );
-        inscripcion.setAmbiente( miniFormAmbMapper.desdeId( dto.ambienteId() ) );
+        inscripcion.setEstado( miniFormEstMapper.desdeId( dto.estado() ) );
+        inscripcion.setSistema( miniFormSisMapper.desdeId( dto.sistema() ) );
+        inscripcion.setJefeCarrera( miniFormRespMapper.desdeId( dto.jefeCarrera() ) );
+        inscripcion.setMaestro( miniFormRespMapper.desdeId( dto.maestro() ) );
+        inscripcion.setCarrera( miniFormRespMapper.desdeId( dto.carrera() ) );
+        inscripcion.setAmbiente( miniFormAmbMapper.desdeId( dto.ambiente() ) );
         inscripcion.setProyecto( dto.proyecto() );
         inscripcion.setVersion( dto.version() );
         inscripcion.setDescripcion( dto.descripcion() );
@@ -117,28 +145,17 @@ public class InscripcionMapperImpl implements InscripcionMapper {
     }
 
     @Override
-    public InscripcionEty toEntityConFormaciones(InscripcionConFormacionComplementariaRequestDto dto) {
-        if ( dto == null ) {
+    public List<FormacionComplementariaEty> mapFormaciones(List<FormacionComplementariaRequestDto> dtos) {
+        if ( dtos == null ) {
             return null;
         }
 
-        InscripcionEty inscripcionEty = new InscripcionEty();
+        List<FormacionComplementariaEty> list = new ArrayList<FormacionComplementariaEty>( dtos.size() );
+        for ( FormacionComplementariaRequestDto formacionComplementariaRequestDto : dtos ) {
+            list.add( formacionComplementariaMapper.toEntity( formacionComplementariaRequestDto ) );
+        }
 
-        inscripcionEty.setEstado( miniFormEstMapper.desdeId( dtoInscripcionEstadoId( dto ) ) );
-        inscripcionEty.setSistema( miniFormSisMapper.desdeId( dtoInscripcionSistemaId( dto ) ) );
-        inscripcionEty.setJefeCarrera( miniFormRespMapper.desdeId( dtoInscripcionJefeCarreraId( dto ) ) );
-        inscripcionEty.setMaestro( miniFormRespMapper.desdeId( dtoInscripcionMaestroId( dto ) ) );
-        inscripcionEty.setCarrera( miniFormRespMapper.desdeId( dtoInscripcionCarreraId( dto ) ) );
-        inscripcionEty.setAmbiente( miniFormAmbMapper.desdeId( dtoInscripcionAmbienteId( dto ) ) );
-        inscripcionEty.setProyecto( dtoInscripcionProyecto( dto ) );
-        inscripcionEty.setVersion( dtoInscripcionVersion( dto ) );
-        inscripcionEty.setDescripcion( dtoInscripcionDescripcion( dto ) );
-        inscripcionEty.setFechaInscripcionPlanteada( dtoInscripcionFechaInscripcionPlanteada( dto ) );
-        inscripcionEty.setFechaInscripcionReal( dtoInscripcionFechaInscripcionReal( dto ) );
-
-        agregarFormacionesComplementarias( dto, inscripcionEty );
-
-        return inscripcionEty;
+        return list;
     }
 
     @Override
@@ -151,7 +168,7 @@ public class InscripcionMapperImpl implements InscripcionMapper {
         List<FormacionComplementariaDto> formacionesComplementarias = null;
 
         inscripcion = toDto( entidad );
-        formacionesComplementarias = formacionComplementariaEtyListToFormacionComplementariaDtoList( entidad.getFormacionesComplementarias() );
+        formacionesComplementarias = formacionComplementariaMapper.toDto( entidad.getFormacionesComplementarias() );
 
         InscripcionConFormacionComplementariaDto inscripcionConFormacionComplementariaDto = new InscripcionConFormacionComplementariaDto( inscripcion, formacionesComplementarias );
 
@@ -204,106 +221,5 @@ public class InscripcionMapperImpl implements InscripcionMapper {
             return null;
         }
         return ambiente.getNombre();
-    }
-
-    private Long dtoInscripcionEstadoId(InscripcionConFormacionComplementariaRequestDto inscripcionConFormacionComplementariaRequestDto) {
-        InscripcionRequestDto inscripcion = inscripcionConFormacionComplementariaRequestDto.inscripcion();
-        if ( inscripcion == null ) {
-            return null;
-        }
-        return inscripcion.estadoId();
-    }
-
-    private Long dtoInscripcionSistemaId(InscripcionConFormacionComplementariaRequestDto inscripcionConFormacionComplementariaRequestDto) {
-        InscripcionRequestDto inscripcion = inscripcionConFormacionComplementariaRequestDto.inscripcion();
-        if ( inscripcion == null ) {
-            return null;
-        }
-        return inscripcion.sistemaId();
-    }
-
-    private Long dtoInscripcionJefeCarreraId(InscripcionConFormacionComplementariaRequestDto inscripcionConFormacionComplementariaRequestDto) {
-        InscripcionRequestDto inscripcion = inscripcionConFormacionComplementariaRequestDto.inscripcion();
-        if ( inscripcion == null ) {
-            return null;
-        }
-        return inscripcion.jefeCarreraId();
-    }
-
-    private Long dtoInscripcionMaestroId(InscripcionConFormacionComplementariaRequestDto inscripcionConFormacionComplementariaRequestDto) {
-        InscripcionRequestDto inscripcion = inscripcionConFormacionComplementariaRequestDto.inscripcion();
-        if ( inscripcion == null ) {
-            return null;
-        }
-        return inscripcion.maestroId();
-    }
-
-    private Long dtoInscripcionCarreraId(InscripcionConFormacionComplementariaRequestDto inscripcionConFormacionComplementariaRequestDto) {
-        InscripcionRequestDto inscripcion = inscripcionConFormacionComplementariaRequestDto.inscripcion();
-        if ( inscripcion == null ) {
-            return null;
-        }
-        return inscripcion.carreraId();
-    }
-
-    private Long dtoInscripcionAmbienteId(InscripcionConFormacionComplementariaRequestDto inscripcionConFormacionComplementariaRequestDto) {
-        InscripcionRequestDto inscripcion = inscripcionConFormacionComplementariaRequestDto.inscripcion();
-        if ( inscripcion == null ) {
-            return null;
-        }
-        return inscripcion.ambienteId();
-    }
-
-    private String dtoInscripcionProyecto(InscripcionConFormacionComplementariaRequestDto inscripcionConFormacionComplementariaRequestDto) {
-        InscripcionRequestDto inscripcion = inscripcionConFormacionComplementariaRequestDto.inscripcion();
-        if ( inscripcion == null ) {
-            return null;
-        }
-        return inscripcion.proyecto();
-    }
-
-    private String dtoInscripcionVersion(InscripcionConFormacionComplementariaRequestDto inscripcionConFormacionComplementariaRequestDto) {
-        InscripcionRequestDto inscripcion = inscripcionConFormacionComplementariaRequestDto.inscripcion();
-        if ( inscripcion == null ) {
-            return null;
-        }
-        return inscripcion.version();
-    }
-
-    private String dtoInscripcionDescripcion(InscripcionConFormacionComplementariaRequestDto inscripcionConFormacionComplementariaRequestDto) {
-        InscripcionRequestDto inscripcion = inscripcionConFormacionComplementariaRequestDto.inscripcion();
-        if ( inscripcion == null ) {
-            return null;
-        }
-        return inscripcion.descripcion();
-    }
-
-    private LocalDateTime dtoInscripcionFechaInscripcionPlanteada(InscripcionConFormacionComplementariaRequestDto inscripcionConFormacionComplementariaRequestDto) {
-        InscripcionRequestDto inscripcion = inscripcionConFormacionComplementariaRequestDto.inscripcion();
-        if ( inscripcion == null ) {
-            return null;
-        }
-        return inscripcion.fechaInscripcionPlanteada();
-    }
-
-    private LocalDateTime dtoInscripcionFechaInscripcionReal(InscripcionConFormacionComplementariaRequestDto inscripcionConFormacionComplementariaRequestDto) {
-        InscripcionRequestDto inscripcion = inscripcionConFormacionComplementariaRequestDto.inscripcion();
-        if ( inscripcion == null ) {
-            return null;
-        }
-        return inscripcion.fechaInscripcionReal();
-    }
-
-    protected List<FormacionComplementariaDto> formacionComplementariaEtyListToFormacionComplementariaDtoList(List<FormacionComplementariaEty> list) {
-        if ( list == null ) {
-            return null;
-        }
-
-        List<FormacionComplementariaDto> list1 = new ArrayList<FormacionComplementariaDto>( list.size() );
-        for ( FormacionComplementariaEty formacionComplementariaEty : list ) {
-            list1.add( formacionComplementariaMapper.toDto( formacionComplementariaEty ) );
-        }
-
-        return list1;
     }
 }

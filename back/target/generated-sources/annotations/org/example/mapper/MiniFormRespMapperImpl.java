@@ -7,11 +7,11 @@ import org.example.model.MiniFormRespEty;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-10-08T06:40:36-0600",
+    date = "2026-10-15T00:59:13-0600",
     comments = "version: 1.6.3, compiler: javac, environment: Java 21.0.12.1 (Arch Linux)"
 )
 @ApplicationScoped
-public class MiniFormRespMapperImpl implements MiniFormRespMapper {
+public class MiniFormRespMapperImpl extends MiniFormRespMapper {
 
     @Override
     public MiniFormRespDto toDto(MiniFormRespEty responsable) {

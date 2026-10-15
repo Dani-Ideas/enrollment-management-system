@@ -4,11 +4,10 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 // Forma de SALIDA -- deliberadamente aplanada a strings (estado/sistema/responsables/
-// ambiente), calcada del SELECT real que se uso como fuente de verdad. No trae objetos
-// anidados (a diferencia de ClaseDto, por ejemplo) porque lo que se pidio es exactamente
-// ese reporte, no un grafo de entidades completo. Los campos NO se renombraron junto con
-// las tablas/clases (sigue siendo "estado"/"sistema"/...) para no romper el JSON que ya
-// consume el frontend.
+// ambiente), calcada del SELECT real que se uso como fuente de verdad. No trae un grafo de
+// entidades completo porque lo que se pidio es exactamente ese reporte. Los campos NO se
+// renombraron junto con las tablas/clases (sigue siendo "estado"/"sistema"/...) para no
+// romper el JSON que ya consume el frontend.
 public record InscripcionDto(
         Long id,
         String estado,

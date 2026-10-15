@@ -38,7 +38,4 @@ public class FormacionComplementariaEty {
     @Size(max = 255)
     @Column(name = "DESCRIPCION", nullable = false)
     private String descripcion;
-
-    public FormacionComplementariaEty() {
-    }
 }

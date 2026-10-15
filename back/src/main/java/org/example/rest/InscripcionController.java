@@ -10,37 +10,15 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
-import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.UriInfo;
 import org.example.dto.InscripcionConFormacionComplementariaDto;
 import org.example.dto.InscripcionConFormacionComplementariaRequestDto;
 import org.example.dto.InscripcionDto;
-import org.example.dto.InscripcionRequestDto;
-import org.example.lib.ServiceArtifax;
 import org.example.lib.InscripcionService;
-
-import java.net.URI;
 
 import static org.example.rest.ApplicationConfig.Endpoints.INSCRIPCIONES;
 
-// Endpoint principal del dominio solicitud/inscripcion -- GET lista, GET por id, POST
-// (crear), PUT (actualizar).
-//
-// buscar()/actualizar() SIGUEN en InscripcionService (sin migrar al trio generico -- ese
-// service resuelve 6 relaciones con reglas de negocio, migrarlo es aparte de lo que se
-// pidio aqui). listar() SI se movio a ServiceArtifax, porque el filtro por
-// estado/sistema/ambiente necesita la "mini base de datos" en memoria (ver
-// ServiceArtifax.listarInscripciones()) -- filtrar contra el Repository/BD en cada
-// llamada hubiera sido un query nuevo por combinacion de filtros, en vez de un
-// stream().filter() sobre lo que ya esta cargado.
-//
-// crear() recibe InscripcionConFormacionComplementariaRequestDto (Inscripcion + N
-// formaciones complementarias opcionales) y delega DIRECTO a InscripcionService -- es una
-// relacion 1:N (InscripcionEty.formacionesComplementarias), no hace falta un service
-// intermedio para orquestarla. UNA sola peticion HTTP, en vez de que el cliente cree la
-// Inscripcion, espere el id, y despues mande un POST por cada formacion complementaria.
 @Path(INSCRIPCIONES)
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
@@ -49,47 +27,25 @@ public class InscripcionController {
     @EJB
     private InscripcionService inscripcionService;
 
-    @EJB
-    private ServiceArtifax serviceArtifax;
-
-    @Context
-    private UriInfo uriInfo;
-
-    // Los 3 @QueryParam son opcionales -- omitir uno (o los tres) es "no filtrar por ese
-    // campo", igual que ANTES devolvia todo. Ej: GET /inscripciones?estadoId=1&ambienteId=3
     @GET
-    public Response listar(
-            @QueryParam("estadoId") Long estadoId,
-            @QueryParam("sistemaId") Long sistemaId,
-            @QueryParam("ambienteId") Long ambienteId
-    ) {
-        return Response.ok(serviceArtifax.listarInscripciones(estadoId, sistemaId, ambienteId)).build();
+    public Response listar() {
+        return Response.ok(inscripcionService.listar()).build();
     }
 
     @GET
     @Path("/{id}")
     public Response buscar(@PathParam("id") Long id) {
-        InscripcionDto dto = inscripcionService.buscarPorId(id);
-        if (dto == null) {
-            return Response.status(Response.Status.NOT_FOUND).build();
-        }
-        return Response.ok(dto).build();
+        return Response.ok(inscripcionService.buscarPorId(id)).build();
     }
 
     @POST
     public Response crear(@Valid InscripcionConFormacionComplementariaRequestDto dto) {
-        InscripcionConFormacionComplementariaDto creada = inscripcionService.crearConFormaciones(dto);
-        URI location = uriInfo.getAbsolutePathBuilder().path(String.valueOf(creada.inscripcion().id())).build();
-        return Response.created(location).entity(creada).build();
+        return Response.ok(inscripcionService.crear(dto)).build();
     }
 
     @PUT
     @Path("/{id}")
-    public Response actualizar(@PathParam("id") Long id, @Valid InscripcionRequestDto dto) {
-        InscripcionDto actualizada = inscripcionService.actualizar(id, dto);
-        if (actualizada == null) {
-            return Response.status(Response.Status.NOT_FOUND).build();
-        }
-        return Response.ok(actualizada).build();
+    public Response actualizar(@PathParam("id") Long id, @Valid InscripcionConFormacionComplementariaRequestDto dto) {
+        return Response.ok(inscripcionService.actualizar(id, dto)).build();
     }
 }

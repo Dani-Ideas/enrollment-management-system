@@ -1,25 +1,28 @@
 package org.example.mapper;
 
+import jakarta.inject.Inject;
 import org.example.dto.MiniFormAmbDto;
+import org.example.lib.MiniFormAmbRepository;
+import org.example.lib.ReglaDeNegocioException;
 import org.example.model.MiniFormAmbEty;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingConstants;
 
+// Ver MiniFormEstMapper -- mismo criterio: desdeId() resuelve la FK contra la base aca
+// mismo, via CDI, en vez de devolver un stub.
 @Mapper(componentModel = MappingConstants.ComponentModel.CDI)
-public interface MiniFormAmbMapper {
+public abstract class MiniFormAmbMapper {
 
-    MiniFormAmbDto toDto(MiniFormAmbEty ambiente);
+    @Inject
+    private MiniFormAmbRepository miniFormAmbRepository;
 
-    // Referencia por id: mismo patron que CarreraMapper.desdeId -- arma un MiniFormAmbEty
-    // "stub" (solo id) para que InscripcionMapper.toEntity()/actualizarDesde() resuelvan
-    // ambienteId -> MiniFormAmbEty sin tocar la base. InscripcionServiceImpl reemplaza este stub por
-    // la entidad real antes de guardar.
-    default MiniFormAmbEty desdeId(Long id) {
+    public abstract MiniFormAmbDto toDto(MiniFormAmbEty ambiente);
+
+    public MiniFormAmbEty desdeId(Long id) {
         if (id == null) {
             return null;
         }
-        MiniFormAmbEty ambiente = new MiniFormAmbEty();
-        ambiente.setId(id);
-        return ambiente;
+        return miniFormAmbRepository.findById(id)
+                .orElseThrow(() -> new ReglaDeNegocioException("No existe el ambiente " + id));
     }
 }

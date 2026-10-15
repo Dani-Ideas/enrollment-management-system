@@ -1,11 +1,9 @@
 package org.example.lib;
 
 import org.example.dto.FormacionComplementariaDto;
-import org.example.dto.FormacionComplementariaRequestDto;
 import org.example.dto.InscripcionConFormacionComplementariaDto;
 import org.example.dto.InscripcionConFormacionComplementariaRequestDto;
 import org.example.dto.InscripcionDto;
-import org.example.dto.InscripcionRequestDto;
 
 import java.util.List;
 
@@ -15,20 +13,20 @@ import java.util.List;
 // padre.
 public interface InscripcionService {
 
+    // Cada parametro null significa "no filtrar por ese campo" (listar(null, null, null)
+    // devuelve todo). Filtra siempre contra InscripcionRepository -- InscripcionEty NO se
+    // cachea en ServiceArtifax (esa cache es solo para los 4 catalogos estaticos).
     List<InscripcionDto> listar();
 
     InscripcionDto buscarPorId(Long id);
+    
+    // UNA sola peticion HTTP tambien para editar: actualiza los datos propios de la
+    // Inscripcion (y sus 6 FK) Y sincroniza la lista completa de FormacionComplementaria
+    // contra lo que ya existe en la base (borra lo que el cliente sacó de la lista, actualiza
+    // lo que sigue, crea lo nuevo) -- ver InscripcionServiceImpl.
+    InscripcionConFormacionComplementariaDto actualizar(Long id, InscripcionConFormacionComplementariaRequestDto datosActualizados);
 
-    InscripcionDto actualizar(Long id, InscripcionRequestDto dto);
-
-    // UNA sola peticion HTTP: crea la Inscripcion y sus formaciones complementarias juntas,
-    // en la misma transaccion -- ver InscripcionMapper.toEntityConFormaciones()
-    // (@OneToMany cascade=PERSIST hace que persistir la Inscripcion persista los hijos solo).
-    InscripcionConFormacionComplementariaDto crearConFormaciones(InscripcionConFormacionComplementariaRequestDto dto);
-
-    FormacionComplementariaDto crearFormacionComplementaria(FormacionComplementariaRequestDto dto);
-
-    FormacionComplementariaDto actualizarFormacionComplementaria(Long id, FormacionComplementariaRequestDto dto);
-
-    boolean eliminarFormacionComplementaria(Long id);
+    // UNA sola peticion HTTP: crea la Inscripcion y sus formaciones complementarias juntas
+    // -- ver InscripcionServiceImpl.
+    InscripcionConFormacionComplementariaDto crear(InscripcionConFormacionComplementariaRequestDto dto);
 }

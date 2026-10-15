@@ -1,25 +1,28 @@
 package org.example.mapper;
 
+import jakarta.inject.Inject;
 import org.example.dto.MiniFormSisDto;
+import org.example.lib.MiniFormSisRepository;
+import org.example.lib.ReglaDeNegocioException;
 import org.example.model.MiniFormSisEty;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingConstants;
 
+// Ver MiniFormEstMapper -- mismo criterio: desdeId() resuelve la FK contra la base aca
+// mismo, via CDI, en vez de devolver un stub.
 @Mapper(componentModel = MappingConstants.ComponentModel.CDI)
-public interface MiniFormSisMapper {
+public abstract class MiniFormSisMapper {
 
-    MiniFormSisDto toDto(MiniFormSisEty sistema);
+    @Inject
+    private MiniFormSisRepository miniFormSisRepository;
 
-    // Referencia por id: mismo patron que CarreraMapper.desdeId -- arma un MiniFormSisEty
-    // "stub" (solo id) para que InscripcionMapper.toEntity()/actualizarDesde() resuelvan
-    // sistemaId -> MiniFormSisEty sin tocar la base. InscripcionServiceImpl reemplaza este stub por
-    // la entidad real antes de guardar.
-    default MiniFormSisEty desdeId(Long id) {
+    public abstract MiniFormSisDto toDto(MiniFormSisEty sistema);
+
+    public MiniFormSisEty desdeId(Long id) {
         if (id == null) {
             return null;
         }
-        MiniFormSisEty sistema = new MiniFormSisEty();
-        sistema.setId(id);
-        return sistema;
+        return miniFormSisRepository.findById(id)
+                .orElseThrow(() -> new ReglaDeNegocioException("No existe el sistema " + id));
     }
 }

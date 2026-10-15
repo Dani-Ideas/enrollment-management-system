@@ -11,7 +11,8 @@ import java.io.Serializable;
 // uno solo, /formaciones-complementarias, sin depender de anidar la ruta bajo
 // /inscripciones/{id}).
 public record FormacionComplementariaRequestDto(
-        @NotNull Long inscripcionId,
+        Long id,// este es para las actualizaciones
+        Long inscripcionId,// este no se exige que este lleno para las nuevas
         @NotNull @Size(max = 255) String descripcion
 ) implements Serializable {
 }

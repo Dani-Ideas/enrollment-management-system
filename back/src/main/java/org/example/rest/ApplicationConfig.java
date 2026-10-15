@@ -21,28 +21,18 @@ public class ApplicationConfig extends ResourceConfig {
     // acepta CONSTANTES DE COMPILACION como valor -- un "public static final String" cuenta
     // como tal.
     //
-    // OJO: que una constante exista (o este comentada) aqui NUNCA decidio si el endpoint
-    // esta activo -- eso lo decide, y solo lo decide, REGISTRO_ACTIVO mas abajo. Las 6
-    // constantes del dominio academico se dejan SIN comentar a proposito, aunque ese
-    // dominio ya no este activo: CarreraController/MateriaController/... (que siguen
-    // existiendo en el arbol de codigo, solo que sin registrar) las importan con
-    // "import static" -- comentar la constante rompe la compilacion de esos archivos.
+    // OJO: que una constante exista aca NUNCA decide si el endpoint esta activo -- eso lo
+    // decide, y solo lo decide, REGISTRO_ACTIVO mas abajo.
+    //
+    // El dominio academico (Carrera/Materia/Profesor/Clase/Estudiante/Matricula) que vivia
+    // en este WAR se elimino del arbol de codigo por completo (entities, repositories,
+    // mappers, services, controllers, DTOs y su seeder) -- no quedo nada que reactivar.
     public static final class Endpoints {
         private Endpoints() {}
 
         public static final String API = "/api";
 
-        // Dominio academico -- declaradas pero NO en REGISTRO_ACTIVO (por eso no
-        // aparecen en listEndpoints() ni responden por HTTP, aunque la constante exista).
-        public static final String CARRERAS = "/carreras";
-        public static final String MATERIAS = "/materias";
-        public static final String PROFESORES = "/profesores";
-        public static final String CLASES = "/clases";
-        public static final String ESTUDIANTES = "/estudiantes";
-        public static final String MATRICULAS = "/matriculas";
-
-        // Dominio "solicitud/inscripcion" -- separado del academico de arriba, comparte
-        // el mismo WAR/base de datos pero es un modulo sin relacion conceptual.
+        // Dominio "solicitud/inscripcion" -- el unico que queda activo en este WAR.
         public static final String ESTADOS = "/estados";
         public static final String SISTEMAS = "/sistemas";
         public static final String RESPONSABLES = "/responsables";
@@ -79,7 +69,6 @@ public class ApplicationConfig extends ResourceConfig {
         REGISTRO_ACTIVO.put(Endpoints.RESPONSABLES, MiniFormRespController.class);
         REGISTRO_ACTIVO.put(Endpoints.AMBIENTES, MiniFormAmbController.class);
         REGISTRO_ACTIVO.put(Endpoints.INSCRIPCIONES, InscripcionController.class);
-        REGISTRO_ACTIVO.put(Endpoints.FORMACIONES_COMPLEMENTARIAS, FormacionComplementariaController.class);
         REGISTRO_ACTIVO.put(Endpoints.CATALOGOS_INSCRIPCION, CatalogosInscripcionController.class);
     }
 

@@ -102,7 +102,4 @@ public class InscripcionEty {
     // esta coleccion no se usa para eso.
     @OneToMany(mappedBy = "inscripcion", cascade = CascadeType.PERSIST, fetch = FetchType.LAZY)
     private List<FormacionComplementariaEty> formacionesComplementarias = new ArrayList<>();
-
-    public InscripcionEty() {
-    }
 }

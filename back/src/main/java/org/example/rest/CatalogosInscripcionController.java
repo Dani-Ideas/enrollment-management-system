@@ -6,7 +6,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import org.example.lib.CatalogosInscripcionService;
+import org.example.lib.ServiceArtifax;
 
 import static org.example.rest.ApplicationConfig.Endpoints.CATALOGOS_INSCRIPCION;
 
@@ -17,17 +17,18 @@ import static org.example.rest.ApplicationConfig.Endpoints.CATALOGOS_INSCRIPCION
 // formulario especifico (mismo criterio que FormularioPagoController en
 // HelloJakarta-variante).
 //
-// Service EXCLUSIVO (CatalogosInscripcionService) en vez de llamar a ServiceArtifax
-// directo -- este Controller no necesita saber que el cache de catalogos vive ahi.
+// Llama directo a ServiceArtifax -- un service intermedio aca era pura indireccion sin
+// logica propia (tablasInscripcion() ya vive en el cache de los 4 catalogos, que es
+// justamente lo que este endpoint expone).
 @Path(CATALOGOS_INSCRIPCION)
 @Produces(MediaType.APPLICATION_JSON)
 public class CatalogosInscripcionController {
 
     @EJB
-    private CatalogosInscripcionService catalogosInscripcionService;
+    private ServiceArtifax serviceArtifax;
 
     @GET
     public Response tablas() {
-        return Response.ok(catalogosInscripcionService.tablas()).build();
+        return Response.ok(serviceArtifax.tablasInscripcion()).build();
     }
 }
