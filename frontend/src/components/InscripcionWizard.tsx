@@ -2,17 +2,13 @@ import { useEffect, useRef, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { cn } from "@/lib/utils"
 import {
-  actualizarFormacionComplementaria,
   actualizarInscripcion,
   CATALOGOS_INSCRIPCION_QUERY,
-  crearFormacionComplementaria,
   crearInscripcion,
-  eliminarFormacionComplementaria,
-  fetchFormacionesComplementariasPorInscripcion,
   fetchInscripcion,
   fetchInscripciones,
 } from "@/api/client"
-import type { InscripcionDTO, InscripcionRequestDTO } from "@/api/types"
+import type { FormacionComplementariaRequestDTO, InscripcionDTO, InscripcionRequestDTO } from "@/api/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import {
@@ -245,12 +241,12 @@ export function InscripcionWizard() {
 
   function camposADto(c: CamposFormulario): InscripcionRequestDTO {
     return {
-      estadoId: Number(c.estadoId),
-      sistemaId: Number(c.sistemaId),
-      jefeCarreraId: Number(c.jefeCarreraId),
-      maestroId: Number(c.maestroId),
-      carreraId: Number(c.carreraId),
-      ambienteId: Number(c.ambienteId),
+      estado: Number(c.estadoId),
+      sistema: Number(c.sistemaId),
+      jefeCarrera: Number(c.jefeCarreraId),
+      maestro: Number(c.maestroId),
+      carrera: Number(c.carreraId),
+      ambiente: Number(c.ambienteId),
       proyecto: c.proyecto,
       version: c.version,
       descripcion: c.descripcion.trim() === "" ? null : c.descripcion,
@@ -350,47 +346,41 @@ export function InscripcionWizard() {
   const [filtroSistemaId, setFiltroSistemaId] = useState("")
   const [filtroAmbienteId, setFiltroAmbienteId] = useState("")
 
-  // --- "Ver detalle" en la rama "lista" -- por fila, colapsado por default. Al abrir una
-  // fila se piden sus formaciones complementarias (no vienen embebidos en InscripcionDTO); al cerrarla, o
-  // abrir otra, la query de la anterior queda cacheada por TanStack Query (no se vuelve a
-  // pedir si se reabre dentro del staleTime default).
+  // --- "Ver detalle" en la rama "lista" -- por fila, colapsado por default. Ya NO muestra
+  // las formaciones complementarias de la fila: el backend discontinuo GET
+  // /formaciones-complementarias?inscripcionId=X, no hay ningun endpoint que las traiga
+  // sueltas para una Inscripcion ya creada.
   const [detalleAbiertoId, setDetalleAbiertoId] = useState<number | null>(null)
   function alternarDetalle(id: number) {
     setDetalleAbiertoId((actual) => (actual === id ? null : id))
   }
-  const detalleFormacionesQuery = useQuery({
-    queryKey: ["formaciones-complementarias", detalleAbiertoId],
-    queryFn: () => fetchFormacionesComplementariasPorInscripcion(detalleAbiertoId!),
-    enabled: detalleAbiertoId !== null,
-  })
 
   // --- Lista completa -- usada por "lista" (mostrar todo, con los 3 filtros de arriba) y
-  // por "actualizar" (elegir de que solicitud partir, sin filtros). staleTime corto (10s):
-  // a diferencia de los catalogos de arriba, esta es la lista de las SOLICITUDES mismas,
-  // que es justo lo que este componente crea/edita. Los filtros van en el queryKey para
-  // que TanStack Query trate cada combinacion como una consulta distinta (cachea cada una
-  // por separado, y vuelve a pedir sola en cuanto cambia algun filtro).
+  // por "actualizar" (elegir de que solicitud partir, sin filtros). GET /inscripciones ya
+  // no filtra del lado del backend -- se pide la lista completa UNA vez (mismo cache para
+  // "lista" y "actualizar") y el filtrado por estado/sistema/ambiente se hace aca, via
+  // "select", resolviendo cada id de filtro al texto legible contra los mismos catalogos
+  // de arriba (InscripcionDTO sale aplanado a texto, no trae ids).
   const inscripcionesQuery = useQuery({
-    // Los filtros solo entran al queryKey (y a la peticion real) cuando accion === "lista"
-    // -- "actualizar" comparte esta misma query pero para elegir de que solicitud partir,
-    // nunca debe salir filtrada aunque hayan quedado filtros de una visita anterior a
-    // "lista" (ademas, empezarDeNuevo() los resetea al volver al inicio).
-    queryKey:
-      accion === "lista"
-        ? ["inscripciones", filtroEstadoId, filtroSistemaId, filtroAmbienteId]
-        : ["inscripciones"],
-    queryFn: () =>
-      fetchInscripciones(
-        accion === "lista"
-          ? {
-              estadoId: filtroEstadoId === "" ? undefined : Number(filtroEstadoId),
-              sistemaId: filtroSistemaId === "" ? undefined : Number(filtroSistemaId),
-              ambienteId: filtroAmbienteId === "" ? undefined : Number(filtroAmbienteId),
-            }
-          : undefined,
-      ),
+    queryKey: ["inscripciones"],
+    queryFn: fetchInscripciones,
     enabled: accion === "lista" || accion === "actualizar",
     staleTime: 10 * 1000,
+    select: (data) => {
+      if (accion !== "lista") return data
+      const estadoNombre =
+        filtroEstadoId === "" ? null : estadosQuery.data?.find((e) => String(e.id) === filtroEstadoId)?.estado
+      const sistemaNombre =
+        filtroSistemaId === "" ? null : sistemasQuery.data?.find((s) => String(s.id) === filtroSistemaId)?.nombre
+      const ambienteNombre =
+        filtroAmbienteId === "" ? null : ambientesQuery.data?.find((a) => String(a.id) === filtroAmbienteId)?.nombre
+      return data.filter(
+        (i) =>
+          (estadoNombre === null || i.estado === estadoNombre) &&
+          (sistemaNombre === null || i.sistema === sistemaNombre) &&
+          (ambienteNombre === null || i.ambiente === ambienteNombre),
+      )
+    },
   })
 
   // --- Formaciones complementarias nuevas (paso "crear") -- simples strings todavia, la Inscripcion no
@@ -424,7 +414,11 @@ export function InscripcionWizard() {
   function crearInscripcionConFormaciones() {
     crearInscripcionMutation.mutate({
       inscripcion: camposADto(campos),
-      formacionesComplementarias: formacionesNuevas,
+      formacionesComplementarias: formacionesNuevas.map((descripcion) => ({
+        id: null,
+        inscripcionId: null,
+        descripcion,
+      })),
     })
   }
 
@@ -445,15 +439,11 @@ export function InscripcionWizard() {
 
   const buscarInscripcionMutation = useMutation({ mutationFn: fetchInscripcion })
 
-  // Formaciones complementarias de la solicitud elegida -- se piden aparte (no vienen embebidos en
-  // InscripcionDTO), justo cuando se elige una solicitud para editar.
-  const formacionesQuery = useQuery({
-    queryKey: ["formaciones-complementarias", solicitudIdActual],
-    queryFn: () => fetchFormacionesComplementariasPorInscripcion(solicitudIdActual!),
-    enabled: accion === "actualizar" && solicitudIdActual !== null,
-  })
-
-  // Lista editable (agregar/quitar/editar) -- arranca como copia de formacionesQuery.data
+  // Lista editable (agregar/quitar/editar) -- arranca VACIA al elegir una solicitud: el
+  // backend discontinuo GET /formaciones-complementarias?inscripcionId=X, no hay ningun
+  // endpoint que traiga las formaciones ya existentes de una Inscripcion para precargarlas
+  // aca. "actualizar" por ahora solo puede AGREGAR formaciones nuevas, no ver/editar/borrar
+  // las que ya existen (ver el useEffect de "baseline" mas abajo).
   // (ver el useEffect de "baseline" mas abajo, que la siembra una sola vez por
   // solicitud). id null = fila agregada durante esta edicion, todavia sin crear.
   const [formacionesEditables, setFormacionesEditables] = useState<FormacionComplementariaEditable[]>([])
@@ -830,26 +820,9 @@ export function InscripcionWizard() {
                                   <p className="mb-1 text-xs font-medium text-muted-foreground">
                                     Formaciones complementarias
                                   </p>
-                                  {detalleFormacionesQuery.isLoading && (
-                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                      <Spinner /> Cargando formaciones complementarias…
-                                    </div>
-                                  )}
-                                  {detalleFormacionesQuery.isError && (
-                                    <p className="text-sm text-destructive">
-                                      No se pudieron cargar las formaciones complementarias.
-                                    </p>
-                                  )}
-                                  {detalleFormacionesQuery.data?.length === 0 && (
-                                    <p className="text-sm text-muted-foreground">Sin formaciones complementarias.</p>
-                                  )}
-                                  <ul className="list-disc space-y-1 pl-5">
-                                    {detalleFormacionesQuery.data?.map((formacion) => (
-                                      <li key={formacion.id} className="text-sm">
-                                        {formacion.descripcion}
-                                      </li>
-                                    ))}
-                                  </ul>
+                                  <p className="text-sm text-muted-foreground">
+                                    No disponible desde esta vista.
+                                  </p>
                                 </div>
                               </div>
                             )}

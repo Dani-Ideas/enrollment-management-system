@@ -1,9 +1,8 @@
 import { createRootRoute, createRoute, createRouter } from "@tanstack/react-router";
 import { RootLayout } from "./routes/RootLayout";
 import { HomePage } from "./routes/HomePage";
-import { SalirSitioPage } from "./routes/pago/SalirSitioPage";
-import { FormularioPagoPage } from "./routes/pago/FormularioPagoPage";
-import { FormularioLargoPage } from "./routes/pago/FormularioLargoPage";
+import { SalirSitioPage } from "./routes/inscripciones/SalirSitioPage";
+import { FormularioPagoPageTanstack } from "./routes/inscripciones/FormularioPagoPage.tanstack";
 
 // Este archivo es el "mapa" completo de la app: que URL corresponde a que componente.
 // No dibuja nada el mismo -- solo arma la estructura que despues usa <RouterProvider/>
@@ -34,13 +33,7 @@ const salirSitioRoute = createRoute({
 const formularioPagoRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/formulario-pago",
-  component: FormularioPagoPage,
-});
-
-const formularioLargoRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/formulario-largo",
-  component: FormularioLargoPage,
+  component: FormularioPagoPageTanstack,
 });
 
 // Junta las rutas sueltas en un solo arbol -- esto es lo que createRouter necesita para
@@ -49,7 +42,6 @@ const routeTree = rootRoute.addChildren([
   indexRoute,
   salirSitioRoute,
   formularioPagoRoute,
-  formularioLargoRoute,
 ]);
 
 export const router = createRouter({

@@ -1,8 +1,10 @@
+import { useState } from "react"
 import { Link } from "@tanstack/react-router"
 import {
   CampoCatalogo,
   CampoDatosProyecto,
   CampoResponsables,
+  CampoSelect,
   DetalleInscripcion,
   FormacionesComplementariasEditor,
   PasosNavegacion,
@@ -11,17 +13,19 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel"
-import { FieldDescription, FieldGroup, FieldLabel, FieldSet } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
+import { Field, FieldDescription, FieldGroup, FieldLabel, FieldSet } from "@/components/ui/field"
+import { NativeSelect } from "@/components/ui/native-select"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Spinner } from "@/components/ui/spinner"
 import {
   ArrowLeftIcon,
   CheckCircle2Icon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  ListIcon,
   PencilIcon,
   PlusIcon,
   RotateCcwIcon,
-  SearchIcon,
   TriangleAlertIcon,
 } from "lucide-react"
 
@@ -73,20 +77,41 @@ export function FormularioPagoPageTanstack() {
     buscarInscripcionMutation,
     solicitudIdActual,
     baseline,
-    formacionesQuery,
     formacionesEditables,
     agregarFormacionComplementariaEditable,
     cambiarFormacionComplementariaEditable,
     quitarFormacionComplementariaEditable,
     hayAlgoQueGuardar,
     actualizarInscripcionMutation,
-    sincronizarFormacionesMutation,
     guardarCambios,
     guardadoConfirmado,
     actualizarOtra,
   } = wizard
 
-  const inscripcionesQuery = useInscripciones()
+  // --- Rescatado de InscripcionWizard: filtros de la rama "lista" y "Ver detalle" --
+  // estado local de esta pagina (no vive en el hook, ver useInscripcionForm.ts).
+  const [filtroEstadoId, setFiltroEstadoId] = useState("")
+  const [filtroSistemaId, setFiltroSistemaId] = useState("")
+  const [filtroAmbienteId, setFiltroAmbienteId] = useState("")
+
+  const [detalleAbiertoId, setDetalleAbiertoId] = useState<number | null>(null)
+  function alternarDetalle(id: number) {
+    setDetalleAbiertoId((actual) => (actual === id ? null : id))
+  }
+
+  const inscripcionesQuery = useInscripciones({
+    estadoId: filtroEstadoId,
+    sistemaId: filtroSistemaId,
+    ambienteId: filtroAmbienteId,
+  })
+
+  function empezarDeNuevoCompleto() {
+    empezarDeNuevo()
+    setFiltroEstadoId("")
+    setFiltroSistemaId("")
+    setFiltroAmbienteId("")
+    setDetalleAbiertoId(null)
+  }
 
   return (
     <section className="max-w-2xl">
@@ -109,7 +134,15 @@ export function FormularioPagoPageTanstack() {
             <CarouselContent>
               {/* --- Paso 0: elegir que hacer --- */}
               <CarouselItem>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <button
+                    type="button"
+                    onClick={() => elegirAccion("lista")}
+                    className="flex flex-col items-center gap-2 rounded-lg border border-input p-4 text-sm hover:border-primary/40 hover:bg-primary/5"
+                  >
+                    <ListIcon className="size-5" />
+                    Ver solicitudes existentes
+                  </button>
                   <button
                     type="button"
                     onClick={() => elegirAccion("crear")}
@@ -131,37 +164,122 @@ export function FormularioPagoPageTanstack() {
 
               {/* --- Paso 1 --- */}
               <CarouselItem>
-                {accion === "actualizar" && (
-                  <div className="space-y-4">
-                    <FieldGroup>
-                      <FieldLabel htmlFor="pago-tf-buscar-id">Número de solicitud</FieldLabel>
-                      <div className="flex gap-2">
-                        <Input
-                          id="pago-tf-buscar-id"
-                          type="number"
-                          min="1"
-                          value={listaIdInput}
-                          onChange={(e) => setListaIdInput(e.target.value)}
-                          placeholder="Ej. 1"
-                        />
-                        <Button
-                          onClick={buscarPorIdInput}
-                          disabled={buscarInscripcionMutation.isPending || listaIdInput.trim() === ""}
-                        >
-                          <SearchIcon />
-                          Buscar
-                        </Button>
-                      </div>
-                      <FieldDescription>O elegí una directamente de la lista de abajo.</FieldDescription>
-                    </FieldGroup>
+                {accion === "lista" && (
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-medium">Solicitudes existentes</h3>
 
-                    {buscarInscripcionMutation.isError && (
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                      <Field>
+                        <FieldLabel htmlFor="pago-tf-filtro-estado">Estado</FieldLabel>
+                        <NativeSelect
+                          id="pago-tf-filtro-estado"
+                          value={filtroEstadoId}
+                          onChange={(e) => setFiltroEstadoId(e.target.value)}
+                        >
+                          <option value="">Todos</option>
+                          {estadosQuery.data?.map((es) => (
+                            <option key={es.id} value={es.id}>
+                              {es.estado}
+                            </option>
+                          ))}
+                        </NativeSelect>
+                      </Field>
+                      <Field>
+                        <FieldLabel htmlFor="pago-tf-filtro-sistema">Sistema</FieldLabel>
+                        <NativeSelect
+                          id="pago-tf-filtro-sistema"
+                          value={filtroSistemaId}
+                          onChange={(e) => setFiltroSistemaId(e.target.value)}
+                        >
+                          <option value="">Todos</option>
+                          {sistemasQuery.data?.map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.nombre}
+                            </option>
+                          ))}
+                        </NativeSelect>
+                      </Field>
+                      <Field>
+                        <FieldLabel htmlFor="pago-tf-filtro-ambiente">Ambiente</FieldLabel>
+                        <NativeSelect
+                          id="pago-tf-filtro-ambiente"
+                          value={filtroAmbienteId}
+                          onChange={(e) => setFiltroAmbienteId(e.target.value)}
+                        >
+                          <option value="">Todos</option>
+                          {ambientesQuery.data?.map((a) => (
+                            <option key={a.id} value={a.id}>
+                              {a.nombre}
+                            </option>
+                          ))}
+                        </NativeSelect>
+                      </Field>
+                    </div>
+
+                    {inscripcionesQuery.isLoading && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Spinner /> Cargando…
+                      </div>
+                    )}
+                    {inscripcionesQuery.isError && (
                       <Alert variant="destructive">
                         <TriangleAlertIcon />
-                        <AlertTitle>No se encontró esa solicitud</AlertTitle>
-                        <AlertDescription>Revisá el número e intentá de nuevo.</AlertDescription>
+                        <AlertTitle>No se pudo cargar la lista</AlertTitle>
+                        <AlertDescription>{(inscripcionesQuery.error as Error).message}</AlertDescription>
                       </Alert>
                     )}
+                    {inscripcionesQuery.data?.length === 0 && (
+                      <Alert>
+                        <TriangleAlertIcon />
+                        <AlertTitle>
+                          {filtroEstadoId || filtroSistemaId || filtroAmbienteId
+                            ? "Ninguna solicitud coincide con esos filtros"
+                            : "Todavía no hay solicitudes cargadas"}
+                        </AlertTitle>
+                      </Alert>
+                    )}
+                    <div className="space-y-2">
+                      {inscripcionesQuery.data?.map((inscripcion) => {
+                        const abierto = detalleAbiertoId === inscripcion.id
+                        return (
+                          <div key={inscripcion.id} className="rounded-lg border border-input p-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-sm font-medium">
+                                #{inscripcion.id} · {inscripcion.proyecto} ({inscripcion.version}) ·{" "}
+                                {inscripcion.estado}
+                              </p>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => alternarDetalle(inscripcion.id)}
+                              >
+                                {abierto ? <ChevronUpIcon /> : <ChevronDownIcon />}
+                                Ver detalle
+                              </Button>
+                            </div>
+                            {abierto && (
+                              <div className="mt-3 border-t border-dashed border-input pt-3">
+                                <DetalleInscripcion inscripcion={inscripcion} />
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {accion === "actualizar" && (
+                  <div className="space-y-4">
+                    <CampoSelect
+                      idPrefix="pago-tf"
+                      valor={listaIdInput}
+                      onCambiarValor={setListaIdInput}
+                      onBuscar={buscarPorIdInput}
+                      buscando={buscarInscripcionMutation.isPending}
+                      hayError={buscarInscripcionMutation.isError}
+                    />
 
                     <div className="space-y-2">
                       {inscripcionesQuery.isLoading && (
@@ -274,17 +392,11 @@ export function FormularioPagoPageTanstack() {
                               onCambiar={cambiarFormacionComplementariaEditable}
                               onQuitar={quitarFormacionComplementariaEditable}
                               descripcionAyuda="Lista 1:N ligada a esta solicitud -- podés agregar filas nuevas, borrar las que ya no hagan falta, o editar el texto de las existentes."
-                              cargando={formacionesQuery.isLoading}
                             />
 
                             <Button
                               onClick={guardarCambios}
-                              disabled={
-                                !hayAlgoQueGuardar ||
-                                !formularioCompleto ||
-                                actualizarInscripcionMutation.isPending ||
-                                sincronizarFormacionesMutation.isPending
-                              }
+                              disabled={!hayAlgoQueGuardar || !formularioCompleto || actualizarInscripcionMutation.isPending}
                               className="w-fit"
                             >
                               Guardar cambios
@@ -301,15 +413,6 @@ export function FormularioPagoPageTanstack() {
                                 <AlertTitle>No se pudo guardar el cambio</AlertTitle>
                                 <AlertDescription>
                                   {(actualizarInscripcionMutation.error as Error).message}
-                                </AlertDescription>
-                              </Alert>
-                            )}
-                            {sincronizarFormacionesMutation.isError && (
-                              <Alert variant="destructive">
-                                <TriangleAlertIcon />
-                                <AlertTitle>No se pudieron guardar las formaciones complementarias</AlertTitle>
-                                <AlertDescription>
-                                  {(sincronizarFormacionesMutation.error as Error).message}
                                 </AlertDescription>
                               </Alert>
                             )}
@@ -444,7 +547,7 @@ export function FormularioPagoPageTanstack() {
             Atrás
           </Button>
           {accion !== null && (
-            <Button variant="outline" onClick={empezarDeNuevo} size="sm">
+            <Button variant="outline" onClick={empezarDeNuevoCompleto} size="sm">
               <RotateCcwIcon />
               Empezar de nuevo
             </Button>

@@ -2,17 +2,13 @@ import { useEffect, useRef, useState } from "react"
 import { useForm, useStore } from "@tanstack/react-form"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
-  actualizarFormacionComplementaria,
   actualizarInscripcion,
   CATALOGOS_INSCRIPCION_QUERY,
-  crearFormacionComplementaria,
   crearInscripcion,
-  eliminarFormacionComplementaria,
-  fetchFormacionesComplementariasPorInscripcion,
   fetchInscripcion,
   fetchInscripciones,
 } from "@/api/client"
-import type { InscripcionRequestDTO } from "@/api/types"
+import type { FormacionComplementariaRequestDTO, InscripcionRequestDTO } from "@/api/types"
 import type { CarouselApi } from "@/components/ui/carousel"
 import { type Accion, type CamposFormulario, type FormacionComplementariaEditable, CAMPOS_VACIOS, aInputDatetime } from "./types"
 
@@ -79,14 +75,17 @@ export function useInscripcionForm() {
   const form = useForm({ defaultValues: CAMPOS_VACIOS })
   const campos = useStore(form.store, (state) => state.values)
 
+  // Los nombres de campo de CamposFormulario (estadoId/sistemaId/...) son solo del lado
+  // del front (bind de los <select>) -- InscripcionRequestDTO ya no usa el sufijo "Id"
+  // (estado/sistema/..., espejo de InscripcionRequestDto.java), por eso el renombre aca.
   function camposADto(c: CamposFormulario): InscripcionRequestDTO {
     return {
-      estadoId: Number(c.estadoId),
-      sistemaId: Number(c.sistemaId),
-      jefeCarreraId: Number(c.jefeCarreraId),
-      maestroId: Number(c.maestroId),
-      carreraId: Number(c.carreraId),
-      ambienteId: Number(c.ambienteId),
+      estado: Number(c.estadoId),
+      sistema: Number(c.sistemaId),
+      jefeCarrera: Number(c.jefeCarreraId),
+      maestro: Number(c.maestroId),
+      carrera: Number(c.carreraId),
+      ambiente: Number(c.ambienteId),
       proyecto: c.proyecto,
       version: c.version,
       descripcion: c.descripcion.trim() === "" ? null : c.descripcion,
@@ -142,27 +141,32 @@ export function useInscripcionForm() {
 
   // --- Lista completa -- usada por "lista" (con filtros, manejados fuera de
   // este hook) y por "actualizar" (elegir de que solicitud partir, sin
-  // filtros). staleTime corto: a diferencia de los catalogos, esta es la
-  // lista de las SOLICITUDES mismas. Los filtros se pasan desde afuera
-  // (InscripcionWizard) porque son exclusivos de la rama "lista".
+  // filtros). GET /inscripciones ya no filtra del lado del backend -- se pide
+  // la lista completa UNA vez (mismo cache para "lista" y "actualizar") y el
+  // filtrado por estado/sistema/ambiente se hace aca, via "select", resolviendo
+  // cada id de filtro al texto legible contra los mismos catalogos de arriba
+  // (InscripcionDTO sale aplanado a texto, no trae ids).
   function useInscripciones(filtros?: { estadoId: string; sistemaId: string; ambienteId: string }) {
     return useQuery({
-      queryKey:
-        accion === "lista" && filtros
-          ? ["inscripciones", filtros.estadoId, filtros.sistemaId, filtros.ambienteId]
-          : ["inscripciones"],
-      queryFn: () =>
-        fetchInscripciones(
-          accion === "lista" && filtros
-            ? {
-                estadoId: filtros.estadoId === "" ? undefined : Number(filtros.estadoId),
-                sistemaId: filtros.sistemaId === "" ? undefined : Number(filtros.sistemaId),
-                ambienteId: filtros.ambienteId === "" ? undefined : Number(filtros.ambienteId),
-              }
-            : undefined,
-        ),
+      queryKey: ["inscripciones"],
+      queryFn: fetchInscripciones,
       enabled: accion === "lista" || accion === "actualizar",
       staleTime: 10 * 1000,
+      select: (data) => {
+        if (accion !== "lista" || !filtros) return data
+        const estadoNombre =
+          filtros.estadoId === "" ? null : estadosQuery.data?.find((e) => String(e.id) === filtros.estadoId)?.estado
+        const sistemaNombre =
+          filtros.sistemaId === "" ? null : sistemasQuery.data?.find((s) => String(s.id) === filtros.sistemaId)?.nombre
+        const ambienteNombre =
+          filtros.ambienteId === "" ? null : ambientesQuery.data?.find((a) => String(a.id) === filtros.ambienteId)?.nombre
+        return data.filter(
+          (i) =>
+            (estadoNombre === null || i.estado === estadoNombre) &&
+            (sistemaNombre === null || i.sistema === sistemaNombre) &&
+            (ambienteNombre === null || i.ambiente === ambienteNombre),
+        )
+      },
     })
   }
 
@@ -183,8 +187,8 @@ export function useInscripcionForm() {
   }
 
   // UNA sola peticion HTTP: crea la Inscripcion y sus formaciones complementarias juntas
-  // (antes eran 2 pasos -- crear la Inscripcion, esperar el id real, y recien ahi un POST
-  // encadenado por cada formación complementaria -- ver InscripcionCompuestaRequestDTO).
+  // (ver InscripcionConFormacionComplementariaRequestDTO) -- el backend resuelve el FK
+  // internamente, nada de ids intermedios del lado del cliente.
   const crearInscripcionMutation = useMutation({
     mutationFn: crearInscripcion,
     onSuccess: () => {
@@ -197,7 +201,11 @@ export function useInscripcionForm() {
   function crearInscripcionConFormaciones() {
     crearInscripcionMutation.mutate({
       inscripcion: camposADto(campos),
-      formacionesComplementarias: formacionesNuevas.map((el) => el.descripcion),
+      formacionesComplementarias: formacionesNuevas.map((el) => ({
+        id: null,
+        inscripcionId: null,
+        descripcion: el.descripcion,
+      })),
     })
   }
 
@@ -217,12 +225,6 @@ export function useInscripcionForm() {
   const baselineIdRef = useRef<number | null>(null)
 
   const buscarInscripcionMutation = useMutation({ mutationFn: fetchInscripcion })
-
-  const formacionesQuery = useQuery({
-    queryKey: ["formaciones-complementarias", solicitudIdActual],
-    queryFn: () => fetchFormacionesComplementariasPorInscripcion(solicitudIdActual!),
-    enabled: accion === "actualizar" && solicitudIdActual !== null,
-  })
 
   const [formacionesEditables, setFormacionesEditables] = useState<FormacionComplementariaEditable[]>([])
   const formacionesOriginalRef = useRef<FormacionComplementariaEditable[]>([])
@@ -250,12 +252,19 @@ export function useInscripcionForm() {
     elegirSolicitud(id)
   }
 
-  // Una vez que llega la solicitud elegida, sus formaciones complementarias,
-  // Y los 4 catalogos ya estan cargados, se arma el "baseline": los mismos
-  // 11 campos pero resueltos a partir del DTO (que trae texto, no ids).
+  // Una vez que llega la solicitud elegida y los 4 catalogos ya estan
+  // cargados, se arma el "baseline": los mismos 11 campos pero resueltos a
+  // partir del DTO (que trae texto, no ids).
+  //
+  // OJO -- formacionesEditables arranca vacio aca: GET /inscripciones/{id}
+  // devuelve InscripcionDto aplanado, SIN sus formaciones complementarias, y
+  // ya no existe ningun GET /formaciones-complementarias?inscripcionId=X para
+  // pedirlas aparte (el backend lo discontinuo). Hasta que el backend expon
+  // ga esa lista en algun GET, "actualizar" solo puede AGREGAR formaciones
+  // nuevas, no ver/editar/borrar las que ya existen.
   useEffect(() => {
     if (accion !== "actualizar") return
-    if (!buscarInscripcionMutation.isSuccess || !catalogosListos || !formacionesQuery.isSuccess) return
+    if (!buscarInscripcionMutation.isSuccess || !catalogosListos) return
     if (baselineIdRef.current === solicitudIdActual) return
     baselineIdRef.current = solicitudIdActual
 
@@ -273,70 +282,34 @@ export function useInscripcionForm() {
       fechaPlanteada: aInputDatetime(dto.fechaInscripcionPlanteada),
       fechaReal: aInputDatetime(dto.fechaInscripcionReal),
     }
-    const formacionesIniciales = formacionesQuery.data.map((el) => ({ id: el.id, descripcion: el.descripcion }))
-    formacionesOriginalRef.current = formacionesIniciales
-    setFormacionesEditables(formacionesIniciales)
+    formacionesOriginalRef.current = []
+    setFormacionesEditables([])
     setBaseline(nuevoBaseline)
     form.reset(nuevoBaseline)
     desbloquearHasta(2)
     api?.scrollTo(2)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    accion,
-    buscarInscripcionMutation.isSuccess,
-    buscarInscripcionMutation.data,
-    catalogosListos,
-    formacionesQuery.isSuccess,
-    formacionesQuery.data,
-    solicitudIdActual,
-  ])
+  }, [accion, buscarInscripcionMutation.isSuccess, buscarInscripcionMutation.data, catalogosListos, solicitudIdActual])
 
   const huboCambios = baseline !== null && JSON.stringify(campos) !== JSON.stringify(baseline)
   const huboCambiosFormaciones =
     JSON.stringify(formacionesEditables) !== JSON.stringify(formacionesOriginalRef.current)
   const hayAlgoQueGuardar = huboCambios || huboCambiosFormaciones
 
+  // UNA sola peticion HTTP tambien para editar: mismo shape compuesto que
+  // crearInscripcionConFormaciones() -- formacionesComplementarias es la lista
+  // COMPLETA que debe quedar, el backend sincroniza solo (borra lo que falte,
+  // actualiza lo que tenga id, crea lo que no) -- ver InscripcionServiceImpl.
+  // actualizar(). Ya no hace falta un mutation aparte para sincronizar
+  // formaciones: va todo en la misma llamada.
   const actualizarInscripcionMutation = useMutation({
-    mutationFn: (dto: InscripcionRequestDTO) => actualizarInscripcion(solicitudIdActual!, dto),
-  })
-
-  // Sincroniza la lista de formaciones complementarias contra lo que se
-  // tenia antes: crea los que se agregaron (id null), actualiza los que
-  // cambiaron de texto, borra los que ya no estan. Devuelve la lista YA
-  // sincronizada (con los ids reales que devolvio el backend para las filas
-  // creadas) -- guardarCambios() la usa para refrescar formacionesOriginalRef
-  // sin depender de un refetch + el useEffect de "baseline" (ese efecto solo
-  // corre UNA vez por solicitud, adrede, asi que nunca se va a enterar de este
-  // guardado por si solo).
-  const sincronizarFormacionesMutation = useMutation({
-    mutationFn: async (inscripcionId: number): Promise<FormacionComplementariaEditable[]> => {
-      const originales = formacionesOriginalRef.current
-      const actuales = formacionesEditables
-      const aCrear = actuales.filter((el) => el.id === null && el.descripcion.trim() !== "")
-      const aActualizar = actuales.filter((el): el is { id: number; descripcion: string } => {
-        if (el.id === null) return false
-        const original = originales.find((o) => o.id === el.id)
-        return original !== undefined && original.descripcion !== el.descripcion
-      })
-      const aBorrar = originales
-        .map((o) => o.id)
-        .filter((id): id is number => id !== null && !actuales.some((el) => el.id === id))
-
-      const [creadas] = await Promise.all([
-        Promise.all(aCrear.map((el) => crearFormacionComplementaria({ inscripcionId, descripcion: el.descripcion }))),
-        Promise.all(aActualizar.map((el) => actualizarFormacionComplementaria(el.id, { inscripcionId, descripcion: el.descripcion }))),
-        Promise.all(aBorrar.map((id) => eliminarFormacionComplementaria(id))),
-      ])
-
-      // aCrear y "creadas" quedan en el mismo orden (Promise.all preserva el
-      // orden de entrada) -- se puede zippear por indice para saber que id
-      // real le toco a cada fila que antes tenia id null.
-      let indiceCreada = 0
-      return actuales.map((el) =>
-        el.id === null && el.descripcion.trim() !== ""
-          ? { id: creadas[indiceCreada++].id, descripcion: el.descripcion }
-          : el,
-      )
+    mutationFn: (dto: InscripcionRequestDTO) => {
+      const formacionesComplementarias: FormacionComplementariaRequestDTO[] = formacionesEditables.map((el) => ({
+        id: el.id,
+        inscripcionId: solicitudIdActual,
+        descripcion: el.descripcion,
+      }))
+      return actualizarInscripcion(solicitudIdActual!, { inscripcion: dto, formacionesComplementarias })
     },
   })
 
@@ -345,28 +318,22 @@ export function useInscripcionForm() {
   async function guardarCambios() {
     if (!hayAlgoQueGuardar || !formularioCompleto || solicitudIdActual === null) return
     try {
-      if (huboCambios) {
-        await actualizarInscripcionMutation.mutateAsync(camposADto(campos))
-        // "campos" es exactamente lo que se acaba de guardar -- sin este
-        // reset, "baseline" queda con el valor viejo para siempre (el
-        // useEffect de arriba no vuelve a correr para esta misma solicitud),
-        // y huboCambios seguiria dando true aunque no haya nada nuevo.
-        setBaseline(campos)
-      }
-      if (huboCambiosFormaciones) {
-        const sincronizadas = await sincronizarFormacionesMutation.mutateAsync(solicitudIdActual)
-        formacionesOriginalRef.current = sincronizadas
-        setFormacionesEditables(sincronizadas)
-      }
+      const actualizada = await actualizarInscripcionMutation.mutateAsync(camposADto(campos))
+      // "campos" y "formacionesEditables" son exactamente lo que se acaba de
+      // guardar -- sin este reset, "baseline"/"formacionesOriginalRef" quedan
+      // con el valor viejo para siempre (el useEffect de arriba no vuelve a
+      // correr para esta misma solicitud), y hayAlgoQueGuardar seguiria dando
+      // true aunque no haya nada nuevo.
+      setBaseline(campos)
+      const sincronizadas = actualizada.formacionesComplementarias.map((f) => ({ id: f.id, descripcion: f.descripcion }))
+      formacionesOriginalRef.current = sincronizadas
+      setFormacionesEditables(sincronizadas)
       queryClient.invalidateQueries({ queryKey: ["inscripciones"] })
-      queryClient.invalidateQueries({ queryKey: ["formaciones-complementarias", solicitudIdActual] })
-      buscarInscripcionMutation.mutate(solicitudIdActual)
       setGuardadoConfirmado(true)
       desbloquearHasta(3)
       api?.scrollTo(3)
     } catch {
-      // el error ya queda disponible en actualizarInscripcionMutation.error /
-      // sincronizarFormacionesMutation.error, segun cual haya fallado
+      // el error ya queda disponible en actualizarInscripcionMutation.error
     }
   }
 
@@ -381,7 +348,6 @@ export function useInscripcionForm() {
     setGuardadoConfirmado(false)
     buscarInscripcionMutation.reset()
     actualizarInscripcionMutation.reset()
-    sincronizarFormacionesMutation.reset()
     maxStepRef.current = 1
     setMaxStep(1)
     api?.scrollTo(1)
@@ -407,7 +373,6 @@ export function useInscripcionForm() {
     setFormacionesEditables([])
     formacionesOriginalRef.current = []
     setGuardadoConfirmado(false)
-    sincronizarFormacionesMutation.reset()
   }
 
   return {
@@ -455,7 +420,6 @@ export function useInscripcionForm() {
     solicitudIdActual,
     baseline,
 
-    formacionesQuery,
     formacionesEditables,
     agregarFormacionComplementariaEditable,
     cambiarFormacionComplementariaEditable,
@@ -465,7 +429,6 @@ export function useInscripcionForm() {
     huboCambiosFormaciones,
     hayAlgoQueGuardar,
     actualizarInscripcionMutation,
-    sincronizarFormacionesMutation,
     guardarCambios,
     guardadoConfirmado,
     actualizarOtra,

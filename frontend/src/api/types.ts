@@ -1,18 +1,3 @@
-// export interface SesionCajaDTO {
-//   id: number;
-//   cajero: string;
-//   cerrada: boolean;
-//   fApertura: string | null;
-//   fCierre: string | null;
-//   locacion: string;
-//   montoApertura: number;
-//   montoCierre: number | null;
-// }
-
-//export type Rol = "ADMIN" | "VENDEDOR" | "CAJERO";
-
-
-//*-*-*-*-**-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*--*-*-*-*--*-*-*-*-*-*-*-*-*-*-*-*-*
 // Dominio "solicitud/inscripcion" -- unico dominio de negocio del frontend
 // (el dominio academico de estudiantes/materias/clases/matriculas se retiro
 // del front, ver bitacora). Se llama "Inscripcion" (no "Solicitud") para no
@@ -56,13 +41,15 @@ export interface InscripcionDTO {
 }
 
 // Forma de ENTRADA -- las relaciones viajan como id suelto, no como texto.
+// Mismo nombre de campo que la entidad del lado del back (estado/sistema/...,
+// no estadoId/sistemaId/...) -- asi quedo el record InscripcionRequestDto.java.
 export interface InscripcionRequestDTO {
-  estadoId: number;
-  sistemaId: number;
-  jefeCarreraId: number;
-  maestroId: number;
-  carreraId: number;
-  ambienteId: number;
+  estado: number;
+  sistema: number;
+  jefeCarrera: number;
+  maestro: number;
+  carrera: number;
+  ambiente: number;
   proyecto: string;
   version: string;
   descripcion: string | null;
@@ -90,23 +77,29 @@ export interface FormacionComplementariaDTO {
   descripcion: string;
 }
 
+// Forma de ENTRADA -- espejo de FormacionComplementariaRequestDto.java. "id" identifica
+// cual fila editar dentro de la lista compuesta (null = es nueva, se crea); "inscripcionId"
+// no se manda para las nuevas (el backend todavia no le asigno id a la Inscripcion en ese
+// momento, se resuelve solo).
 export interface FormacionComplementariaRequestDTO {
-  inscripcionId: number;
+  id: number | null;
+  inscripcionId: number | null;
   descripcion: string;
 }
 
-// Forma de ENTRADA de POST /inscripciones -- espejo de InscripcionCompuestaRequestDto.java.
-// Une en UNA sola peticion la Inscripcion y sus formaciones complementarias (antes eran 2
-// peticiones: crear la Inscripcion, esperar el id real, y recien ahi un POST por cada
-// formación complementaria). "formacionesComplementarias" son solo las descripciones -- el
-// inscripcionId de cada una lo resuelve el backend, todavia no existe en el momento de crear.
-export interface InscripcionCompuestaRequestDTO {
+// Forma de ENTRADA de POST/PUT /inscripciones -- espejo de
+// InscripcionConFormacionComplementariaRequestDto.java. Una sola peticion para la
+// Inscripcion y TODA la lista de formaciones complementarias -- en el PUT, es la lista
+// COMPLETA que debe quedar (una fila con id = editarla, sin id = crearla; la que falte en
+// la lista se borra del lado del backend).
+export interface InscripcionConFormacionComplementariaRequestDTO {
   inscripcion: InscripcionRequestDTO;
-  formacionesComplementarias: string[];
+  formacionesComplementarias: FormacionComplementariaRequestDTO[];
 }
 
-// Forma de SALIDA de POST /inscripciones -- espejo de InscripcionCompuestaDto.java.
-export interface InscripcionCompuestaDTO {
+// Forma de SALIDA de POST/PUT /inscripciones -- espejo de
+// InscripcionConFormacionComplementariaDto.java.
+export interface InscripcionConFormacionComplementariaDTO {
   inscripcion: InscripcionDTO;
   formacionesComplementarias: FormacionComplementariaDTO[];
 }

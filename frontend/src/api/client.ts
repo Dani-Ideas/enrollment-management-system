@@ -1,13 +1,10 @@
 import axios, { type AxiosRequestConfig } from "axios";
 import type {
   AmbienteDTO,
-  FormacionComplementariaDTO,
-  FormacionComplementariaRequestDTO,
   EstadoDTO,
-  InscripcionCompuestaDTO,
-  InscripcionCompuestaRequestDTO,
+  InscripcionConFormacionComplementariaDTO,
+  InscripcionConFormacionComplementariaRequestDTO,
   InscripcionDTO,
-  InscripcionRequestDTO,
   ResponsableDTO,
   SistemaDTO,
   TablasInscripcionDTO,
@@ -35,7 +32,6 @@ const RUTAS = {
   ambientes: "/ambientes",
   catalogosInscripcion: "/catalogos-inscripcion",
   inscripciones: "/inscripciones",
-  formacionesComplementarias: "/formaciones-complementarias",
   endpoints: "/endpoints",
 } as const;
 
@@ -137,25 +133,11 @@ export const CATALOGOS_INSCRIPCION_QUERY = {
   staleTime: Infinity,
 };
 
-// Filtros opcionales -- cada uno ausente/undefined significa "no filtrar por ese campo",
-// igual que antes devolvia todo (ver FormController.listar()/ServiceArtifax.
-// listarInscripciones() en el backend, que cachean Inscripcion en memoria justo para
-// esto). axios omite del query string los params en undefined/null solo -- no hace falta
-// armar el URLSearchParams a mano.
-export interface FiltrosInscripciones {
-  estadoId?: number;
-  sistemaId?: number;
-  ambienteId?: number;
-}
-
-export function fetchInscripciones(filtros?: FiltrosInscripciones): Promise<InscripcionDTO[]> {
-  return request<InscripcionDTO[]>(RUTAS.inscripciones, {
-    params: {
-      estadoId: filtros?.estadoId,
-      sistemaId: filtros?.sistemaId,
-      ambienteId: filtros?.ambienteId,
-    },
-  });
+// GET /inscripciones ya no acepta filtros por query param (estadoId/sistemaId/ambienteId)
+// -- el backend los sacó, el filtrado que haga falta se hace del lado del cliente sobre
+// la lista completa.
+export function fetchInscripciones(): Promise<InscripcionDTO[]> {
+  return request<InscripcionDTO[]>(RUTAS.inscripciones);
 }
 
 export function fetchInscripcion(id: number): Promise<InscripcionDTO> {
@@ -163,35 +145,22 @@ export function fetchInscripcion(id: number): Promise<InscripcionDTO> {
 }
 
 // UNA sola peticion HTTP: crea la Inscripcion y sus formaciones complementarias juntas --
-// el backend resuelve el FK internamente, ya no hace falta esperar el id real y mandar un
-// POST por cada formación complementaria desde el cliente (ver InscripcionCompuestaRequestDTO).
-export function crearInscripcion(dto: InscripcionCompuestaRequestDTO): Promise<InscripcionCompuestaDTO> {
-  return request<InscripcionCompuestaDTO>(RUTAS.inscripciones, { method: "POST", data: dto });
+// el backend resuelve el FK internamente (ver InscripcionConFormacionComplementariaRequestDTO).
+export function crearInscripcion(
+  dto: InscripcionConFormacionComplementariaRequestDTO,
+): Promise<InscripcionConFormacionComplementariaDTO> {
+  return request<InscripcionConFormacionComplementariaDTO>(RUTAS.inscripciones, { method: "POST", data: dto });
 }
 
+// UNA sola peticion HTTP tambien para editar: mismo shape compuesto que crearInscripcion()
+// -- formacionesComplementarias es la lista COMPLETA que debe quedar (ver
+// InscripcionConFormacionComplementariaRequestDTO).
 export function actualizarInscripcion(
   id: number,
-  dto: InscripcionRequestDTO,
-): Promise<InscripcionDTO> {
-  return request<InscripcionDTO>(`${RUTAS.inscripciones}/${id}`, { method: "PUT", data: dto });
-}
-
-// --- "Formaciones complementarias" 1:N ligadas a una Inscripcion por FK (inscripcionId) ---
-// Endpoint propio, aparte de /inscripciones -- se piden solo cuando hacen falta: al
-// crear/editar una Inscripcion, o al abrir "Ver detalle" en la lista.
-
-export function fetchFormacionesComplementariasPorInscripcion(inscripcionId: number): Promise<FormacionComplementariaDTO[]> {
-  return request<FormacionComplementariaDTO[]>(RUTAS.formacionesComplementarias, { params: { inscripcionId } });
-}
-
-export function crearFormacionComplementaria(dto: FormacionComplementariaRequestDTO): Promise<FormacionComplementariaDTO> {
-  return request<FormacionComplementariaDTO>(RUTAS.formacionesComplementarias, { method: "POST", data: dto });
-}
-
-export function actualizarFormacionComplementaria(id: number, dto: FormacionComplementariaRequestDTO): Promise<FormacionComplementariaDTO> {
-  return request<FormacionComplementariaDTO>(`${RUTAS.formacionesComplementarias}/${id}`, { method: "PUT", data: dto });
-}
-
-export function eliminarFormacionComplementaria(id: number): Promise<void> {
-  return request<void>(`${RUTAS.formacionesComplementarias}/${id}`, { method: "DELETE" });
+  dto: InscripcionConFormacionComplementariaRequestDTO,
+): Promise<InscripcionConFormacionComplementariaDTO> {
+  return request<InscripcionConFormacionComplementariaDTO>(`${RUTAS.inscripciones}/${id}`, {
+    method: "PUT",
+    data: dto,
+  });
 }
