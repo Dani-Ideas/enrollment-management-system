@@ -70,20 +70,30 @@ function puntoPolar(radio: number, anguloDeg: number) {
 // principal es un caso particular (radioInterno=0, ahi el "arco interno" colapsa a un
 // punto y no se ve nada, queda igual a un gajo solido de toda la vida) y el submenu es
 // otro (radioInterno=RADIO_PRINCIPAL_CHICO, radioExterno=RADIO, un anillo real). Usar
-// SIEMPRE esta misma estructura de comandos SVG (M A L A Z) es lo que le permite al
-// navegador animar la propiedad CSS "d" sola, sin JS -- solo puede interpolar entre dos
-// paths si tienen los mismos comandos, en el mismo orden.
+// SIEMPRE esta misma estructura de comandos SVG (M A A L A A Z, 7 comandos fijos) es lo
+// que le permite al navegador animar la propiedad CSS "d" sola, sin JS -- pero no alcanza
+// con que los COMANDOS coincidan: el large-arc-flag de cada arco es discreto (CSS no
+// puede interpolar de 0 a 1), asi que si una rebanada natural mide <=180° (large-arc=0) y
+// el estado "expandiendo" casi 360° (large-arc=1), el flag cambia a mitad de transicion y
+// el arco se deforma un instante -- esto es lo que generaba el "salto" al hacer click.
+// Partir CADA arco en dos mitades de como mucho 180° (el angulo medio) garantiza
+// large-arc=0 SIEMPRE, para cualquier rebanada chica o para el circulo casi completo por
+// igual -- el flag nunca necesita cambiar, solo los numeros (que si interpolan bien).
 function pathAnillo(anguloInicioDeg: number, anguloFinDeg: number, radioInterno: number, radioExterno: number) {
-  const arcoGrande = anguloFinDeg - anguloInicioDeg > 180 ? 1 : 0
+  const anguloMedio = (anguloInicioDeg + anguloFinDeg) / 2
   const extInicio = puntoPolar(radioExterno, anguloInicioDeg)
+  const extMedio = puntoPolar(radioExterno, anguloMedio)
   const extFin = puntoPolar(radioExterno, anguloFinDeg)
   const intFin = puntoPolar(radioInterno, anguloFinDeg)
+  const intMedio = puntoPolar(radioInterno, anguloMedio)
   const intInicio = puntoPolar(radioInterno, anguloInicioDeg)
   return [
     `M ${extInicio.x} ${extInicio.y}`,
-    `A ${radioExterno} ${radioExterno} 0 ${arcoGrande} 1 ${extFin.x} ${extFin.y}`,
+    `A ${radioExterno} ${radioExterno} 0 0 1 ${extMedio.x} ${extMedio.y}`,
+    `A ${radioExterno} ${radioExterno} 0 0 1 ${extFin.x} ${extFin.y}`,
     `L ${intFin.x} ${intFin.y}`,
-    `A ${radioInterno} ${radioInterno} 0 ${arcoGrande} 0 ${intInicio.x} ${intInicio.y}`,
+    `A ${radioInterno} ${radioInterno} 0 0 0 ${intMedio.x} ${intMedio.y}`,
+    `A ${radioInterno} ${radioInterno} 0 0 0 ${intInicio.x} ${intInicio.y}`,
     "Z",
   ].join(" ")
 }
@@ -209,6 +219,11 @@ export function PieMenu({ items, size = 260 }: Props) {
                       // animar -- por eso el wrapper path("..."). El atributo de arriba queda
                       // como fallback para el primer render / navegadores sin soporte.
                       d: `path("${d}")`,
+                      // Sin esto, algunos navegadores calculan transform-origin relativo
+                      // al bounding box PROPIO del path (que cambia de tamaño/posicion
+                      // durante la animacion) en vez del viewBox completo -- por eso el
+                      // "crecer desde el centro" se veia tirar hacia (0,0) del contenedor.
+                      transformBox: "view-box",
                       transformOrigin: `${CX}px ${CY}px`,
                       "--escala-activa": ESCALA_ACTIVA,
                       transition: `d ${duracionD}ms ease-in-out, opacity 200ms ease-out, scale 300ms ease-out`,
@@ -216,7 +231,12 @@ export function PieMenu({ items, size = 260 }: Props) {
                       // necesita el "pop" de hover encima del crecimiento que ya esta haciendo.
                       opacity: hayAlgoElegido && !esElegido ? 0 : undefined,
                       pointerEvents: hayAlgoElegido && !esElegido ? "none" : undefined,
-                      scale: esElegido ? 1 : undefined,
+                      // "1", NO el numero 1 -- React le agrega "px" a numeros en estilos
+                      // para propiedades que no reconoce como "sin unidad", y "scale" es
+                      // nueva (CSS Transforms Level 2); "1px" es invalido para scale, el
+                      // navegador lo descarta entero y queda ganando la regla de hover de
+                      // abajo (el "pop" de +8 de radio, aunque esto este seleccionado).
+                      scale: esElegido ? "1" : undefined,
                     } as CSSProperties}
                     className="cursor-pointer group-hover/gajo:opacity-85 group-hover/gajo:scale-[var(--escala-activa)] group-focus-visible/gajo:opacity-85 group-focus-visible/gajo:scale-[var(--escala-activa)]"
                   />
@@ -253,7 +273,11 @@ export function PieMenu({ items, size = 260 }: Props) {
 
                     return (
                       <Link
-                        key={String(sub.to)}
+                        // "to" solo no alcanza de key aca -- las 3 opciones del submenu
+                        // de "Solicitudes" apuntan al MISMO "to" (solo cambia el
+                        // "search"), asi que colisionaban (warning de React: "two
+                        // children with the same key").
+                        key={subIndice}
                         to={sub.to}
                         search={sub.search}
                         className="group/subgajo outline-none animate-in fade-in duration-200"
