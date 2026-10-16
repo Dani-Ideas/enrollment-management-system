@@ -1,10 +1,12 @@
-import { useState } from "react"
+import { useEffect } from "react"
 import { Link } from "@tanstack/react-router"
+import { formularioPagoRoute } from "@/router"
 import {
   CampoCatalogo,
   CampoDatosProyecto,
   CampoResponsables,
   CampoSelect,
+  CampoVistaDetalle,
   DetalleInscripcion,
   FormacionesComplementariasEditor,
   PasosNavegacion,
@@ -13,33 +15,13 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel"
-import { Field, FieldDescription, FieldGroup, FieldLabel, FieldSet } from "@/components/ui/field"
-import { NativeSelect } from "@/components/ui/native-select"
+import { FieldDescription, FieldGroup, FieldLabel, FieldSet } from "@/components/ui/field"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Spinner } from "@/components/ui/spinner"
-import {
-  ArrowLeftIcon,
-  CheckCircle2Icon,
-  ChevronDownIcon,
-  ChevronUpIcon,
-  ListIcon,
-  PencilIcon,
-  PlusIcon,
-  RotateCcwIcon,
-  TriangleAlertIcon,
-} from "lucide-react"
+import { ArrowLeftIcon, CheckCircle2Icon, RotateCcwIcon, TriangleAlertIcon } from "lucide-react"
 
-// ============================================================================
-// VARIANTE con TanStack Form -- copia funcional de FormularioPagoPage.tsx, NO
-// registrada en router.tsx a proposito (no es una ruta real, es material de
-// referencia). Toda la logica NO visual (carrusel, formulario, catalogos,
-// mutations, formaciones complementarias) vive en useInscripcionForm() --
-// este archivo comparte ese hook y los sub-componentes de campos con
-// InscripcionWizard.tanstack.tsx, asi que solo queda el JSX propio de ESTA
-// presentacion (sin la rama "lista" que si tiene InscripcionWizard).
-// ============================================================================
 
-export function FormularioPagoPageTanstack() {
+export function FormularioInscripciones() {
   const wizard = useInscripcionForm()
   const {
     accion,
@@ -54,6 +36,7 @@ export function FormularioPagoPageTanstack() {
     api,
     form,
     campos,
+    camposAVistaPrevia,
     catalogoCompleto,
     responsablesCompletos,
     datosProyectoCompletos,
@@ -63,6 +46,14 @@ export function FormularioPagoPageTanstack() {
     responsablesQuery,
     ambientesQuery,
     useInscripciones,
+    filtroEstadoId,
+    setFiltroEstadoId,
+    filtroSistemaId,
+    setFiltroSistemaId,
+    filtroAmbienteId,
+    setFiltroAmbienteId,
+    detalleAbiertoId,
+    alternarDetalle,
     formacionesNuevas,
     agregarFormacionNueva,
     cambiarFormacionNueva,
@@ -88,30 +79,21 @@ export function FormularioPagoPageTanstack() {
     actualizarOtra,
   } = wizard
 
-  // --- Rescatado de InscripcionWizard: filtros de la rama "lista" y "Ver detalle" --
-  // estado local de esta pagina (no vive en el hook, ver useInscripcionForm.ts).
-  const [filtroEstadoId, setFiltroEstadoId] = useState("")
-  const [filtroSistemaId, setFiltroSistemaId] = useState("")
-  const [filtroAmbienteId, setFiltroAmbienteId] = useState("")
+  const inscripcionesQuery = useInscripciones()
 
-  const [detalleAbiertoId, setDetalleAbiertoId] = useState<number | null>(null)
-  function alternarDetalle(id: number) {
-    setDetalleAbiertoId((actual) => (actual === id ? null : id))
-  }
-
-  const inscripcionesQuery = useInscripciones({
-    estadoId: filtroEstadoId,
-    sistemaId: filtroSistemaId,
-    ambienteId: filtroAmbienteId,
-  })
-
-  function empezarDeNuevoCompleto() {
-    empezarDeNuevo()
-    setFiltroEstadoId("")
-    setFiltroSistemaId("")
-    setFiltroAmbienteId("")
-    setDetalleAbiertoId(null)
-  }
+  // "accion" llega por la URL (?accion=lista|crear|actualizar) -- la elige el submenu de
+  // HomePage (ver PieMenu.tsx) ANTES de navegar aca. Si vino, arranca directo en esa
+  // accion sin pasar por el paso 0 (desactivado mas abajo). Solo una vez por visita --
+  // sin la guarda de accion === null, pisaria una eleccion manual si el usuario despues
+  // usa "Empezar de nuevo" (ese vuelve a accion null, pero la URL seguiria con el search
+  // param viejo).
+  const { accion: accionInicial } = formularioPagoRoute.useSearch()
+  useEffect(() => {
+    if (accionInicial && accion === null) {
+      elegirAccion(accionInicial)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accionInicial])
 
   return (
     <section className="max-w-2xl">
@@ -119,48 +101,18 @@ export function FormularioPagoPageTanstack() {
         <ArrowLeftIcon />
         Volver al menú principal
       </Button>
-
-      <h2>Solicitudes de inscripción (variante TanStack Form)</h2>
-      <p className="mb-4 text-sm text-muted-foreground">
-        Elegí si querés crear una solicitud nueva o actualizar una existente -- el
-        formulario te va guiando paso a paso.
-      </p>
-
+      <h2>Solicitudes de inscripción</h2>
       <PasosNavegacion accion={accion} current={current} maxStep={maxStep} onIrAPaso={irAPaso} />
 
       <Card>
         <CardContent>
           <Carousel setApi={setApi} opts={{ watchDrag: false }} className="w-full">
             <CarouselContent>
-              {/* --- Paso 0: elegir que hacer --- */}
-              <CarouselItem>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  <button
-                    type="button"
-                    onClick={() => elegirAccion("lista")}
-                    className="flex flex-col items-center gap-2 rounded-lg border border-input p-4 text-sm hover:border-primary/40 hover:bg-primary/5"
-                  >
-                    <ListIcon className="size-5" />
-                    Ver solicitudes existentes
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => elegirAccion("crear")}
-                    className="flex flex-col items-center gap-2 rounded-lg border border-input p-4 text-sm hover:border-primary/40 hover:bg-primary/5"
-                  >
-                    <PlusIcon className="size-5" />
-                    Crear una solicitud nueva
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => elegirAccion("actualizar")}
-                    className="flex flex-col items-center gap-2 rounded-lg border border-input p-4 text-sm hover:border-primary/40 hover:bg-primary/5"
-                  >
-                    <PencilIcon className="size-5" />
-                    Actualizar una solicitud existente
-                  </button>
-                </div>
-              </CarouselItem>
+              {/* --- Paso 0: desactivado -- la accion ahora se elige en el submenu de
+                  HomePage (ver PieMenu.tsx), antes de navegar aca (?accion=... en la URL,
+                  leido arriba). Este paso queda vacio: con la accion ya puesta, el
+                  carrusel arranca directo en el paso 1 y nunca se ve este. */}
+              <CarouselItem />
 
               {/* --- Paso 1 --- */}
               <CarouselItem>
@@ -168,105 +120,37 @@ export function FormularioPagoPageTanstack() {
                   <div className="space-y-3">
                     <h3 className="text-sm font-medium">Solicitudes existentes</h3>
 
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                      <Field>
-                        <FieldLabel htmlFor="pago-tf-filtro-estado">Estado</FieldLabel>
-                        <NativeSelect
-                          id="pago-tf-filtro-estado"
-                          value={filtroEstadoId}
-                          onChange={(e) => setFiltroEstadoId(e.target.value)}
-                        >
-                          <option value="">Todos</option>
-                          {estadosQuery.data?.map((es) => (
-                            <option key={es.id} value={es.id}>
-                              {es.estado}
-                            </option>
-                          ))}
-                        </NativeSelect>
-                      </Field>
-                      <Field>
-                        <FieldLabel htmlFor="pago-tf-filtro-sistema">Sistema</FieldLabel>
-                        <NativeSelect
-                          id="pago-tf-filtro-sistema"
-                          value={filtroSistemaId}
-                          onChange={(e) => setFiltroSistemaId(e.target.value)}
-                        >
-                          <option value="">Todos</option>
-                          {sistemasQuery.data?.map((s) => (
-                            <option key={s.id} value={s.id}>
-                              {s.nombre}
-                            </option>
-                          ))}
-                        </NativeSelect>
-                      </Field>
-                      <Field>
-                        <FieldLabel htmlFor="pago-tf-filtro-ambiente">Ambiente</FieldLabel>
-                        <NativeSelect
-                          id="pago-tf-filtro-ambiente"
-                          value={filtroAmbienteId}
-                          onChange={(e) => setFiltroAmbienteId(e.target.value)}
-                        >
-                          <option value="">Todos</option>
-                          {ambientesQuery.data?.map((a) => (
-                            <option key={a.id} value={a.id}>
-                              {a.nombre}
-                            </option>
-                          ))}
-                        </NativeSelect>
-                      </Field>
-                    </div>
-
-                    {inscripcionesQuery.isLoading && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Spinner /> Cargando…
-                      </div>
-                    )}
-                    {inscripcionesQuery.isError && (
-                      <Alert variant="destructive">
-                        <TriangleAlertIcon />
-                        <AlertTitle>No se pudo cargar la lista</AlertTitle>
-                        <AlertDescription>{(inscripcionesQuery.error as Error).message}</AlertDescription>
-                      </Alert>
-                    )}
-                    {inscripcionesQuery.data?.length === 0 && (
-                      <Alert>
-                        <TriangleAlertIcon />
-                        <AlertTitle>
-                          {filtroEstadoId || filtroSistemaId || filtroAmbienteId
-                            ? "Ninguna solicitud coincide con esos filtros"
-                            : "Todavía no hay solicitudes cargadas"}
-                        </AlertTitle>
-                      </Alert>
-                    )}
-                    <div className="space-y-2">
-                      {inscripcionesQuery.data?.map((inscripcion) => {
-                        const abierto = detalleAbiertoId === inscripcion.id
-                        return (
-                          <div key={inscripcion.id} className="rounded-lg border border-input p-3">
-                            <div className="flex items-center justify-between gap-2">
-                              <p className="text-sm font-medium">
-                                #{inscripcion.id} · {inscripcion.proyecto} ({inscripcion.version}) ·{" "}
-                                {inscripcion.estado}
-                              </p>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => alternarDetalle(inscripcion.id)}
-                              >
-                                {abierto ? <ChevronUpIcon /> : <ChevronDownIcon />}
-                                Ver detalle
-                              </Button>
-                            </div>
-                            {abierto && (
-                              <div className="mt-3 border-t border-dashed border-input pt-3">
-                                <DetalleInscripcion inscripcion={inscripcion} />
-                              </div>
-                            )}
-                          </div>
-                        )
-                      })}
-                    </div>
+                    {/* Un solo modo a la vez -- CampoSelect decide si se ve "por número" o
+                        "por categoría" (toggle interno), nunca los dos juntos. */}
+                    <CampoSelect
+                      idPrefix="pago-tf-lista"
+                      valor={listaIdInput}
+                      onCambiarValor={setListaIdInput}
+                      onBuscar={buscarPorIdInput}
+                      buscando={buscarInscripcionMutation.isPending}
+                      hayError={buscarInscripcionMutation.isError}
+                      resultado={buscarInscripcionMutation.data}
+                      filtros={{
+                        filtroEstadoId,
+                        onCambiarFiltroEstadoId: setFiltroEstadoId,
+                        filtroSistemaId,
+                        onCambiarFiltroSistemaId: setFiltroSistemaId,
+                        filtroAmbienteId,
+                        onCambiarFiltroAmbienteId: setFiltroAmbienteId,
+                        estadosQuery,
+                        sistemasQuery,
+                        ambientesQuery,
+                        cargando: inscripcionesQuery.isLoading,
+                        error: inscripcionesQuery.error as Error | null,
+                        hayResultados: (inscripcionesQuery.data?.length ?? 0) > 0,
+                      }}
+                    />
+                    <CampoVistaDetalle
+                      modo="detalle"
+                      inscripciones={inscripcionesQuery.data ?? []}
+                      detalleAbiertoId={detalleAbiertoId}
+                      onAlternarDetalle={alternarDetalle}
+                    />
                   </div>
                 )}
 
@@ -281,26 +165,12 @@ export function FormularioPagoPageTanstack() {
                       hayError={buscarInscripcionMutation.isError}
                     />
 
-                    <div className="space-y-2">
-                      {inscripcionesQuery.isLoading && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Spinner /> Cargando lista…
-                        </div>
-                      )}
-                      {inscripcionesQuery.data?.map((inscripcion) => (
-                        <button
-                          key={inscripcion.id}
-                          type="button"
-                          onClick={() => elegirSolicitud(inscripcion.id)}
-                          className="flex w-full items-center justify-between rounded-lg border border-input p-3 text-left text-sm hover:border-primary/40 hover:bg-primary/5"
-                        >
-                          <span>
-                            #{inscripcion.id} · {inscripcion.proyecto} ({inscripcion.version})
-                          </span>
-                          <span className="text-xs text-muted-foreground">{inscripcion.estado}</span>
-                        </button>
-                      ))}
-                    </div>
+                    <CampoVistaDetalle
+                      modo="seleccionar"
+                      inscripciones={inscripcionesQuery.data ?? []}
+                      cargando={inscripcionesQuery.isLoading}
+                      onSeleccionar={elegirSolicitud}
+                    />
                   </div>
                 )}
 
@@ -363,11 +233,6 @@ export function FormularioPagoPageTanstack() {
                       </div>
                     ) : (
                       <>
-                        <p className="text-sm text-muted-foreground">
-                          Editando la solicitud #{solicitudIdActual}. Ya está precargada con lo
-                          que tenía antes -- modificá lo que haga falta, el botón de guardar
-                          recién se habilita si cambió algo.
-                        </p>
                         <FieldGroup>
                           <FieldSet>
                             <CampoCatalogo
@@ -496,20 +361,7 @@ export function FormularioPagoPageTanstack() {
                     ) : (
                       <>
                         <h3 className="text-sm font-medium">Revisá antes de finalizar</h3>
-                        <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
-                          <dt className="text-muted-foreground">Estado</dt>
-                          <dd>{estadosQuery.data?.find((e) => String(e.id) === campos.estadoId)?.estado}</dd>
-                          <dt className="text-muted-foreground">Sistema</dt>
-                          <dd>{sistemasQuery.data?.find((s) => String(s.id) === campos.sistemaId)?.nombre}</dd>
-                          <dt className="text-muted-foreground">Ambiente</dt>
-                          <dd>{ambientesQuery.data?.find((a) => String(a.id) === campos.ambienteId)?.nombre}</dd>
-                          <dt className="text-muted-foreground">Proyecto</dt>
-                          <dd>{campos.proyecto}</dd>
-                          <dt className="text-muted-foreground">Versión</dt>
-                          <dd>{campos.version}</dd>
-                          <dt className="text-muted-foreground">Fecha planteada</dt>
-                          <dd>{campos.fechaPlanteada}</dd>
-                        </dl>
+                        <DetalleInscripcion inscripcion={camposAVistaPrevia(campos)} />
 
                         <FormacionesComplementariasEditor
                           items={formacionesNuevas}
@@ -547,7 +399,7 @@ export function FormularioPagoPageTanstack() {
             Atrás
           </Button>
           {accion !== null && (
-            <Button variant="outline" onClick={empezarDeNuevoCompleto} size="sm">
+            <Button variant="outline" onClick={empezarDeNuevo} size="sm">
               <RotateCcwIcon />
               Empezar de nuevo
             </Button>

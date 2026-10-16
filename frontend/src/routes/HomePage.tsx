@@ -1,5 +1,5 @@
-import { FileTextIcon, LogOutIcon } from "lucide-react"
-import { PieMenu } from "../components/PieMenu"
+import { FileTextIcon, ListIcon, LogOutIcon, PencilIcon, PlusIcon } from "lucide-react"
+import { PieMenu } from "../components/ui/PieMenu"
 
 // Pagina de la ruta "/" (ver indexRoute en router.tsx). Es la que se ve dentro del
 // <Outlet/> de RootLayout cuando entras a la app por primera vez.
@@ -22,8 +22,28 @@ export function HomePage() {
             {
               to: "/formulario-pago",
               label: "Solicitudes",
-              descripcion: "Creá una solicitud de inscripción nueva o actualizá una existente, con el backend real.",
+              descripcion: "Elegí qué querés hacer con las solicitudes de inscripción.",
               icon: FileTextIcon,
+              submenu: [
+                {
+                  to: "/formulario-pago",
+                  search: { accion: "lista" },
+                  label: "Ver solicitudes existentes",
+                  icon: ListIcon,
+                },
+                {
+                  to: "/formulario-pago",
+                  search: { accion: "crear" },
+                  label: "Crear una solicitud nueva",
+                  icon: PlusIcon,
+                },
+                {
+                  to: "/formulario-pago",
+                  search: { accion: "actualizar" },
+                  label: "Actualizar una solicitud existente",
+                  icon: PencilIcon,
+                },
+              ],
             },
           ]}
           size={280}

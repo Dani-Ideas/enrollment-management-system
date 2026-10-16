@@ -8,7 +8,7 @@ import {
   fetchInscripcion,
   fetchInscripciones,
 } from "@/api/client"
-import type { FormacionComplementariaRequestDTO, InscripcionRequestDTO } from "@/api/types"
+import type { FormacionComplementariaRequestDTO, InscripcionDTO, InscripcionRequestDTO } from "@/api/types"
 import type { CarouselApi } from "@/components/ui/carousel"
 import { type Accion, type CamposFormulario, type FormacionComplementariaEditable, CAMPOS_VACIOS, aInputDatetime } from "./types"
 
@@ -139,27 +139,60 @@ export function useInscripcionForm() {
   }
   const catalogosListos = catalogosQuery.isSuccess
 
-  // --- Lista completa -- usada por "lista" (con filtros, manejados fuera de
-  // este hook) y por "actualizar" (elegir de que solicitud partir, sin
-  // filtros). GET /inscripciones ya no filtra del lado del backend -- se pide
-  // la lista completa UNA vez (mismo cache para "lista" y "actualizar") y el
-  // filtrado por estado/sistema/ambiente se hace aca, via "select", resolviendo
-  // cada id de filtro al texto legible contra los mismos catalogos de arriba
-  // (InscripcionDTO sale aplanado a texto, no trae ids).
-  function useInscripciones(filtros?: { estadoId: string; sistemaId: string; ambienteId: string }) {
+  // Resuelve "campos" (ids sueltos, lo que hay en el formulario TODAVIA sin mandar) a la
+  // MISMA forma que InscripcionDTO (aplanado a texto) -- asi la vista previa de "crear"
+  // (paso de revision, antes de que la Inscripcion exista de verdad) puede reusar
+  // DetalleInscripcion en vez de duplicar su propio <dl>. "id: 0" es un relleno: Detalle
+  // Inscripcion no lo muestra en ningun lado.
+  function camposAVistaPrevia(c: CamposFormulario): InscripcionDTO {
+    return {
+      id: 0,
+      estado: estadosQuery.data?.find((e) => String(e.id) === c.estadoId)?.estado ?? "",
+      sistema: sistemasQuery.data?.find((s) => String(s.id) === c.sistemaId)?.nombre ?? "",
+      jefeCarrera: responsablesQuery.data?.find((r) => String(r.id) === c.jefeCarreraId)?.nombreLargo ?? "",
+      maestro: responsablesQuery.data?.find((r) => String(r.id) === c.maestroId)?.nombreLargo ?? "",
+      carrera: responsablesQuery.data?.find((r) => String(r.id) === c.carreraId)?.nombreLargo ?? "",
+      ambiente: ambientesQuery.data?.find((a) => String(a.id) === c.ambienteId)?.nombre ?? "",
+      proyecto: c.proyecto,
+      version: c.version,
+      descripcion: c.descripcion.trim() === "" ? null : c.descripcion,
+      fechaInscripcionPlanteada: c.fechaPlanteada,
+      fechaInscripcionReal: c.fechaReal.trim() === "" ? null : c.fechaReal,
+    }
+  }
+
+  // --- Filtros de la rama "lista" y "Ver detalle" -- unico consumidor de este hook
+  // ahora (FormularioInscripciones.tsx, borrado InscripcionWizard), asi que ya no hay
+  // motivo para mantenerlos como estado local de la pagina: viven aca.
+  const [filtroEstadoId, setFiltroEstadoId] = useState("")
+  const [filtroSistemaId, setFiltroSistemaId] = useState("")
+  const [filtroAmbienteId, setFiltroAmbienteId] = useState("")
+
+  const [detalleAbiertoId, setDetalleAbiertoId] = useState<number | null>(null)
+  function alternarDetalle(id: number) {
+    setDetalleAbiertoId((actual) => (actual === id ? null : id))
+  }
+
+  // --- Lista completa -- usada por "lista" (con los 3 filtros de arriba) y por
+  // "actualizar" (elegir de que solicitud partir, sin filtros). GET /inscripciones ya no
+  // filtra del lado del backend -- se pide la lista completa UNA vez (mismo cache para
+  // "lista" y "actualizar") y el filtrado por estado/sistema/ambiente se hace aca, via
+  // "select", resolviendo cada id de filtro al texto legible contra los mismos catalogos
+  // de arriba (InscripcionDTO sale aplanado a texto, no trae ids).
+  function useInscripciones() {
     return useQuery({
       queryKey: ["inscripciones"],
       queryFn: fetchInscripciones,
       enabled: accion === "lista" || accion === "actualizar",
       staleTime: 10 * 1000,
       select: (data) => {
-        if (accion !== "lista" || !filtros) return data
+        if (accion !== "lista") return data
         const estadoNombre =
-          filtros.estadoId === "" ? null : estadosQuery.data?.find((e) => String(e.id) === filtros.estadoId)?.estado
+          filtroEstadoId === "" ? null : estadosQuery.data?.find((e) => String(e.id) === filtroEstadoId)?.estado
         const sistemaNombre =
-          filtros.sistemaId === "" ? null : sistemasQuery.data?.find((s) => String(s.id) === filtros.sistemaId)?.nombre
+          filtroSistemaId === "" ? null : sistemasQuery.data?.find((s) => String(s.id) === filtroSistemaId)?.nombre
         const ambienteNombre =
-          filtros.ambienteId === "" ? null : ambientesQuery.data?.find((a) => String(a.id) === filtros.ambienteId)?.nombre
+          filtroAmbienteId === "" ? null : ambientesQuery.data?.find((a) => String(a.id) === filtroAmbienteId)?.nombre
         return data.filter(
           (i) =>
             (estadoNombre === null || i.estado === estadoNombre) &&
@@ -353,9 +386,6 @@ export function useInscripcionForm() {
     api?.scrollTo(1)
   }
 
-  // Reset comun a los dos wizards -- el que tiene rama "lista" (filtros,
-  // detalle abierto) envuelve esta funcion para resetear tambien SU estado
-  // local propio (ver InscripcionWizardTanstack).
   function empezarDeNuevo() {
     setAccion(null)
     maxStepRef.current = 0
@@ -373,6 +403,10 @@ export function useInscripcionForm() {
     setFormacionesEditables([])
     formacionesOriginalRef.current = []
     setGuardadoConfirmado(false)
+    setFiltroEstadoId("")
+    setFiltroSistemaId("")
+    setFiltroAmbienteId("")
+    setDetalleAbiertoId(null)
   }
 
   return {
@@ -391,6 +425,7 @@ export function useInscripcionForm() {
     form,
     campos,
     camposADto,
+    camposAVistaPrevia,
     catalogoCompleto,
     responsablesCompletos,
     datosProyectoCompletos,
@@ -403,6 +438,14 @@ export function useInscripcionForm() {
     catalogosListos,
 
     useInscripciones,
+    filtroEstadoId,
+    setFiltroEstadoId,
+    filtroSistemaId,
+    setFiltroSistemaId,
+    filtroAmbienteId,
+    setFiltroAmbienteId,
+    detalleAbiertoId,
+    alternarDetalle,
 
     formacionesNuevas,
     agregarFormacionNueva,

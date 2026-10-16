@@ -2,7 +2,7 @@ import { createRootRoute, createRoute, createRouter } from "@tanstack/react-rout
 import { RootLayout } from "./routes/RootLayout";
 import { HomePage } from "./routes/HomePage";
 import { SalirSitioPage } from "./routes/inscripciones/SalirSitioPage";
-import { FormularioPagoPageTanstack } from "./routes/inscripciones/FormularioPagoPage.tanstack";
+import { FormularioInscripciones } from "./routes/inscripciones/FormularioInscripciones";
 
 // Este archivo es el "mapa" completo de la app: que URL corresponde a que componente.
 // No dibuja nada el mismo -- solo arma la estructura que despues usa <RouterProvider/>
@@ -30,11 +30,23 @@ const salirSitioRoute = createRoute({
   component: SalirSitioPage,
 });
 
-const formularioPagoRoute = createRoute({
+// "accion" opcional en la URL (?accion=lista|crear|actualizar) -- la elige el submenu de
+// HomePage (ver PieMenu.tsx) ANTES de navegar, asi FormularioInscripciones puede arrancar
+// directo en el paso 1 de esa accion, sin pasar por el paso 0 (que ya quedo desactivado).
+export type AccionFormularioInscripciones = "lista" | "crear" | "actualizar";
+
+export const formularioPagoRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/formulario-pago",
-  component: FormularioPagoPageTanstack,
+  component: FormularioInscripciones,
+  validateSearch: (search: Record<string, unknown>): { accion?: AccionFormularioInscripciones } => {
+    const accion = search.accion;
+    return accion === "lista" || accion === "crear" || accion === "actualizar"
+      ? { accion }
+      : {};
+  },
 });
+
 
 // Junta las rutas sueltas en un solo arbol -- esto es lo que createRouter necesita para
 // saber que existe en la app completa.
