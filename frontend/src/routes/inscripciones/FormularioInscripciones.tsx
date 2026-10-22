@@ -106,16 +106,16 @@ export function FormularioInscripciones() {
 
       <Card>
         <CardContent>
-          <Carousel setApi={setApi} opts={{ watchDrag: false }} className="w-full">
-            <CarouselContent>
+          <Carousel setApi={setApi} opts={{ watchDrag: false }} className="w-full" orientation="vertical">
+            <CarouselContent className="h-[min(70vh,36rem)]">
               {/* --- Paso 0: desactivado -- la accion ahora se elige en el submenu de
                   HomePage (ver PieMenu.tsx), antes de navegar aca (?accion=... en la URL,
                   leido arriba). Este paso queda vacio: con la accion ya puesta, el
                   carrusel arranca directo en el paso 1 y nunca se ve este. */}
-              <CarouselItem />
+              <CarouselItem className="overflow-y-auto" />
 
               {/* --- Paso 1 --- */}
-              <CarouselItem>
+              <CarouselItem className="overflow-y-auto">
                 {accion === "lista" && (
                   <div className="space-y-3">
                     <h3 className="text-sm font-medium">Solicitudes existentes</h3>
@@ -201,7 +201,7 @@ export function FormularioInscripciones() {
               </CarouselItem>
 
               {/* --- Paso 2 --- */}
-              <CarouselItem>
+              <CarouselItem className="overflow-y-auto">
                 {accion === "crear" && (
                   <FieldGroup>
                     <FieldSet>
@@ -290,7 +290,7 @@ export function FormularioInscripciones() {
               </CarouselItem>
 
               {/* --- Paso 3 --- */}
-              <CarouselItem>
+              <CarouselItem className="overflow-y-auto">
                 {accion === "crear" && (
                   <FieldGroup>
                     <FieldSet>
@@ -331,7 +331,7 @@ export function FormularioInscripciones() {
               </CarouselItem>
 
               {/* --- Paso 4 (solo "crear") --- */}
-              <CarouselItem>
+              <CarouselItem className="overflow-y-auto">
                 {accion === "crear" && (
                   <div className="space-y-4">
                     {crearInscripcionMutation.isSuccess ? (
