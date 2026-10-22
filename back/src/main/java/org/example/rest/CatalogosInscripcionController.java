@@ -1,6 +1,7 @@
 package org.example.rest;
 
-import jakarta.ejb.EJB;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
@@ -20,11 +21,12 @@ import static org.example.rest.ApplicationConfig.Endpoints.CATALOGOS_INSCRIPCION
 // Llama directo a ServiceArtifax -- un service intermedio aca era pura indireccion sin
 // logica propia (tablasInscripcion() ya vive en el cache de los 4 catalogos, que es
 // justamente lo que este endpoint expone).
+@RequestScoped
 @Path(CATALOGOS_INSCRIPCION)
 @Produces(MediaType.APPLICATION_JSON)
 public class CatalogosInscripcionController {
 
-    @EJB
+    @Inject
     private ServiceArtifax serviceArtifax;
 
     @GET

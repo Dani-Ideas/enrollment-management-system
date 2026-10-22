@@ -1,6 +1,7 @@
 package org.example.rest;
 
-import jakarta.ejb.EJB;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
@@ -15,12 +16,13 @@ import static org.example.rest.ApplicationConfig.Endpoints.RESPONSABLES;
 // "/responsables" (Endpoints.RESPONSABLES) -- el rename no cambia el contrato de la API.
 //
 // Migrado al trio generico -- ya NO usa MiniFormRespService (borrado), ahora ServiceArtifax.
+@RequestScoped
 @Path(RESPONSABLES)
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class MiniFormRespController {
 
-    @EJB
+    @Inject
     private ServiceArtifax serviceArtifax;
 
     @GET

@@ -1,6 +1,7 @@
 package org.example.rest;
 
-import jakarta.ejb.EJB;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
@@ -14,11 +15,12 @@ import static org.example.rest.ApplicationConfig.Endpoints.ESTADOS;
 // Solo lectura -- catalogo del dominio solicitud/inscripcion. El path sigue siendo
 // "/estados" (Endpoints.ESTADOS) a proposito -- el rename de tabla/clase no cambia el
 // contrato de la API, el frontend sigue funcionando sin tocarlo.
+@RequestScoped
 @Path(ESTADOS)
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class MiniFormEstController {
-    @EJB
+    @Inject
     private ServiceArtifax serviceArtifax;
 
     @GET

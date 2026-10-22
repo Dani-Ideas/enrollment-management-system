@@ -1,6 +1,7 @@
 package org.example.rest;
 
-import jakarta.ejb.EJB;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
@@ -19,12 +20,13 @@ import org.example.lib.InscripcionService;
 
 import static org.example.rest.ApplicationConfig.Endpoints.INSCRIPCIONES;
 
+@RequestScoped
 @Path(INSCRIPCIONES)
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class InscripcionController {
 
-    @EJB
+    @Inject
     private InscripcionService inscripcionService;
 
     @GET
