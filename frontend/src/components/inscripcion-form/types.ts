@@ -52,29 +52,27 @@ export function aInputDatetime(iso: string | null): string {
   return iso ? iso.slice(0, 16) : ""
 }
 
-// PASOS por rama -- el paso 0 ("Elegir accion") es comun a las tres. El
-// Carousel de ambos wizards SIEMPRE tiene 5 CarouselItem (el maximo que
-// necesita la rama mas larga, "crear"): mantener la CANTIDAD de slides fija
-// de entrada a salida evita que Embla tenga que re-detectar slides nuevos a
-// mitad de sesion. La rama "lista" solo existe en InscripcionWizard
-// (FormularioPagoPage nunca dispara accion === "lista").
+// PASOS por rama -- sin paso de "elegir accion": la accion llega por la URL
+// (?accion=..., la elige el submenu de HomePage), asi que el paso 0 ya es el primero
+// real de cada rama. El Carousel SIEMPRE tiene 4 CarouselItem (el maximo, "crear"):
+// mantener la CANTIDAD de slides fija evita que Embla tenga que re-detectar slides
+// nuevos a mitad de sesion.
 export function etiquetaPaso(accion: Accion | null, indice: number): string {
-  if (indice === 0) return "Elegir acción"
-  if (accion === "lista") return indice === 1 ? "Lista de solicitudes" : ""
+  if (accion === "lista") return indice === 0 ? "Lista de solicitudes" : ""
   if (accion === "actualizar") {
-    return { 1: "Elegir solicitud", 2: "Editar campos", 3: "Confirmación" }[indice] ?? ""
+    return { 0: "Elegir solicitud", 1: "Editar campos", 2: "Confirmación" }[indice] ?? ""
   }
   if (accion === "crear") {
     return (
-      { 1: "Catálogo", 2: "Responsables", 3: "Datos del proyecto", 4: "Confirmación" }[indice] ?? ""
+      { 0: "Catálogo", 1: "Responsables", 2: "Datos del proyecto", 3: "Confirmación" }[indice] ?? ""
     )
   }
   return ""
 }
 
 export function totalPasos(accion: Accion | null): number {
-  if (accion === "lista") return 2
-  if (accion === "actualizar") return 4
-  if (accion === "crear") return 5
-  return 1
+  if (accion === "lista") return 1
+  if (accion === "actualizar") return 3
+  if (accion === "crear") return 4
+  return 0
 }

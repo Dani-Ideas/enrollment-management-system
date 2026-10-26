@@ -1,12 +1,6 @@
 import { FileTextIcon, ListIcon, LogOutIcon, PencilIcon, PlusIcon } from "lucide-react"
 import { PieMenu } from "../components/ui/PieMenu"
 
-// Pagina de la ruta "/" (ver indexRoute en router.tsx). Es la que se ve dentro del
-// <Outlet/> de RootLayout cuando entras a la app por primera vez.
-//
-// La precarga de "tablas genericas" (los 4 catalogos de inscripcion) ya NO vive aca --
-// se movio a RootLayout.tsx, que se monta sin importar en que URL arranca/recarga la
-// app (este componente, en cambio, solo se monta si entras/recargas por "/").
 export function HomePage() {
   return (
     <>
@@ -15,14 +9,14 @@ export function HomePage() {
           items={[
             {
               to: "/salir-sitio",
-              label: "Opción 1",
-              descripcion: "Te avisa antes de salir del sitio y abre la consola de GlassFish en una pestaña nueva.",
+              label: "Para Docente",
+              descripcion: "Sitio para los maestros.",
               icon: LogOutIcon,
             },
             {
               to: "/formulario-pago",
               label: "Solicitudes",
-              descripcion: "Elegí qué querés hacer con las solicitudes de inscripción.",
+              descripcion: "Registro, edicion, conulta de solicitudes.",
               icon: FileTextIcon,
               submenu: [
                 {

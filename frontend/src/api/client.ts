@@ -1,4 +1,5 @@
 import axios, { type AxiosRequestConfig } from "axios";
+import { queryOptions } from "@tanstack/react-query";
 import type {
   AmbienteDTO,
   EstadoDTO,
@@ -127,11 +128,12 @@ export function fetchTablasInscripcion(): Promise<TablasInscripcionDTO> {
 // nada distinto pero por las dudas) rompe el "compartir cache" sin avisar. Exportando un
 // solo objeto y haciendo spread (...CATALOGOS_INSCRIPCION_QUERY) en cada useQuery/
 // prefetchQuery, es IMPOSIBLE que se desincronicen.
-export const CATALOGOS_INSCRIPCION_QUERY = {
+// queryOptions(): sin el, TypeScript ensancha 'static' a string y useQuery lo rechaza.
+export const CATALOGOS_INSCRIPCION_QUERY = queryOptions({
   queryKey: ["catalogos-inscripcion"] as const,
   queryFn: fetchTablasInscripcion,
-  staleTime: Infinity,
-};
+  staleTime: "static",
+});
 
 // GET /inscripciones ya no acepta filtros por query param (estadoId/sistemaId/ambienteId)
 // -- el backend los sacó, el filtrado que haga falta se hace del lado del cliente sobre

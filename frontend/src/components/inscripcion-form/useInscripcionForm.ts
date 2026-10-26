@@ -103,8 +103,9 @@ export function useInscripcionForm() {
 
   function elegirAccion(nueva: Accion) {
     setAccion(nueva)
-    desbloquearHasta(1)
-    api?.scrollTo(1)
+    maxStepRef.current = 0
+    setMaxStep(0)
+    api?.scrollTo(0)
   }
 
   // --- Catalogos ("tablas genericas") -- los 4 en UNA sola llamada (via
@@ -226,8 +227,8 @@ export function useInscripcionForm() {
     mutationFn: crearInscripcion,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inscripciones"] })
-      desbloquearHasta(4)
-      api?.scrollTo(4)
+      desbloquearHasta(3)
+      api?.scrollTo(3)
     },
   })
 
@@ -246,9 +247,9 @@ export function useInscripcionForm() {
     form.reset()
     crearInscripcionMutation.reset()
     setFormacionesNuevas([])
-    maxStepRef.current = 1
-    setMaxStep(1)
-    api?.scrollTo(1)
+    maxStepRef.current = 0
+    setMaxStep(0)
+    api?.scrollTo(0)
   }
 
   // --- Actualizar: elegir la solicitud, despues editarla ---
@@ -319,8 +320,8 @@ export function useInscripcionForm() {
     setFormacionesEditables([])
     setBaseline(nuevoBaseline)
     form.reset(nuevoBaseline)
-    desbloquearHasta(2)
-    api?.scrollTo(2)
+    desbloquearHasta(1)
+    api?.scrollTo(1)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accion, buscarInscripcionMutation.isSuccess, buscarInscripcionMutation.data, catalogosListos, solicitudIdActual])
 
@@ -363,8 +364,8 @@ export function useInscripcionForm() {
       setFormacionesEditables(sincronizadas)
       queryClient.invalidateQueries({ queryKey: ["inscripciones"] })
       setGuardadoConfirmado(true)
-      desbloquearHasta(3)
-      api?.scrollTo(3)
+      desbloquearHasta(2)
+      api?.scrollTo(2)
     } catch {
       // el error ya queda disponible en actualizarInscripcionMutation.error
     }
@@ -381,13 +382,14 @@ export function useInscripcionForm() {
     setGuardadoConfirmado(false)
     buscarInscripcionMutation.reset()
     actualizarInscripcionMutation.reset()
-    maxStepRef.current = 1
-    setMaxStep(1)
-    api?.scrollTo(1)
+    maxStepRef.current = 0
+    setMaxStep(0)
+    api?.scrollTo(0)
   }
 
+  // Mantiene la accion (viene de la URL, ya no hay paso para elegirla) y vuelve al
+  // primer paso de esa accion con todo limpio.
   function empezarDeNuevo() {
-    setAccion(null)
     maxStepRef.current = 0
     setMaxStep(0)
     api?.scrollTo(0)

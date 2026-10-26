@@ -82,11 +82,8 @@ export function FormularioInscripciones() {
   const inscripcionesQuery = useInscripciones()
 
   // "accion" llega por la URL (?accion=lista|crear|actualizar) -- la elige el submenu de
-  // HomePage (ver PieMenu.tsx) ANTES de navegar aca. Si vino, arranca directo en esa
-  // accion sin pasar por el paso 0 (desactivado mas abajo). Solo una vez por visita --
-  // sin la guarda de accion === null, pisaria una eleccion manual si el usuario despues
-  // usa "Empezar de nuevo" (ese vuelve a accion null, pero la URL seguiria con el search
-  // param viejo).
+  // HomePage (ver PieMenu.tsx) ANTES de navegar aca. No hay paso para elegirla: el paso 0
+  // ya es el primero de esa accion. Solo una vez por visita (guarda accion === null).
   const { accion: accionInicial } = formularioPagoRoute.useSearch()
   useEffect(() => {
     if (accionInicial && accion === null) {
@@ -108,13 +105,7 @@ export function FormularioInscripciones() {
         <CardContent>
           <Carousel setApi={setApi} opts={{ watchDrag: false }} className="w-full" orientation="vertical">
             <CarouselContent className="h-[min(70vh,36rem)]">
-              {/* --- Paso 0: desactivado -- la accion ahora se elige en el submenu de
-                  HomePage (ver PieMenu.tsx), antes de navegar aca (?accion=... en la URL,
-                  leido arriba). Este paso queda vacio: con la accion ya puesta, el
-                  carrusel arranca directo en el paso 1 y nunca se ve este. */}
-              <CarouselItem className="overflow-y-auto" />
-
-              {/* --- Paso 1 --- */}
+              {/* --- Paso 0 --- */}
               <CarouselItem className="overflow-y-auto">
                 {accion === "lista" && (
                   <div className="space-y-3">
@@ -187,8 +178,8 @@ export function FormularioInscripciones() {
                       />
                       <Button
                         onClick={() => {
-                          desbloquearHasta(2)
-                          api?.scrollTo(2)
+                          desbloquearHasta(1)
+                          api?.scrollTo(1)
                         }}
                         disabled={!catalogoCompleto}
                         className="w-fit"
@@ -200,7 +191,7 @@ export function FormularioInscripciones() {
                 )}
               </CarouselItem>
 
-              {/* --- Paso 2 --- */}
+              {/* --- Paso 1 --- */}
               <CarouselItem className="overflow-y-auto">
                 {accion === "crear" && (
                   <FieldGroup>
@@ -213,8 +204,8 @@ export function FormularioInscripciones() {
                       <CampoResponsables form={form} idPrefix="pago-tf" responsablesQuery={responsablesQuery} />
                       <Button
                         onClick={() => {
-                          desbloquearHasta(3)
-                          api?.scrollTo(3)
+                          desbloquearHasta(2)
+                          api?.scrollTo(2)
                         }}
                         disabled={!responsablesCompletos}
                         className="w-fit"
@@ -289,7 +280,7 @@ export function FormularioInscripciones() {
                 )}
               </CarouselItem>
 
-              {/* --- Paso 3 --- */}
+              {/* --- Paso 2 --- */}
               <CarouselItem className="overflow-y-auto">
                 {accion === "crear" && (
                   <FieldGroup>
@@ -298,8 +289,8 @@ export function FormularioInscripciones() {
                       <CampoDatosProyecto form={form} idPrefix="pago-tf" />
                       <Button
                         onClick={() => {
-                          desbloquearHasta(4)
-                          api?.scrollTo(4)
+                          desbloquearHasta(3)
+                          api?.scrollTo(3)
                         }}
                         disabled={!datosProyectoCompletos}
                         className="w-fit"
@@ -330,7 +321,7 @@ export function FormularioInscripciones() {
                 )}
               </CarouselItem>
 
-              {/* --- Paso 4 (solo "crear") --- */}
+              {/* --- Paso 3 (solo "crear") --- */}
               <CarouselItem className="overflow-y-auto">
                 {accion === "crear" && (
                   <div className="space-y-4">
