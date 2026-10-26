@@ -1,7 +1,5 @@
 package org.example.dinamicas.dinamica;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Embeddable;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -10,20 +8,16 @@ import lombok.Setter;
 
 import java.io.Serializable;
 
+// Id class de DireccionEty (@IdClass): sin anotaciones JPA. Cada campo se llama igual que el
+// @Id de DireccionEty y tiene el tipo de la PK de la entidad a la que apunta.
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode
-@Embeddable
 public class DireccionId implements Serializable {
 
-    @Column(name = "id_persona")
-    private Long personaId;
-
-    @Column(name = "id_colonia")
-    private Long coloniaId;
-
-    @Column(name = "id_tipo")
-    private Long tipoId;
+    private Long persona;
+    private Long colonia;
+    private Long tipo;
 }

@@ -3,6 +3,7 @@ package org.example.general;
 import jakarta.ws.rs.ApplicationPath;
 import org.example.estaticos.rest.*;
 import org.example.dinamicas.rest.InscripcionController;
+import org.example.dinamicas.rest.DireccionController;
 import org.example.dinamicas.rest.PersonaController;
 import org.glassfish.jersey.server.ResourceConfig;
 
@@ -53,6 +54,7 @@ public class ApplicationConfig extends ResourceConfig {
         // Direcciones: catalogos geograficos (cat) y personas con sus direcciones (dinamica).
         public static final String CATALOGOS_GEOGRAFICOS = "/catalogos-geograficos";
         public static final String PERSONAS = "/personas";
+        public static final String DIRECCIONES = "/direcciones";
 
         // El propio directorio de endpoints activos (ver REGISTRO_ACTIVO/listEndpoints()
         // abajo, y EndpointsController.java).
@@ -79,6 +81,7 @@ public class ApplicationConfig extends ResourceConfig {
         REGISTRO_ACTIVO.put(Endpoints.CATALOGOS_INSCRIPCION, CatalogosInscripcionController.class);
         REGISTRO_ACTIVO.put(Endpoints.CATALOGOS_GEOGRAFICOS, CatalogosGeograficosController.class);
         REGISTRO_ACTIVO.put(Endpoints.PERSONAS, PersonaController.class);
+        REGISTRO_ACTIVO.put(Endpoints.DIRECCIONES, DireccionController.class);
     }
 
     // Expuesto por EndpointsController (GET /api/endpoints) -- el front lo consume en

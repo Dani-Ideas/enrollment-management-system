@@ -2,16 +2,16 @@ package org.example.dinamicas.ejb;
 
 import jakarta.ejb.Stateless;
 import jakarta.inject.Inject;
-import org.example.dinamicas.dto.dinamica.FormacionComplementariaRequestDto;
-import org.example.dinamicas.dto.dinamica.InscripcionConFormacionComplementariaDto;
-import org.example.dinamicas.dto.dinamica.InscripcionConFormacionComplementariaRequestDto;
-import org.example.dinamicas.dto.dinamica.InscripcionDto;
-import org.example.dinamicas.lib.dinamica.FormacionComplementariaRepository;
-import org.example.dinamicas.lib.dinamica.InscripcionRepository;
-import org.example.dinamicas.lib.dinamica.InscripcionService;
+import org.example.dinamicas.dto.FormacionComplementariaRequestDto;
+import org.example.dinamicas.dto.InscripcionConFormacionComplementariaDto;
+import org.example.dinamicas.dto.InscripcionConFormacionComplementariaRequestDto;
+import org.example.dinamicas.dto.InscripcionDto;
+import org.example.dinamicas.lib.FormacionComplementariaRepository;
+import org.example.dinamicas.lib.InscripcionRepository;
+import org.example.dinamicas.lib.InscripcionService;
 import org.example.comun.ReglaDeNegocioException;
-import org.example.dinamicas.mapper.dinamica.FormacionComplementariaMapper;
-import org.example.dinamicas.mapper.dinamica.InscripcionMapper;
+import org.example.dinamicas.mapper.FormacionComplementariaMapper;
+import org.example.dinamicas.mapper.InscripcionMapper;
 import org.example.dinamicas.dinamica.FormacionComplementariaEty;
 import org.example.dinamicas.dinamica.InscripcionEty;
 

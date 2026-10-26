@@ -1,8 +1,8 @@
-package org.example.dinamicas.lib.dinamica;
+package org.example.dinamicas.lib;
 
-import org.example.dinamicas.dto.dinamica.InscripcionConFormacionComplementariaDto;
-import org.example.dinamicas.dto.dinamica.InscripcionConFormacionComplementariaRequestDto;
-import org.example.dinamicas.dto.dinamica.InscripcionDto;
+import org.example.dinamicas.dto.InscripcionConFormacionComplementariaDto;
+import org.example.dinamicas.dto.InscripcionConFormacionComplementariaRequestDto;
+import org.example.dinamicas.dto.InscripcionDto;
 
 import java.util.List;
 

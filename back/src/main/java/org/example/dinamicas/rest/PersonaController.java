@@ -8,8 +8,8 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import org.example.dinamicas.dto.dinamica.PersonaDto;
-import org.example.dinamicas.lib.dinamica.PersonaService;
+import org.example.dinamicas.dto.PersonaDto;
+import org.example.dinamicas.lib.PersonaService;
 
 import static org.example.general.ApplicationConfig.Endpoints.PERSONAS;
 
@@ -35,11 +35,5 @@ public class PersonaController {
             return Response.status(Response.Status.NOT_FOUND).build();
         }
         return Response.ok(dto).build();
-    }
-
-    @GET
-    @Path("/{id}/direcciones")
-    public Response direcciones(@PathParam("id") Long id) {
-        return Response.ok(personaService.listarDirecciones(id)).build();
     }
 }

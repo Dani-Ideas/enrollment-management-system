@@ -12,8 +12,8 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import org.example.dinamicas.dto.dinamica.InscripcionConFormacionComplementariaRequestDto;
-import org.example.dinamicas.lib.dinamica.InscripcionService;
+import org.example.dinamicas.dto.InscripcionConFormacionComplementariaRequestDto;
+import org.example.dinamicas.lib.InscripcionService;
 
 import static org.example.general.ApplicationConfig.Endpoints.INSCRIPCIONES;
 

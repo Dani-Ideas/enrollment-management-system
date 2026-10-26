@@ -1,4 +1,4 @@
-package org.example.dinamicas.dto.dinamica;
+package org.example.dinamicas.dto;
 
 import java.io.Serializable;
 import java.util.List;

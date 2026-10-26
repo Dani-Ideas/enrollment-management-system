@@ -1,4 +1,4 @@
-package org.example.dinamicas.lib.dinamica;
+package org.example.dinamicas.lib;
 
 import jakarta.data.repository.CrudRepository;
 import jakarta.data.repository.Repository;

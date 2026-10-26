@@ -13,7 +13,11 @@ import org.example.estaticos.lib.EstadoRepository;
 import org.example.estaticos.lib.MunicipioRepository;
 import org.example.estaticos.lib.PaisRepository;
 import org.example.estaticos.lib.TipoDireccionRepository;
-import org.example.estaticos.mapper.CatalogoGeograficoMapper;
+import org.example.estaticos.mapper.ColoniaMapper;
+import org.example.estaticos.mapper.EstadoMapper;
+import org.example.estaticos.mapper.MunicipioMapper;
+import org.example.estaticos.mapper.PaisMapper;
+import org.example.estaticos.mapper.TipoDireccionMapper;
 
 import java.util.List;
 
@@ -34,30 +38,38 @@ public class CatalogoGeograficoServiceImpl implements CatalogoGeograficoService 
     private TipoDireccionRepository tipoDireccionRepository;
 
     @Inject
-    private CatalogoGeograficoMapper mapper;
+    private PaisMapper paisMapper;
+    @Inject
+    private EstadoMapper estadoMapper;
+    @Inject
+    private MunicipioMapper municipioMapper;
+    @Inject
+    private ColoniaMapper coloniaMapper;
+    @Inject
+    private TipoDireccionMapper tipoDireccionMapper;
 
     @Override
     public List<PaisDto> listarPaises() {
-        return mapper.paisesToDto(paisRepository.findAll().toList());
+        return paisMapper.toDto(paisRepository.findAll().toList());
     }
 
     @Override
     public List<EstadoDto> listarEstados(Long paisId) {
-        return mapper.estadosToDto(estadoRepository.porPais(paisId));
+        return estadoMapper.toDto(estadoRepository.porPais(paisId));
     }
 
     @Override
     public List<MunicipioDto> listarMunicipios(Long estadoId) {
-        return mapper.municipiosToDto(municipioRepository.porEstado(estadoId));
+        return municipioMapper.toDto(municipioRepository.porEstado(estadoId));
     }
 
     @Override
     public List<ColoniaDto> listarColonias(Long municipioId) {
-        return mapper.coloniasToDto(coloniaRepository.porMunicipio(municipioId));
+        return coloniaMapper.toDto(coloniaRepository.porMunicipio(municipioId));
     }
 
     @Override
     public List<TipoDireccionDto> listarTiposDireccion() {
-        return mapper.tiposToDto(tipoDireccionRepository.findAll().toList());
+        return tipoDireccionMapper.toDto(tipoDireccionRepository.findAll().toList());
     }
 }

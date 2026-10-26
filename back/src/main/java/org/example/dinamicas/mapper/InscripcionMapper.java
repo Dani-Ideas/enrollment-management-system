@@ -1,18 +1,18 @@
-package org.example.dinamicas.mapper.dinamica;
+package org.example.dinamicas.mapper;
 
 import jakarta.annotation.Nonnull;
-import org.example.dinamicas.dto.dinamica.FormacionComplementariaRequestDto;
-import org.example.dinamicas.dto.dinamica.InscripcionConFormacionComplementariaDto;
-import org.example.dinamicas.dto.dinamica.InscripcionConFormacionComplementariaRequestDto;
-import org.example.dinamicas.dto.dinamica.InscripcionDto;
-import org.example.dinamicas.dto.dinamica.InscripcionRequestDto;
-import org.example.dinamicas.mapper.*;
+import org.example.dinamicas.dto.FormacionComplementariaRequestDto;
+import org.example.dinamicas.dto.InscripcionConFormacionComplementariaDto;
+import org.example.dinamicas.dto.InscripcionConFormacionComplementariaRequestDto;
+import org.example.dinamicas.dto.InscripcionDto;
+import org.example.dinamicas.dto.InscripcionRequestDto;
 import org.example.estaticos.mapper.MiniFormAmbMapper;
 import org.example.estaticos.mapper.MiniFormEstMapper;
 import org.example.estaticos.mapper.MiniFormRespMapper;
 import org.example.estaticos.mapper.MiniFormSisMapper;
 import org.example.dinamicas.dinamica.FormacionComplementariaEty;
 import org.example.dinamicas.dinamica.InscripcionEty;
+import org.example.comun.RequestResponseMapper;
 import org.mapstruct.InheritConfiguration;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;

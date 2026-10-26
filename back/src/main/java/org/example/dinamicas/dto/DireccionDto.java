@@ -1,19 +1,22 @@
-package org.example.dinamicas.dto.dinamica;
+package org.example.dinamicas.dto;
+
+import org.example.estaticos.dto.ColoniaDto;
+import org.example.estaticos.dto.EstadoDto;
+import org.example.estaticos.dto.MunicipioDto;
+import org.example.estaticos.dto.PaisDto;
 
 import java.io.Serializable;
 
 import java.time.LocalDateTime;
 
 public record DireccionDto(
-        Long personaId,
-        Long coloniaId,
+        PersonaDto personaId,
         Long tipoId,
         String tipo,
-        String colonia,
-        String municipio,
-        String estado,
-        String pais,
-        String codigoPostal,
+        ColoniaDto colonia,
+        MunicipioDto municipio,
+        EstadoDto estado,
+        PaisDto pais,
         String calle,
         String numeroExterior,
         String numeroInterior,

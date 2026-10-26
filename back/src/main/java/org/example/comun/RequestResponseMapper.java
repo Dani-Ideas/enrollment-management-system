@@ -1,4 +1,4 @@
-package org.example.dinamicas.mapper;
+package org.example.comun;
 
 import java.util.List;
 

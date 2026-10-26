@@ -1,4 +1,4 @@
-package org.example.dinamicas.dto.dinamica;
+package org.example.dinamicas.dto;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;

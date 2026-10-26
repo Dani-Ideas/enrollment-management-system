@@ -1,8 +1,7 @@
-package org.example.dinamicas.lib.dinamica;
+package org.example.dinamicas.lib;
 
-import jakarta.data.repository.By;
 import jakarta.data.repository.CrudRepository;
-import jakarta.data.repository.Find;
+import jakarta.data.repository.Query;
 import jakarta.data.repository.Repository;
 import org.example.dinamicas.dinamica.DireccionEty;
 import org.example.dinamicas.dinamica.DireccionId;
@@ -12,6 +11,6 @@ import java.util.List;
 @Repository
 public interface DireccionRepository extends CrudRepository<DireccionEty, DireccionId> {
 
-    @Find
-    List<DireccionEty> porPersona(@By("persona.id") Long personaId);
+    @Query("FROM DireccionEty WHERE persona.id = ?1")
+    List<DireccionEty> porPersona(Long personaId);
 }

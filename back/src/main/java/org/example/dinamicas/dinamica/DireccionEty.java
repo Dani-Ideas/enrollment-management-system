@@ -1,12 +1,12 @@
 package org.example.dinamicas.dinamica;
 
 import jakarta.persistence.Column;
-import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.Id;
+import jakarta.persistence.IdClass;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.MapsId;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import lombok.Getter;
@@ -17,31 +17,30 @@ import org.example.estaticos.model.TipoDireccionEty;
 
 import java.time.LocalDateTime;
 
-// PK compuesta derivada de sus 3 relaciones (@EmbeddedId + @MapsId). Depende de cat
-// (ColoniaEty, TipoDireccionEty); cat nunca depende de dinamica.
+// PK compuesta formada por sus 3 relaciones (@IdClass + @Id sobre cada @ManyToOne, JPA
+// 3.2 §2.4.2.3). Depende de estaticos (ColoniaEty, TipoDireccionEty); estaticos nunca
+// depende de dinamicas.
 @Getter
 @Setter
 @NoArgsConstructor
 @Entity
+@IdClass(DireccionId.class)
 @Table(name = "direccion")
 public class DireccionEty {
 
-    @EmbeddedId
-    private DireccionId id;
-
+    @Id
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @MapsId("personaId")
-    @JoinColumn(name = "id_persona")
+    @JoinColumn(name = "id_persona", nullable = false)
     private PersonaEty persona;
 
+    @Id
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @MapsId("coloniaId")
-    @JoinColumn(name = "id_colonia")
+    @JoinColumn(name = "id_colonia", nullable = false)
     private ColoniaEty colonia;
 
+    @Id
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @MapsId("tipoId")
-    @JoinColumn(name = "id_tipo")
+    @JoinColumn(name = "id_tipo", nullable = false)
     private TipoDireccionEty tipo;
 
     // Snapshot del CP al momento del registro: si cambia el de la colonia, la direccion
