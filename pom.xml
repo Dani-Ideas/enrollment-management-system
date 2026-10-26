@@ -9,9 +9,8 @@
     <version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
-    <!-- Orden de build: el EJB-jar, el WAR que lo usa, y el EAR que empaqueta los dos. -->
+    <!-- Orden de build: back (genera el WAR y el jar "ejb") y despues el EAR. -->
     <modules>
-        <module>ejb</module>
         <module>back</module>
         <module>ear</module>
     </modules>

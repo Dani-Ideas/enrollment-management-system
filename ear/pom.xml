@@ -14,11 +14,13 @@
     <packaging>ear</packaging>
 
     <dependencies>
+        <!-- El jar con classifier "ejb" que genera back/ (ver back/pom.xml). -->
         <dependency>
             <groupId>org.example</groupId>
-            <artifactId>SistemaMatriculas-ejb</artifactId>
+            <artifactId>SistemaMatriculas</artifactId>
             <version>${project.version}</version>
-            <type>ejb</type>
+            <type>jar</type>
+            <classifier>ejb</classifier>
         </dependency>
         <dependency>
             <groupId>org.example</groupId>
@@ -41,7 +43,9 @@
                     <modules>
                         <ejbModule>
                             <groupId>org.example</groupId>
-                            <artifactId>SistemaMatriculas-ejb</artifactId>
+                            <artifactId>SistemaMatriculas</artifactId>
+                            <type>jar</type>
+                            <classifier>ejb</classifier>
                             <bundleFileName>SistemaMatriculas-ejb.jar</bundleFileName>
                         </ejbModule>
                         <!-- contextRoot fijo: el frontend tiene "/SistemaMatriculas" escrito en

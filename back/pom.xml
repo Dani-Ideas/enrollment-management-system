@@ -13,8 +13,10 @@
     <artifactId>SistemaMatriculas</artifactId>
     <packaging>war</packaging>
 
-    <!-- Solo la capa web (rest/ + el frontend en webapp/). El resto del backend vive en
-         el modulo ejb/. -->
+    <!-- Todo el codigo vive aca, pero se empaqueta en dos artefactos: el WAR (rest/ +
+         frontend) y un jar con classifier "ejb" (model, lib, ejb, mapper, dto y
+         persistence.xml) que el EAR mete como modulo EJB. GlassFish carga los @Repository
+         con el classloader del EAR, que no ve WEB-INF/classes. -->
     <dependencies>
         <dependency>
             <groupId>jakarta.platform</groupId>
@@ -22,13 +24,23 @@
             <version>11.0.0</version>
             <scope>provided</scope>
         </dependency>
-        <!-- provided: el EJB-jar ya va dentro del EAR, no se repite en WEB-INF/lib. -->
         <dependency>
-            <groupId>org.example</groupId>
-            <artifactId>SistemaMatriculas-ejb</artifactId>
-            <version>${project.version}</version>
-            <type>ejb</type>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.46</version>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.data</groupId>
+            <artifactId>jakarta.data-api</artifactId>
+            <version>1.0.1</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Scope compile: maven-ear-plugin la copia a lib/ del EAR. -->
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+            <version>1.6.3</version>
         </dependency>
         <dependency>
             <groupId>org.glassfish.jersey.core</groupId>
@@ -81,12 +93,85 @@
                 </executions>
             </plugin>
 
+            <!-- Jar extra (SistemaMatriculas-1.0-SNAPSHOT-ejb.jar) con todo lo que no es web. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.4.2</version>
+                <executions>
+                    <execution>
+                        <id>jar-ejb</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                        <configuration>
+                            <classifier>ejb</classifier>
+                            <includes>
+                                <include>org/example/estaticos/**</include>
+                                <include>org/example/dinamicas/**</include>
+                                <include>org/example/comun/**</include>
+                                <include>META-INF/persistence.xml</include>
+                            </includes>
+                            <!-- Los rest/ de estaticos y dinamicas van en el WAR (igual que general/). -->
+                            <excludes>
+                                <exclude>org/example/*/rest/**</exclude>
+                            </excludes>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- El WAR no repite lo que ya va en el jar "ejb" ni MapStruct (va en lib/ del EAR).
+                 Una carpeta nueva dentro de estaticos/ o dinamicas/ (que no sea rest/) se
+                 agrega aqui tambien; si no, sus clases quedan duplicadas en WEB-INF/classes. -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-war-plugin</artifactId>
                 <version>3.4.0</version>
                 <configuration>
                     <failOnMissingWebXml>false</failOnMissingWebXml>
+                    <packagingExcludes>
+                        WEB-INF/classes/org/example/estaticos/model/**,
+                        WEB-INF/classes/org/example/estaticos/lib/**,
+                        WEB-INF/classes/org/example/estaticos/ejb/**,
+                        WEB-INF/classes/org/example/estaticos/mapper/**,
+                        WEB-INF/classes/org/example/estaticos/dto/**,
+                        WEB-INF/classes/org/example/dinamicas/dinamica/**,
+                        WEB-INF/classes/org/example/dinamicas/lib/**,
+                        WEB-INF/classes/org/example/dinamicas/ejb/**,
+                        WEB-INF/classes/org/example/dinamicas/mapper/**,
+                        WEB-INF/classes/org/example/dinamicas/dto/**,
+                        WEB-INF/classes/org/example/comun/**,
+                        WEB-INF/classes/META-INF/persistence.xml,
+                        WEB-INF/lib/mapstruct-*.jar
+                    </packagingExcludes>
+                </configuration>
+            </plugin>
+            <!-- annotationProcessorPaths explicito: en cuanto se agrega uno (MapStruct),
+                 hay que listar Lombok tambien, si no deja de correr en silencio.
+                 lombok-mapstruct-binding es el puente para que MapStruct vea los
+                 getters/setters que Lombok genera. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>1.18.46</version>
+                        </path>
+                        <path>
+                            <groupId>org.mapstruct</groupId>
+                            <artifactId>mapstruct-processor</artifactId>
+                            <version>1.6.3</version>
+                        </path>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok-mapstruct-binding</artifactId>
+                            <version>0.2.0</version>
+                        </path>
+                    </annotationProcessorPaths>
                 </configuration>
             </plugin>
         </plugins>

@@ -1,0 +1,36 @@
+package org.example.estaticos.model;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import lombok.Getter;
+import lombok.Setter;
+
+// Tabla MINIFORMAMB (antes CAT_AMBIENTE/Ambiente) -- ambiente de despliegue de una
+// inscripcion (ej. "Produccion", "QA"), dominio "solicitud/inscripcion".
+@Getter
+@Setter
+@Entity
+@Table(name = "MINIFORMAMB")
+public class MiniFormAmbEty {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "miniformamb_seq")
+    @SequenceGenerator(name = "miniformamb_seq", sequenceName = "MINIFORMAMB_SEQ", allocationSize = 1)
+    @Column(name = "ID_MINIFORMAMB")
+    private Long id;
+
+    @NotNull
+    @Size(max = 255)
+    @Column(name = "NOMBRE", nullable = false)
+    private String nombre;
+
+    public MiniFormAmbEty() {
+    }
+}
