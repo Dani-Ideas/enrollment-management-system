@@ -3,7 +3,7 @@ package org.example.estaticos.mapper;
 import jakarta.inject.Inject;
 import org.example.estaticos.dto.MiniFormAmbDto;
 import org.example.estaticos.lib.MiniFormAmbRepository;
-import org.example.comun.ReglaDeNegocioException;
+import org.example.comun.ReferenciaInvalidaException;
 import org.example.estaticos.model.MiniFormAmbEty;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingConstants;
@@ -23,6 +23,6 @@ public abstract class MiniFormAmbMapper {
             return null;
         }
         return miniFormAmbRepository.findById(id)
-                .orElseThrow(() -> new ReglaDeNegocioException("No existe el ambiente " + id));
+                .orElseThrow(() -> new ReferenciaInvalidaException("No existe el ambiente " + id));
     }
 }

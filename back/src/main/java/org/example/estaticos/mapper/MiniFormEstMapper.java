@@ -3,7 +3,7 @@ package org.example.estaticos.mapper;
 import jakarta.inject.Inject;
 import org.example.estaticos.dto.MiniFormEstDto;
 import org.example.estaticos.lib.MiniFormEstRepository;
-import org.example.comun.ReglaDeNegocioException;
+import org.example.comun.ReferenciaInvalidaException;
 import org.example.estaticos.model.MiniFormEstEty;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingConstants;
@@ -25,6 +25,6 @@ public abstract class MiniFormEstMapper {
             return null;
         }
         return miniFormEstRepository.findById(id)
-                .orElseThrow(() -> new ReglaDeNegocioException("No existe el estado " + id));
+                .orElseThrow(() -> new ReferenciaInvalidaException("No existe el estado " + id));
     }
 }

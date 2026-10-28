@@ -2,6 +2,7 @@ package org.example.dinamicas.ejb;
 
 import jakarta.ejb.Stateless;
 import jakarta.inject.Inject;
+import org.example.comun.RecursoNoEncontradoException;
 import org.example.dinamicas.dto.PersonaDto;
 import org.example.dinamicas.lib.PersonaRepository;
 import org.example.dinamicas.lib.PersonaService;
@@ -25,6 +26,8 @@ public class PersonaServiceImpl implements PersonaService {
 
     @Override
     public PersonaDto buscarPorId(Long id) {
-        return personaRepository.findById(id).map(mapper::toDto).orElse(null);
+        return personaRepository.findById(id)
+                .map(mapper::toDto)
+                .orElseThrow(() -> new RecursoNoEncontradoException("No existe la persona " + id));
     }
 }

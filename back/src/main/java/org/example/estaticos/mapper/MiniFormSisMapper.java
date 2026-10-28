@@ -3,7 +3,7 @@ package org.example.estaticos.mapper;
 import jakarta.inject.Inject;
 import org.example.estaticos.dto.MiniFormSisDto;
 import org.example.estaticos.lib.MiniFormSisRepository;
-import org.example.comun.ReglaDeNegocioException;
+import org.example.comun.ReferenciaInvalidaException;
 import org.example.estaticos.model.MiniFormSisEty;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingConstants;
@@ -23,6 +23,6 @@ public abstract class MiniFormSisMapper {
             return null;
         }
         return miniFormSisRepository.findById(id)
-                .orElseThrow(() -> new ReglaDeNegocioException("No existe el sistema " + id));
+                .orElseThrow(() -> new ReferenciaInvalidaException("No existe el sistema " + id));
     }
 }

@@ -3,7 +3,7 @@ package org.example.estaticos.mapper;
 import jakarta.inject.Inject;
 import org.example.estaticos.dto.MiniFormRespDto;
 import org.example.estaticos.lib.MiniFormRespRepository;
-import org.example.comun.ReglaDeNegocioException;
+import org.example.comun.ReferenciaInvalidaException;
 import org.example.estaticos.model.MiniFormRespEty;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingConstants;
@@ -25,6 +25,6 @@ public abstract class MiniFormRespMapper {
             return null;
         }
         return miniFormRespRepository.findById(id)
-                .orElseThrow(() -> new ReglaDeNegocioException("No existe el responsable " + id));
+                .orElseThrow(() -> new ReferenciaInvalidaException("No existe el responsable " + id));
     }
 }

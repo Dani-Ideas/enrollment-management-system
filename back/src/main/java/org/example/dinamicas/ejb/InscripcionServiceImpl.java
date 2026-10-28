@@ -2,6 +2,7 @@ package org.example.dinamicas.ejb;
 
 import jakarta.ejb.Stateless;
 import jakarta.inject.Inject;
+import org.example.dinamicas.dto.FormacionComplementariaDto;
 import org.example.dinamicas.dto.FormacionComplementariaRequestDto;
 import org.example.dinamicas.dto.InscripcionConFormacionComplementariaDto;
 import org.example.dinamicas.dto.InscripcionConFormacionComplementariaRequestDto;
@@ -9,7 +10,8 @@ import org.example.dinamicas.dto.InscripcionDto;
 import org.example.dinamicas.lib.FormacionComplementariaRepository;
 import org.example.dinamicas.lib.InscripcionRepository;
 import org.example.dinamicas.lib.InscripcionService;
-import org.example.comun.ReglaDeNegocioException;
+import org.example.comun.RecursoNoEncontradoException;
+import org.example.comun.ReferenciaInvalidaException;
 import org.example.dinamicas.mapper.FormacionComplementariaMapper;
 import org.example.dinamicas.mapper.InscripcionMapper;
 import org.example.dinamicas.dinamica.FormacionComplementariaEty;
@@ -43,7 +45,17 @@ public class InscripcionServiceImpl implements InscripcionService {
 
     @Override
     public InscripcionDto buscarPorId(Long id) {
-        return inscripcionRepository.findById(id).map(inscripcionMapper::toDto).orElse(null);
+        return inscripcionMapper.toDto(obtener(id));
+    }
+
+    @Override
+    public List<FormacionComplementariaDto> listarFormaciones(Long id) {
+        return formacionComplementariaMapper.toDto(obtener(id).getFormacionesComplementarias());
+    }
+
+    private InscripcionEty obtener(Long id) {
+        return inscripcionRepository.findById(id)
+                .orElseThrow(() -> new RecursoNoEncontradoException("No existe la inscripción " + id));
     }
 
     // UNA sola peticion HTTP: crea la Inscripcion y sus formaciones complementarias juntas,
@@ -58,7 +70,8 @@ public class InscripcionServiceImpl implements InscripcionService {
     public InscripcionConFormacionComplementariaDto crear(InscripcionConFormacionComplementariaRequestDto dto) {
         InscripcionEty inscripcionCreada = inscripcionRepository.insert(inscripcionMapper.toEntity(dto.inscripcion()));
 
-        List<FormacionComplementariaEty> hijos = formacionComplementariaMapper.toEntity(dto.formacionesComplementarias());
+        List<FormacionComplementariaRequestDto> entrantes = Objects.requireNonNullElse(dto.formacionesComplementarias(), List.of());
+        List<FormacionComplementariaEty> hijos = formacionComplementariaMapper.toEntity(entrantes);
         hijos.forEach(hijo -> hijo.setInscripcion(inscripcionCreada));
         List<FormacionComplementariaEty> formacionesCreadas = formacionComplementariaRepository.insertAll(hijos);
 
@@ -70,15 +83,16 @@ public class InscripcionServiceImpl implements InscripcionService {
 
     @Override
     public InscripcionConFormacionComplementariaDto actualizar(Long id, InscripcionConFormacionComplementariaRequestDto datosActualizados)  {
-        InscripcionEty inscripcion = inscripcionRepository.findById(id).orElse(null);
-        if (inscripcion == null) {
-            return null;
-        }
+        InscripcionEty inscripcion = obtener(id);
 
         inscripcionMapper.actualizarDesde(inscripcion, datosActualizados.inscripcion());
         InscripcionEty actualizado = inscripcionRepository.update(inscripcion);
 
-        sincronizarFormacionesComplementarias(actualizado, datosActualizados.formacionesComplementarias());
+        // null = el cliente no mando la lista: las formaciones no se tocan. Una lista
+        // (aunque sea vacia) es la lista COMPLETA que debe quedar.
+        if (datosActualizados.formacionesComplementarias() != null) {
+            sincronizarFormacionesComplementarias(actualizado, datosActualizados.formacionesComplementarias());
+        }
 
         return inscripcionMapper.toDtoConFormaciones(actualizado);
     }
@@ -116,7 +130,7 @@ public class InscripcionServiceImpl implements InscripcionService {
             FormacionComplementariaEty existente = existentes.stream()
                     .filter(hijo -> hijo.getId().equals(entrante.id()))
                     .findFirst()
-                    .orElseThrow(() -> new ReglaDeNegocioException(
+                    .orElseThrow(() -> new ReferenciaInvalidaException(
                             "No existe la formación complementaria " + entrante.id()));
             existente.setDescripcion(entrante.descripcion());
         }

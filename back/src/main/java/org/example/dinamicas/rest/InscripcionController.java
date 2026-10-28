@@ -15,6 +15,7 @@ import jakarta.ws.rs.core.Response;
 import org.example.dinamicas.dto.InscripcionConFormacionComplementariaRequestDto;
 import org.example.dinamicas.lib.InscripcionService;
 
+import static org.example.general.ApplicationConfig.Endpoints.FORMACIONES_COMPLEMENTARIAS;
 import static org.example.general.ApplicationConfig.Endpoints.INSCRIPCIONES;
 
 @RequestScoped
@@ -35,6 +36,12 @@ public class InscripcionController {
     @Path("/{id}")
     public Response buscar(@PathParam("id") Long id) {
         return Response.ok(inscripcionService.buscarPorId(id)).build();
+    }
+
+    @GET
+    @Path("/{id}" + FORMACIONES_COMPLEMENTARIAS)
+    public Response listarFormaciones(@PathParam("id") Long id) {
+        return Response.ok(inscripcionService.listarFormaciones(id)).build();
     }
 
     @POST

@@ -1,5 +1,6 @@
 package org.example.dinamicas.lib;
 
+import org.example.dinamicas.dto.FormacionComplementariaDto;
 import org.example.dinamicas.dto.InscripcionConFormacionComplementariaDto;
 import org.example.dinamicas.dto.InscripcionConFormacionComplementariaRequestDto;
 import org.example.dinamicas.dto.InscripcionDto;
@@ -17,12 +18,18 @@ public interface InscripcionService {
     // cachea en ServiceArtifax (esa cache es solo para los 4 catalogos estaticos).
     List<InscripcionDto> listar();
 
+    // Lanza RecursoNoEncontradoException (404) si el id no existe.
     InscripcionDto buscarPorId(Long id);
-    
+
+    // Las formaciones que ya tiene la inscripcion -- el front las carga antes de editar,
+    // porque el PUT recibe la lista completa que debe quedar.
+    List<FormacionComplementariaDto> listarFormaciones(Long id);
+
     // UNA sola peticion HTTP tambien para editar: actualiza los datos propios de la
     // Inscripcion (y sus 6 FK) Y sincroniza la lista completa de FormacionComplementaria
     // contra lo que ya existe en la base (borra lo que el cliente sacó de la lista, actualiza
-    // lo que sigue, crea lo nuevo) -- ver InscripcionServiceImpl.
+    // lo que sigue, crea lo nuevo) -- ver InscripcionServiceImpl. Si la lista llega null,
+    // las formaciones no se tocan.
     InscripcionConFormacionComplementariaDto actualizar(Long id, InscripcionConFormacionComplementariaRequestDto datosActualizados);
 
     // UNA sola peticion HTTP: crea la Inscripcion y sus formaciones complementarias juntas

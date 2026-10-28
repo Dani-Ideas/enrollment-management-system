@@ -8,7 +8,6 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import org.example.dinamicas.dto.PersonaDto;
 import org.example.dinamicas.lib.PersonaService;
 
 import static org.example.general.ApplicationConfig.Endpoints.PERSONAS;
@@ -30,10 +29,6 @@ public class PersonaController {
     @GET
     @Path("/{id}")
     public Response buscar(@PathParam("id") Long id) {
-        PersonaDto dto = personaService.buscarPorId(id);
-        if (dto == null) {
-            return Response.status(Response.Status.NOT_FOUND).build();
-        }
-        return Response.ok(dto).build();
+        return Response.ok(personaService.buscarPorId(id)).build();
     }
 }
