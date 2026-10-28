@@ -157,6 +157,9 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
+                    <!-- Nombres reales de parametros en el bytecode: Bean Validation reporta
+                         "paisId" en vez de "arg0" en los errores de @QueryParam. -->
+                    <parameters>true</parameters>
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.projectlombok</groupId>

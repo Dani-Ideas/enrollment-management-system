@@ -90,6 +90,7 @@ public class ApplicationConfig extends ResourceConfig {
         register(RecursoNoEncontradoExceptionMapper.class);
         register(ReferenciaInvalidaExceptionMapper.class);
         register(ValidationExceptionMapper.class);
+        register(ExcepcionNoControladaMapper.class);
         register(EndpointsController.class);
     }
 }

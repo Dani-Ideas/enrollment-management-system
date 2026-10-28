@@ -33,6 +33,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @Startup
 public class CatalogoInscripcionCacheImpl implements CatalogoInscripcionCache {
 
+    private static final System.Logger LOG = System.getLogger(CatalogoInscripcionCacheImpl.class.getName());
+
     @Inject
     private MiniFormEstRepository miniFormEstRepository;
     @Inject
@@ -62,6 +64,12 @@ public class CatalogoInscripcionCacheImpl implements CatalogoInscripcionCache {
         miniFormSisRepository.findAll().forEach(s -> sistemas.put(s.getId(), miniFormSisMapper.toDto(s)));
         miniFormRespRepository.findAll().forEach(r -> responsables.put(r.getId(), miniFormRespMapper.toDto(r)));
         miniFormAmbRepository.findAll().forEach(a -> ambientes.put(a.getId(), miniFormAmbMapper.toDto(a)));
+
+        // Un catalogo vacio deja el formulario sin opciones: que se vea en el log al desplegar.
+        boolean algunoVacio = estados.isEmpty() || sistemas.isEmpty() || responsables.isEmpty() || ambientes.isEmpty();
+        LOG.log(algunoVacio ? System.Logger.Level.WARNING : System.Logger.Level.INFO,
+                "Catalogos de inscripcion en cache: {0} estados, {1} sistemas, {2} responsables, {3} ambientes",
+                estados.size(), sistemas.size(), responsables.size(), ambientes.size());
     }
 
     @Override
