@@ -1,29 +1,34 @@
 package org.example.estaticos.mapper;
 
+import jakarta.inject.Inject;
+import org.example.comun.ReferenciaInvalidaException;
 import org.example.comun.RequestResponseMapper;
 import org.example.estaticos.dto.PaisDto;
 import org.example.estaticos.dto.PaisRequestDto;
 import org.example.estaticos.model.PaisEty;
+import org.example.estaticos.repository.PaisRepository;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingConstants;
 
+// Clase abstracta (no interfaz) para poder inyectar el Repository: desdeId() resuelve la FK
+// contra la base, igual que MiniFormEstMapper, y un id inexistente responde 422.
 @Mapper(componentModel = MappingConstants.ComponentModel.CDI)
-public interface PaisMapper extends RequestResponseMapper<PaisEty, PaisRequestDto, PaisDto> {
+public abstract class PaisMapper implements RequestResponseMapper<PaisEty, PaisRequestDto, PaisDto> {
+
+    @Inject
+    private PaisRepository paisRepository;
 
     @Override
-    PaisDto toDto(PaisEty pais);
+    public abstract PaisDto toDto(PaisEty pais);
 
     @Override
-    PaisEty toEntity(PaisRequestDto dto);
+    public abstract PaisEty toEntity(PaisRequestDto dto);
 
-    // Referencia por id (stub con solo el id) para resolver FKs en toEntity() de los
-    // mappers hijos -- una interfaz no puede inyectar el Repository.
-    default PaisEty desdeId(Long id) {
+    public PaisEty desdeId(Long id) {
         if (id == null) {
             return null;
         }
-        PaisEty pais = new PaisEty();
-        pais.setId(id);
-        return pais;
+        return paisRepository.findById(id)
+                .orElseThrow(() -> new ReferenciaInvalidaException("No existe el país " + id));
     }
 }

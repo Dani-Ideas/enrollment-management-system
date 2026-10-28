@@ -5,14 +5,11 @@ import jakarta.validation.constraints.Size;
 
 import java.io.Serializable;
 
-// Forma de ENTRADA -- sin "id" (lo genera la base). inscripcionId viaja explicito (no hay
-// forma de inferirlo solo, a diferencia de un PATCH bajo /inscripciones/{id}/formaciones-
-// complementarias -- se eligio mandar el FK en el body para que el endpoint de creacion sea
-// uno solo, /formaciones-complementarias, sin depender de anidar la ruta bajo
-// /inscripciones/{id}).
+// Forma de ENTRADA, siempre dentro de InscripcionConFormacionComplementariaRequestDto: la
+// inscripcion duena la decide el servidor (la URL del PUT o la recien creada en el POST), por
+// eso no viaja inscripcionId.
 public record FormacionComplementariaRequestDto(
-        Long id,// este es para las actualizaciones
-        Long inscripcionId,// este no se exige que este lleno para las nuevas
+        Long id, // null = formacion nueva; con id = actualizar esa formacion
         @NotNull @Size(max = 255) String descripcion
 ) implements Serializable {
 }

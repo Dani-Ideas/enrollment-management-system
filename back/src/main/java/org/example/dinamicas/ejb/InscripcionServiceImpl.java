@@ -62,10 +62,9 @@ public class InscripcionServiceImpl implements InscripcionService {
     // en dos insert explicitos (nada de cascade) -- toEntity()/toDto() en lista los genera
     // solo MapStruct (RequestResponseMapper.toEntity(List)/toDto(List)), ningun loop a mano.
     //
-    // Las formaciones nuevas llegan con inscripcionId null (toEntity() las deja con
-    // "inscripcion" null, via FormacionComplementariaMapper.desdeId(null)) -- JPA no
-    // sincroniza sola las dos puntas de la relacion, asi que hay que pisar esa FK con la
-    // InscripcionEty YA creada (con id real) antes del insertAll().
+    // toEntity() deja "inscripcion" en null en cada formacion -- JPA no sincroniza sola las
+    // dos puntas de la relacion, asi que hay que asignarle la InscripcionEty YA creada (con
+    // id real) antes del insertAll().
     @Override
     public InscripcionConFormacionComplementariaDto crear(InscripcionConFormacionComplementariaRequestDto dto) {
         InscripcionEty inscripcionCreada = inscripcionRepository.insert(inscripcionMapper.toEntity(dto.inscripcion()));

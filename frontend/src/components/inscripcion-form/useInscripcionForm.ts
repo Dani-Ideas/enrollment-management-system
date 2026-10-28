@@ -238,7 +238,6 @@ export function useInscripcionForm() {
       inscripcion: camposADto(campos),
       formacionesComplementarias: formacionesNuevas.map((el) => ({
         id: null,
-        inscripcionId: null,
         descripcion: el.descripcion,
       })),
     })
@@ -341,7 +340,6 @@ export function useInscripcionForm() {
     mutationFn: (dto: InscripcionRequestDTO) => {
       const formacionesComplementarias: FormacionComplementariaRequestDTO[] = formacionesEditables.map((el) => ({
         id: el.id,
-        inscripcionId: solicitudIdActual,
         descripcion: el.descripcion,
       }))
       return actualizarInscripcion(solicitudIdActual!, { inscripcion: dto, formacionesComplementarias })

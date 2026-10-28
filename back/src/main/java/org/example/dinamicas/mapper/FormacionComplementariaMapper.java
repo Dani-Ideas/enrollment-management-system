@@ -2,7 +2,6 @@ package org.example.dinamicas.mapper;
 
 import org.example.dinamicas.dto.FormacionComplementariaDto;
 import org.example.dinamicas.dto.FormacionComplementariaRequestDto;
-import org.example.dinamicas.model.InscripcionEty;
 import org.example.dinamicas.model.FormacionComplementariaEty;
 import org.example.comun.RequestResponseMapper;
 import org.mapstruct.Mapping;
@@ -20,23 +19,10 @@ public interface FormacionComplementariaMapper
     @Mapping(target = "inscripcionId", source = "inscripcion.id")
     FormacionComplementariaDto toDto(FormacionComplementariaEty entidad);
 
-    // toEntity(): id lo genera la base; "inscripcion" queda como stub (solo id, via desdeId())
-    // y InscripcionServiceImpl lo reemplaza SIEMPRE por la InscripcionEty real antes del
-    // insertAll() -- persistir un stub desprendido no es seguro con EclipseLink.
+    // toEntity(): id lo genera la base; "inscripcion" la asigna InscripcionServiceImpl con la
+    // InscripcionEty real (la de la URL del PUT o la recien creada en el POST).
     @Override
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "inscripcion", source = "inscripcionId")
+    @Mapping(target = "inscripcion", ignore = true)
     FormacionComplementariaEty toEntity(FormacionComplementariaRequestDto dto);
-
-    // Mapeo de REFERENCIA: Long -> InscripcionEty "stub" (solo id) -- MapStruct lo encuentra solo
-    // por tipo de retorno para el @Mapping de "inscripcion" de arriba (unica firma
-    // Long -> InscripcionEty en este Mapper, no hace falta @Named/qualifiedByName).
-    default InscripcionEty desdeId(Long id) {
-        if (id == null) {
-            return null;
-        }
-        InscripcionEty stub = new InscripcionEty();
-        stub.setId(id);
-        return stub;
-    }
 }

@@ -78,12 +78,10 @@ export interface FormacionComplementariaDTO {
 }
 
 // Forma de ENTRADA -- espejo de FormacionComplementariaRequestDto.java. "id" identifica
-// cual fila editar dentro de la lista compuesta (null = es nueva, se crea); "inscripcionId"
-// no se manda para las nuevas (el backend todavia no le asigno id a la Inscripcion en ese
-// momento, se resuelve solo).
+// cual fila editar dentro de la lista compuesta (null = es nueva, se crea). La inscripcion
+// duena la decide el backend (URL del PUT o la recien creada en el POST).
 export interface FormacionComplementariaRequestDTO {
   id: number | null;
-  inscripcionId: number | null;
   descripcion: string;
 }
 
