@@ -25,13 +25,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-// Reemplaza a MiniFormEstService/MiniFormSisService/MiniFormRespService/MiniFormAmbService
-// (y sus *ServiceImpl, borrados) -- mismo patron que HelloJakarta-variante (bitacora #29).
-// Carga los 4 Repository de catalogo y los convierte a DTO aca -- son datos estaticos, se
-// precargan una sola vez al desplegar y se sirven del mapa, sin ir a la BD en cada
-// listar(). Sin seeder propio -- las filas de MINIFORMEST/SIS/RESP/AMB tienen que existir
-// ya en la base (a mano o por fuera de este WAR) antes del primer deploy, si no estos 4
-// mapas arrancan vacios.
+// Cache de lectura de los 4 catalogos (patron de HelloJakarta-variante): se cargan una sola
+// vez al desplegar y se sirven del mapa, sin ir a la BD en cada listar(). No hay seeder:
+// las filas de MINIFORMEST/SIS/RESP/AMB tienen que existir en la base antes del deploy, si
+// no estos 4 mapas arrancan vacios.
 @Singleton
 @Startup
 public class ServiceArtifaxImpl implements ServiceArtifax {

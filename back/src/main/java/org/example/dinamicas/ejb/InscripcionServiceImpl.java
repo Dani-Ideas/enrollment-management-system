@@ -40,7 +40,7 @@ public class InscripcionServiceImpl implements InscripcionService {
     public List<InscripcionDto> listar() {
         return inscripcionRepository.findAll()
                 .map(inscripcionMapper::toDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -97,10 +97,9 @@ public class InscripcionServiceImpl implements InscripcionService {
         return inscripcionMapper.toDtoConFormaciones(actualizado);
     }
 
-
-    // 3 llamadas al Repository (deleteAll/updateAll/insertAll), no una por fila -- crear()
-    // usa formacionComplementariaMapper.toEntity(List) para convertir las nuevas de un
-    // saque (RequestResponseMapper.toEntity(List), MapStruct), igual que crear().
+    // 3 llamadas al Repository (deleteAll/updateAll/insertAll), no una por fila. Las nuevas
+    // se convierten de un saque con formacionComplementariaMapper.toEntity(List), igual que
+    // en crear().
     private void sincronizarFormacionesComplementarias(
             InscripcionEty inscripcion,
             List<FormacionComplementariaRequestDto> entrantes
@@ -115,7 +114,7 @@ public class InscripcionServiceImpl implements InscripcionService {
         // Eliminar: lo que ya no vino en la lista.
         List<FormacionComplementariaEty> aEliminar = existentes.stream()
                 .filter(existente -> !idsEntrantes.contains(existente.getId()))
-                .collect(Collectors.toList());
+                .toList();
         if (!aEliminar.isEmpty()) {
             formacionComplementariaRepository.deleteAll(aEliminar);
             existentes.removeAll(aEliminar);
@@ -141,7 +140,7 @@ public class InscripcionServiceImpl implements InscripcionService {
         // Crear: lo nuevo (entrada sin id), convertido entero de un saque.
         List<FormacionComplementariaRequestDto> nuevosDtos = entrantes.stream()
                 .filter(entrante -> entrante.id() == null)
-                .collect(Collectors.toList());
+                .toList();
         if (!nuevosDtos.isEmpty()) {
             List<FormacionComplementariaEty> nuevos = formacionComplementariaMapper.toEntity(nuevosDtos);
             nuevos.forEach(hijo -> hijo.setInscripcion(inscripcion));

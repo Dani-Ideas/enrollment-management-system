@@ -12,8 +12,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
-// Tabla MINIFORMAMB (antes CAT_AMBIENTE/Ambiente) -- ambiente de despliegue de una
-// inscripcion (ej. "Produccion", "QA"), dominio "solicitud/inscripcion".
+// Ambiente de despliegue de una inscripcion (ej. "Produccion", "QA").
 @Getter
 @Setter
 @Entity

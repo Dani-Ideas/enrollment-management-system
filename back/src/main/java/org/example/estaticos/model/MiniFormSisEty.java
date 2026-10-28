@@ -12,9 +12,8 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
-// Tabla MINIFORMSIS (antes CAT_SISTEMA/Sistema) -- "sistema" aqui es un sistema de TI sobre
-// el que se pide una inscripcion (dominio "solicitud/inscripcion"), sin relacion con el
-// nombre del proyecto SistemaMatriculas ni con ninguna entidad academica.
+// "Sistema" es un sistema de TI sobre el que se pide una inscripcion, no tiene relacion con
+// el nombre del proyecto SistemaMatriculas.
 @Getter
 @Setter
 @Entity

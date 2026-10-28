@@ -3,7 +3,7 @@ package org.example.comun;
 import java.util.List;
 
 // Contrato generico para mappers ASIMETRICOS -- el DTO de entrada (REQ) y el de salida
-// (RES) son clases distintas. Implementadores: InscripcionMapper, FormacionComplementariaMapper.
+// (RES) son clases distintas.
 //
 // Las dos firmas en lista NO llevan logica propia -- MapStruct genera solas el loop sobre
 // toDto(E)/toEntity(REQ) (los de un solo elemento, ya implementados en cada Mapper) para

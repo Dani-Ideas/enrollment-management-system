@@ -2,7 +2,6 @@ package org.example.estaticos.rest;
 
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
@@ -12,14 +11,10 @@ import org.example.estaticos.lib.ServiceArtifax;
 
 import static org.example.general.ApplicationConfig.Endpoints.RESPONSABLES;
 
-// Solo lectura -- catalogo del dominio solicitud/inscripcion. El path sigue siendo
-// "/responsables" (Endpoints.RESPONSABLES) -- el rename no cambia el contrato de la API.
-//
-// Migrado al trio generico -- ya NO usa MiniFormRespService (borrado), ahora ServiceArtifax.
+// Solo lectura: se sirve desde el cache en memoria (ServiceArtifax).
 @RequestScoped
 @Path(RESPONSABLES)
 @Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
 public class MiniFormRespController {
 
     @Inject

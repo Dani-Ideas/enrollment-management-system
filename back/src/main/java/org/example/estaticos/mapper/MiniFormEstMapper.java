@@ -10,7 +10,7 @@ import org.mapstruct.MappingConstants;
 
 // CDI permite inyectar en un Mapper igual que en cualquier otro bean -- desdeId() resuelve
 // la FK ACA, contra la base, en vez de devolver un stub que el service tenga que resolver
-// despues. InscripcionMapper.toEntity()/actualizarDesde()/toEntityConFormaciones() ya
+// despues. InscripcionMapper.toEntity()/actualizarDesde() ya
 // quedan con la entidad real lista para persistir.
 @Mapper(componentModel = MappingConstants.ComponentModel.CDI)
 public abstract class MiniFormEstMapper {

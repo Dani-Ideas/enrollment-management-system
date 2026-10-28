@@ -13,9 +13,8 @@ import java.util.List;
 // padre.
 public interface InscripcionService {
 
-    // Cada parametro null significa "no filtrar por ese campo" (listar(null, null, null)
-    // devuelve todo). Filtra siempre contra InscripcionRepository -- InscripcionEty NO se
-    // cachea en ServiceArtifax (esa cache es solo para los 4 catalogos estaticos).
+    // Siempre contra InscripcionRepository: InscripcionEty NO se cachea en ServiceArtifax
+    // (esa cache es solo para los 4 catalogos).
     List<InscripcionDto> listar();
 
     // Lanza RecursoNoEncontradoException (404) si el id no existe.

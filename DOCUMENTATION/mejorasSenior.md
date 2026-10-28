@@ -1,0 +1,242 @@
+# Mejoras "nivel senior" del backend
+
+Plan para llevar `back/` a un nivel senior. Cada etapa es **un commit**: se implementa, se
+compila y se prueba (`mvn clean install` + deploy), y solo entonces se pasa a la siguiente.
+Van en este orden porque varias etapas tocan los mismos archivos; hacerlas todas juntas
+impediria separarlas en commits limpios.
+
+Antes de la etapa 1 ya quedaron hechos (commit "Hot fix: id existente..."):
+
+- 404 con `RecursoNoEncontradoException` en lugar de devolver `null`.
+- PUT de inscripcion: `formacionesComplementarias: null` = no tocar; el front carga las
+  existentes con `GET /inscripciones/{id}/formaciones-complementarias`.
+- 422 con `ReferenciaInvalidaException` para ids inexistentes en el body (antes 409).
+
+| Etapa | Tema | Estado |
+|---|---|---|
+| 1 | Limpieza: comentarios que mienten y codigo muerto | Hecha, falta commit |
+| 2 | Paquetes y nombres | Pendiente |
+| 3 | Resolucion de FKs consistente en los mappers | Pendiente |
+| 4 | Errores y API REST (Problem Details, 201, logging) | Pendiente |
+| 5 | Pruebas unitarias | Pendiente |
+| 6 | Decisiones de arquitectura (solo documentadas) | Para decidir |
+
+---
+
+## Etapa 1 — Limpieza: comentarios que mienten y codigo muerto
+
+**Por que:** un comentario desactualizado es peor que no tener comentario: el siguiente
+desarrollador le cree. Un comentario explica **por que** existe el codigo; la historia
+("antes se llamaba...", "se borro...") vive en git y en `DOCUMENTATION/`.
+
+**Cambios:**
+
+- `InscripcionMapper`: se borran `toEntityConFormaciones()` y `mapFormaciones()` (nadie los
+  llamaba) y el comentario "dice que no puede encotrar el atributo".
+- `InscripcionEty.formacionesComplementarias`: se quita `cascade = PERSIST`. El service
+  inserta los hijos a mano con `insertAll()`, la cascada no se usaba y su comentario hablaba
+  de metodos que ya no existen.
+- Comentarios corregidos o reducidos a lo que sigue siendo cierto: `InscripcionEty`,
+  `FormacionComplementariaEty`, `FormacionComplementariaMapper`, `RequestResponseMapper`
+  (lista de implementadores vieja), `InscripcionService` (hablaba de filtros que `listar()`
+  no tiene), `ReglaDeNegocioException` y su mapper (profesores/cupos de otro dominio),
+  `ApplicationConfig` (dominio academico ya eliminado), `ServiceArtifaxImpl`, entidades y
+  controllers `MiniForm*` (historia de renombres).
+- Controllers de catalogo solo-GET: se quita `@Consumes`, que no aplica a un GET sin body.
+- `InscripcionServiceImpl`: `.collect(Collectors.toList())` → `.toList()` (Java 16+).
+- `persistence.xml`: esquema y `version` 3.0 → 3.2 (lo que GlassFish 8 / Jakarta EE 11
+  implementa) y comentario sin la referencia a un "resumen final" inexistente.
+
+**Commit:**
+
+```bash
+git add -- back/src/main/java back/src/main/resources
+git commit -m "Limpieza: comentarios desactualizados y codigo muerto en el back
+
+- Borra InscripcionMapper.toEntityConFormaciones()/mapFormaciones(), sin uso.
+- Quita cascade=PERSIST de InscripcionEty: los hijos se insertan con insertAll().
+- Corrige comentarios que describian metodos, endpoints o dominios que ya no existen.
+- Quita @Consumes de los controllers solo-GET y usa Stream.toList().
+- persistence.xml a la version 3.2 del esquema."
+```
+
+**Verificar:** `mvn clean install`, deploy, crear y actualizar una inscripcion con
+formaciones (el comportamiento no debe cambiar).
+
+---
+
+## Etapa 2 — Paquetes y nombres
+
+**Por que:** un nombre debe decir que hace la clase sin abrirla. Hoy `lib/` mezcla
+repositorios con interfaces de service, el paquete de entidades se llama `model` en
+`estaticos` y `dinamica` en `dinamicas`, y `ServiceArtifax` no dice nada.
+
+**Cambios:**
+
+| Antes | Despues |
+|---|---|
+| `estaticos/lib/*Repository` | `estaticos/repository/` |
+| `estaticos/lib/*Service`, `ServiceArtifax` | `estaticos/service/` |
+| `ServiceArtifax` / `ServiceArtifaxImpl` | `CatalogoInscripcionCache` / `CatalogoInscripcionCacheImpl` |
+| `dinamicas/dinamica/` | `dinamicas/model/` |
+| `dinamicas/lib/*Repository` | `dinamicas/repository/` |
+| `dinamicas/lib/*Service` | `dinamicas/service/` |
+
+- `back/pom.xml`: actualizar `packagingExcludes` del WAR con los paquetes nuevos (los
+  `includes` del jar `ejb` ya usan `estaticos/**` y `dinamicas/**`, no cambian).
+- El contrato de la API no cambia (mismos paths y JSON).
+
+**Commit:** `git add -A -- back` y
+`"Paquetes por rol: repository/service/model y CatalogoInscripcionCache"`.
+
+**Verificar:** el deploy no debe dar `ClassNotFoundException` (si da, falta un paquete en
+`packagingExcludes`) y `GET /api/endpoints` lista lo mismo que antes.
+
+---
+
+## Etapa 3 — Resolucion de FKs consistente en los mappers
+
+**Por que:** hoy hay dos estrategias para convertir un id en entidad. Los mappers `MiniForm*`
+buscan en la BD y lanzan `ReferenciaInvalidaException` si no existe; los geograficos y
+`PersonaMapper` devuelven un "stub" con solo el id, que EclipseLink no garantiza persistir
+bien. Una sola estrategia = un solo comportamiento ante un id invalido (422).
+
+**Cambios:**
+
+- `PaisMapper`, `EstadoMapper`, `MunicipioMapper`, `ColoniaMapper`, `TipoDireccionMapper` y
+  `PersonaMapper` pasan de `interface` a `abstract class implements RequestResponseMapper`,
+  con su repositorio inyectado y `desdeId()` igual al de `MiniFormEstMapper`.
+- `FormacionComplementariaRequestDto`: se quita `inscripcionId`. El servidor siempre lo
+  pisaba con la inscripcion real, asi que en el contrato solo confundia. El mapper ignora
+  `inscripcion` y el service la asigna (como ya hacia).
+- Front: `FormacionComplementariaRequestDTO` en `api/types.ts` y `useInscripcionForm.ts`
+  dejan de mandar `inscripcionId`.
+
+**Commit:** `git add -A -- back/src/main/java frontend/src` y
+`"Mappers: desdeId() valida contra la BD en todos; sin inscripcionId en el request"`.
+
+**Verificar:** POST de inscripcion con un `estado` inexistente → 422; crear y actualizar
+formaciones sigue funcionando.
+
+---
+
+## Etapa 4 — Errores y API REST
+
+**Por que:** un cliente debe poder tratar todos los errores igual. Hoy hay dos formatos
+(`{"error": ...}` y el mapa de campos), una excepcion no controlada sale como el HTML de
+GlassFish, y no hay ni un log.
+
+**Cambios:**
+
+- **Problem Details (RFC 9457):** un record `general/ProblemDetails`
+  (`title`, `status`, `detail`, `instance`, `errores`) con `Content-Type:
+  application/problem+json` en todos los `ExceptionMapper`.
+- **`ExcepcionNoControladaMapper` (`ExceptionMapper<Throwable>`):** registra el error con
+  `System.Logger` y responde un 500 limpio sin stack trace. Las `WebApplicationException`
+  (404 de ruta, 405...) pasan con su respuesta original.
+- **`@NotNull` en `@QueryParam`** (`paisId`, `estadoId`, `municipioId`, `personaId`): se
+  borran los `if (x == null) return 400` de los controllers; el `ValidationExceptionMapper`
+  responde el 400 y usa solo el nombre del parametro en `errores`.
+- **POST `/inscripciones` → 201 Created** con header `Location: /api/inscripciones/{id}`.
+- **Logging:** `CatalogoInscripcionCacheImpl` registra cuantas filas cargo de cada catalogo
+  (un catalogo vacio al arrancar deja de ser silencioso).
+- Front: `mensajeDeError()` en `api/client.ts` lee `detail` (y `errores`) del Problem Details.
+
+**Commit:** `git add -A -- back/src/main/java frontend/src` y
+`"Errores con Problem Details (RFC 9457), 500 controlado con log, 201 en POST"`.
+
+**Verificar:**
+
+```bash
+curl -i http://localhost:8080/SistemaMatriculas/api/inscripciones/9999                          # 404 problem+json
+curl -i http://localhost:8080/SistemaMatriculas/api/catalogos-geograficos/estados               # 400 con errores.paisId
+curl -i http://localhost:8080/SistemaMatriculas/api/no-existe                                   # 404, no 500
+```
+
+y en el front, que un error de guardado siga mostrando un toast legible.
+
+---
+
+## Etapa 5 — Pruebas unitarias
+
+**Por que:** es lo que mas falta. Sin pruebas, cada refactor se valida a mano desplegando.
+`sincronizarFormacionesComplementarias()` es el candidato perfecto: tiene tres caminos
+(borrar, actualizar, crear) y ya tuvo un bug que borraba datos.
+
+**Cambios:**
+
+- `back/pom.xml`: `junit-jupiter`, `mockito-junit-jupiter` (scope `test`) y
+  `maven-surefire-plugin` con version fija.
+- `back/src/test/java/.../InscripcionServiceImplTest`: con repositorios y mappers simulados
+  (Mockito), cubre: id inexistente → 404, PUT con lista `null` no toca formaciones, PUT con
+  lista vacia las borra todas, una con id se actualiza, una sin id se crea, id de formacion
+  ajeno → 422.
+- Las pruebas corren solas en `mvn clean install`; si una falla, el build falla.
+
+**Commit:** `git add -A -- back/pom.xml back/src/test` y
+`"Pruebas unitarias de InscripcionServiceImpl (JUnit 5 + Mockito)"`.
+
+**Verificar:** `mvn clean install` muestra `Tests run: N, Failures: 0`.
+
+---
+
+## Etapa 6 — Decisiones de arquitectura (no se implementan sin acordarlas)
+
+Cada una cambia el contrato con el front, la base o la estructura del equipo, asi que se
+discuten antes. Quedan aqui con su justificacion.
+
+1. **Medir el N+1 antes de optimizarlo.** `GET /inscripciones` recorre 6 `@ManyToOne` LAZY
+   por fila, y cada direccion recorre colonia → municipio → estado → pais. Con
+   `eclipselink.logging.level=FINE` (ya activo) se cuentan los SELECT de un GET. Si son
+   muchos: `@Query` con `JOIN FETCH` (verificar que el Jakarta Data de GlassFish lo acepte)
+   o tomar los textos de los catalogos del cache en memoria.
+2. **Paginacion.** `findAll()` sin limite. Jakarta Data trae `PageRequest`/`Page`, pero el
+   front hoy filtra del lado del cliente sobre la lista completa: cambiarlo es un cambio de
+   contrato.
+3. **Migraciones de esquema (Flyway).** `create-or-extend-tables` sirve en desarrollo; en
+   un trabajo serio el esquema va versionado. Requiere sacar un baseline de la base actual.
+4. **Package-by-feature (monolito modular).** Agrupar por funcionalidad
+   (`catalogo/inscripcion`, `catalogo/geografico`, `persona`, `inscripcion`) en vez de por
+   volatilidad (`estaticos`/`dinamicas`). Mantiene la regla de dependencias acicilicas.
+   No se recomienda Hexagonal/Clean: para un CRUD de este tamano agrega capas sin aportar.
+5. **Ids con sufijo en los request DTO** (`estado` → `estadoId`). Hoy `estado` es un id en
+   `InscripcionRequestDto` y un texto en `InscripcionDto`. El front quito el sufijo a
+   proposito en su momento, asi que se decide en conjunto.
+6. **EJB `@Stateless` vs CDI + `@Transactional`.** Lo moderno es CDI; el jar `ejb` puede
+   contener beans CDI igual. No cambia nada visible, es una decision de estandar del equipo.
+
+---
+
+## Patrones que hay que saber nombrar y defender
+
+| Patron | Donde esta |
+|---|---|
+| Repository | `*Repository` (Jakarta Data) |
+| Service Layer | `*ServiceImpl` |
+| DTO | records `*Dto` / `*RequestDto` |
+| Data Mapper / Assembler | MapStruct + `RequestResponseMapper` |
+| Dependency Injection / IoC | CDI `@Inject` |
+| Cache read-through | `ServiceArtifaxImpl` (→ `CatalogoInscripcionCacheImpl`) |
+| Exception Translation | `ExceptionMapper` |
+| Unit of Work | `EntityManager` + JTA |
+| Registry | `ApplicationConfig.REGISTRO_ACTIVO` |
+
+Ademas: SOLID (sobre todo responsabilidad unica e inversion de dependencias) y dependencias
+aciclicas entre paquetes (`dinamicas` → `estaticos` → `comun`, nunca al reves).
+
+## Documentacion
+
+- Patrones (Repository, Service Layer, DTO, Data Mapper, Unit of Work): https://martinfowler.com/eaaCatalog/
+- Capas: https://martinfowler.com/bliki/PresentationDomainDataLayering.html
+- Codigos HTTP (201, 400, 404, 409, 422): https://www.rfc-editor.org/rfc/rfc9110#section-15
+- Problem Details: https://www.rfc-editor.org/rfc/rfc9457
+- Jakarta REST 4.0 (Providers, Exceptions): https://jakarta.ee/specifications/restful-ws/4.0/jakarta-restful-ws-spec-4.0.html
+- Jakarta Validation 3.1 (method constraints): https://jakarta.ee/specifications/bean-validation/3.1/jakarta-validation-spec-3.1.html
+- Jakarta Data 1.0 (paginacion, `@Query`): https://jakarta.ee/specifications/data/1.0/jakarta-data-1.0.html
+- Jakarta Persistence 3.2 (`JOIN FETCH`, entity graphs): https://jakarta.ee/specifications/persistence/3.2/jakarta-persistence-spec-3.2.html
+- Jakarta Transactions 2.0 (`@Transactional`): https://jakarta.ee/specifications/transactions/2.0/jakarta-transactions-spec-2.0.html
+- MapStruct (mappers abstractos, "Invoking other mappers"): https://mapstruct.org/documentation/stable/reference/html/
+- N+1 (articulo): https://vladmihalcea.com/n-plus-1-query-problem/
+- Flyway: https://documentation.red-gate.com/flyway
+- JUnit 5: https://junit.org/junit5/docs/current/user-guide/ · Mockito: https://site.mockito.org/
+- `System.Logger`: https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/System.Logger.html

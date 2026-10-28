@@ -1,7 +1,6 @@
 package org.example.dinamicas.dinamica;
 
 import jakarta.persistence.Column;
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -26,14 +25,11 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-// Tabla INSCRIPCION -- la entidad principal del dominio "solicitud/inscripcion". Distinta
-// de "Solicitud" a proposito: la tabla SOL_SOLICITUD ya existia de antes (sin tocar) y es
-// un concepto DISTINTO -- usar el mismo nombre en Java hubiera sido confuso.
+// Entidad principal del dominio "solicitud/inscripcion". No se llama "Solicitud" porque la
+// tabla SOL_SOLICITUD ya existe y es otro concepto.
 //
-// Las 6 relaciones son casi toda la tabla (MiniFormEstEty, MiniFormSisEty, 3x MiniFormRespEty con
-// roles distintos, MiniFormAmbEty) -- son FK hacia catalogos clave-valor chicos, no relaciones
-// de negocio complejas. Los nombres de campo Java (estado/sistema/jefeCarrera/...)
-// NO cambiaron -- solo el TIPO de cada uno -- para no tocar ningun DTO ni el JSON de la API.
+// Las 6 relaciones son FK a catalogos clave-valor chicos (MiniFormRespEty se usa 3 veces,
+// con roles distintos).
 @Getter
 @Setter
 @Entity
@@ -96,14 +92,9 @@ public class InscripcionEty {
     @Column(name = "FECHA_IMPLANTACION_REAL")
     private LocalDateTime fechaInscripcionReal;
 
-    // Lado inverso de FormacionComplementariaEty.inscripcion (1:N real, no una tabla aparte
-    // mantenida a mano) -- cascade=PERSIST alcanza para lo que se necesita: al persistir una
-    // InscripcionEty nueva con esta lista ya poblada (ver InscripcionMapper.
-    // toEntityConFormaciones()), EclipseLink inserta los hijos solo, en la misma operacion.
-    // Sin MERGE/REMOVE/orphanRemoval a proposito -- actualizar/eliminar una formación
-    // complementaria individual sigue siendo su propio POST/PUT/DELETE
-    // (InscripcionService.actualizarFormacionComplementaria()/eliminarFormacionComplementaria()),
-    // esta coleccion no se usa para eso.
-    @OneToMany(mappedBy = "inscripcion", cascade = CascadeType.PERSIST, fetch = FetchType.LAZY)
+    // Lado inverso de FormacionComplementariaEty.inscripcion. Sin cascade a proposito: los
+    // hijos se insertan/actualizan/borran explicitamente con FormacionComplementariaRepository
+    // (ver InscripcionServiceImpl), esta coleccion solo se lee.
+    @OneToMany(mappedBy = "inscripcion", fetch = FetchType.LAZY)
     private List<FormacionComplementariaEty> formacionesComplementarias = new ArrayList<>();
 }

@@ -15,9 +15,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
-// Tabla FORMACION_COMPLEMENTARIA -- 1:N con InscripcionEty por FK (ID_INSCRIPCION). Sin
-// datos sembrados por ningun @Startup -- las unicas filas que existen las crea el propio
-// endpoint en tiempo de ejecucion, asi que renombrar columnas aca nunca deja nada huerfano.
+// 1:N con InscripcionEty por FK (ID_INSCRIPCION).
 @Getter
 @Setter
 @Entity
