@@ -18,8 +18,10 @@ Antes de la etapa 1 ya quedaron hechos (commit "Hot fix: id existente..."):
 | 2 | Paquetes y nombres | Hecha |
 | 3 | Resolucion de FKs consistente en los mappers | Hecha |
 | 4 | Errores y API REST (Problem Details, 201, logging) | Hecha |
-| 5 | Pruebas unitarias | Hecha, falta commit |
-| 6 | Decisiones de arquitectura (solo documentadas) | Para decidir |
+| 5 | Pruebas unitarias | Hecha |
+| 6a | N+1: JOIN FETCH en listados | Hecha, falta commit |
+| 6b | Sufijo `Id` en los request DTO | Pendiente |
+| 6 | Resto de decisiones de arquitectura | Documentadas |
 
 ---
 
@@ -185,7 +187,7 @@ y en el front, que un error de guardado siga mostrando un toast legible.
 Cada una cambia el contrato con el front, la base o la estructura del equipo, asi que se
 discuten antes. Quedan aqui con su justificacion.
 
-1. **Medir el N+1 antes de optimizarlo.** `GET /inscripciones` recorre 6 `@ManyToOne` LAZY
+1. **N+1 (hecho en 6a: `JOIN FETCH` en `InscripcionRepository.listarConCatalogos()` y `DireccionRepository.porPersona()`).** `GET /inscripciones` recorre 6 `@ManyToOne` LAZY
    por fila, y cada direccion recorre colonia → municipio → estado → pais. Con
    `eclipselink.logging.level=FINE` (ya activo) se cuentan los SELECT de un GET. Si son
    muchos: `@Query` con `JOIN FETCH` (verificar que el Jakarta Data de GlassFish lo acepte)
@@ -193,8 +195,8 @@ discuten antes. Quedan aqui con su justificacion.
 2. **Paginacion.** `findAll()` sin limite. Jakarta Data trae `PageRequest`/`Page`, pero el
    front hoy filtra del lado del cliente sobre la lista completa: cambiarlo es un cambio de
    contrato.
-3. **Migraciones de esquema (Flyway).** `create-or-extend-tables` sirve en desarrollo; en
-   un trabajo serio el esquema va versionado. Requiere sacar un baseline de la base actual.
+3. **Migraciones de esquema: descartado.** En este equipo el esquema lo administra
+   GlassFish/EclipseLink (`create-or-extend-tables`), no se usa Flyway.
 4. **Package-by-feature (monolito modular).** Agrupar por funcionalidad
    (`catalogo/inscripcion`, `catalogo/geografico`, `persona`, `inscripcion`) en vez de por
    volatilidad (`estaticos`/`dinamicas`). Mantiene la regla de dependencias acicilicas.
@@ -237,6 +239,5 @@ aciclicas entre paquetes (`dinamicas` → `estaticos` → `comun`, nunca al reve
 - Jakarta Transactions 2.0 (`@Transactional`): https://jakarta.ee/specifications/transactions/2.0/jakarta-transactions-spec-2.0.html
 - MapStruct (mappers abstractos, "Invoking other mappers"): https://mapstruct.org/documentation/stable/reference/html/
 - N+1 (articulo): https://vladmihalcea.com/n-plus-1-query-problem/
-- Flyway: https://documentation.red-gate.com/flyway
 - JUnit 5: https://junit.org/junit5/docs/current/user-guide/ · Mockito: https://site.mockito.org/
 - `System.Logger`: https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/System.Logger.html

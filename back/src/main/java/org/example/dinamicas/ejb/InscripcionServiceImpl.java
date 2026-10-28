@@ -38,9 +38,7 @@ public class InscripcionServiceImpl implements InscripcionService {
 
     @Override
     public List<InscripcionDto> listar() {
-        return inscripcionRepository.findAll()
-                .map(inscripcionMapper::toDto)
-                .toList();
+        return inscripcionMapper.toDto(inscripcionRepository.listarConCatalogos());
     }
 
     @Override
