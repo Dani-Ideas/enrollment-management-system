@@ -19,7 +19,7 @@ Antes de la etapa 1 ya quedaron hechos (commit "Hot fix: id existente..."):
 | 3 | Resolucion de FKs consistente en los mappers | Hecha |
 | 4 | Errores y API REST (Problem Details, 201, logging) | Hecha |
 | 5 | Pruebas unitarias | Hecha |
-| 6a | N+1: JOIN FETCH en listados | Hecha, falta commit |
+| 6a | N+1: JOIN FETCH en listados | Hecha |
 | 6b | Sufijo `Id` en los request DTO | Pendiente |
 | 6 | Resto de decisiones de arquitectura | Documentadas |
 
@@ -65,6 +65,16 @@ git commit -m "Limpieza: comentarios desactualizados y codigo muerto en el back
 **Verificar:** `mvn clean install`, deploy, crear y actualizar una inscripcion con
 formaciones (el comportamiento no debe cambiar).
 
+**Para entender en que se basa:**
+
+- Jeff Atwood, *Code Tells You How, Comments Tell You Why*: por que un comentario debe
+  explicar la intencion y no repetir el codigo. https://blog.codinghorror.com/code-tells-you-how-comments-tell-you-why/
+- Stack Overflow Blog, *Best practices for writing code comments*: 9 reglas concretas (no
+  duplicar el codigo, no dejar comentarios desactualizados, etc.). https://stackoverflow.blog/2021/12/23/best-practices-for-writing-code-comments/
+- Refactoring Guru, *Comments* (code smell): cuando un comentario es sintoma de un problema. https://refactoring.guru/smells/comments
+- Refactoring Guru, *Dead Code*: por que el codigo sin uso se borra en vez de dejarlo "por si acaso". https://refactoring.guru/smells/dead-code
+- Martin Fowler, *CodeSmell*: que es un "olor" de codigo y por que no siempre es un bug. https://martinfowler.com/bliki/CodeSmell.html
+
 ---
 
 ## Etapa 2 — Paquetes y nombres
@@ -94,6 +104,13 @@ repositorios con interfaces de service, el paquete de entidades se llama `model`
 **Verificar:** el deploy no debe dar `ClassNotFoundException` (si da, falta un paquete en
 `packagingExcludes`) y `GET /api/endpoints` lista lo mismo que antes.
 
+**Para entender en que se basa:**
+
+- Martin Fowler, *TwoHardThings*: por que nombrar bien es uno de los problemas dificiles. https://martinfowler.com/bliki/TwoHardThings.html
+- Oracle, *Java Naming Conventions*: convenciones oficiales de paquetes y clases. https://www.oracle.com/java/technologies/javase/codeconventions-namingconventions.html
+- Martin Fowler, *Repository* (PoEAA): el rol que justifica un paquete `repository/` propio. https://martinfowler.com/eaaCatalog/repository.html
+- Martin Fowler, *Service Layer* (PoEAA): el rol que justifica un paquete `service/` aparte. https://martinfowler.com/eaaCatalog/serviceLayer.html
+
 ---
 
 ## Etapa 3 — Resolucion de FKs consistente en los mappers
@@ -119,6 +136,16 @@ bien. Una sola estrategia = un solo comportamiento ante un id invalido (422).
 
 **Verificar:** POST de inscripcion con un `estado` inexistente → 422; crear y actualizar
 formaciones sigue funcionando.
+
+**Para entender en que se basa:**
+
+- Jim Shore, *Fail Fast* (IEEE Software): validar el id en cuanto entra, no dejar que falle
+  despues en la base con un error confuso. https://martinfowler.com/ieeeSoftware/failFast.pdf
+- Vlad Mihalcea, *find vs getReference*: la diferencia entre cargar la entidad real y usar
+  una referencia "stub" con solo el id. https://vladmihalcea.com/entitymanager-find-getreference-jpa/
+- Baeldung, *Quick Guide to MapStruct*: mappers con `uses`, clases abstractas e inyeccion. https://www.baeldung.com/mapstruct
+- Martin Fowler, *Data Transfer Object* y *LocalDTO*: que debe y que no debe viajar en un
+  DTO (por que se quito `inscripcionId` del request). https://martinfowler.com/eaaCatalog/dataTransferObject.html · https://martinfowler.com/bliki/LocalDTO.html
 
 ---
 
@@ -157,6 +184,19 @@ curl -i http://localhost:8080/SistemaMatriculas/api/no-existe                   
 
 y en el front, que un error de guardado siga mostrando un toast legible.
 
+**Para entender en que se basa:**
+
+- RFC 9457, *Problem Details for HTTP APIs*: el estandar del cuerpo de error (secciones 3 y 3.1). https://www.rfc-editor.org/rfc/rfc9457
+- Zalando, *RESTful API Guidelines*: guia de API de una empresa grande; ver las reglas de
+  Problem JSON, codigos de estado y `Location` en el POST. https://opensource.zalando.com/restful-api-guidelines/
+- MDN, *422 Unprocessable Content*, *409 Conflict* y *201 Created*: cuando usar cada uno. https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/422 · https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/409 · https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/201
+- OWASP, *Error Handling Cheat Sheet*: por que un 500 no debe mostrar el stack trace al cliente. https://cheatsheetseries.owasp.org/cheatsheets/Error_Handling_Cheat_Sheet.html
+- OWASP, *Logging Cheat Sheet*: que registrar, con que nivel y que no registrar nunca. https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html
+- Jersey, *Representations and Responses* (seccion *Exception Mapping*): como Jersey elige
+  el `ExceptionMapper` mas cercano al tipo de la excepcion. https://eclipse-ee4j.github.io/jersey.github.io/documentation/latest/representations.html
+- Hibernate Validator, *Declaring and validating method constraints*: `@NotNull` sobre
+  parametros de metodo (la base del `@NotNull` en `@QueryParam`). https://docs.jboss.org/hibernate/stable/validator/reference/en-US/html_single/
+
 ---
 
 ## Etapa 5 — Pruebas unitarias
@@ -179,6 +219,14 @@ y en el front, que un error de guardado siga mostrando un toast legible.
 `"Pruebas unitarias de InscripcionServiceImpl (JUnit 5 + Mockito)"`.
 
 **Verificar:** `mvn clean install` muestra `Tests run: N, Failures: 0`.
+
+**Para entender en que se basa:**
+
+- Ham Vocke (en el sitio de Fowler), *The Practical Test Pyramid*: que es una prueba
+  unitaria, de integracion y end-to-end, y cuantas de cada una. https://martinfowler.com/articles/practical-test-pyramid.html
+- Martin Fowler, *TestPyramid*: la idea en una pagina. https://martinfowler.com/bliki/TestPyramid.html
+- Martin Fowler, *Mocks Aren't Stubs*: que es un mock, un stub y cuando conviene cada uno. https://martinfowler.com/articles/mocksArentStubs.html
+- Baeldung, *Mockito and JUnit 5 – Using ExtendWith*: el mismo setup de `InscripcionServiceImplTest`. https://www.baeldung.com/mockito-junit-5-extension
 
 ---
 
@@ -207,6 +255,21 @@ discuten antes. Quedan aqui con su justificacion.
 6. **EJB `@Stateless` vs CDI + `@Transactional`.** Lo moderno es CDI; el jar `ejb` puede
    contener beans CDI igual. No cambia nada visible, es una decision de estandar del equipo.
 
+**Para entender en que se basa:**
+
+- N+1 y `JOIN FETCH`:
+  - Vlad Mihalcea, *N+1 query problem*: que es, como detectarlo en el log y como resolverlo. https://vladmihalcea.com/n-plus-1-query-problem/
+  - Thorben Janssen, *JOIN vs LEFT JOIN vs JOIN FETCH*: que hace cada uno en JPQL. https://thorben-janssen.com/hibernate-tips-difference-join-left-join-fetch-join/
+  - Baeldung, *Eager/Lazy Loading*: por que un `@ManyToOne` LAZY dispara consultas al recorrerlo. https://www.baeldung.com/hibernate-lazy-eager-loading
+  - Baeldung, *JPA Entity Graph*: la alternativa estandar a `JOIN FETCH`. https://www.baeldung.com/jpa-entity-graph
+- Paginacion: Zalando, *RESTful API Guidelines*, seccion *Pagination* (offset vs cursor). https://opensource.zalando.com/restful-api-guidelines/
+- Package-by-feature:
+  - Philipp Hauer, *Package by Feature*: comparacion directa contra package-by-layer. https://phauer.com/2020/package-by-feature/
+  - Robert C. Martin, *Screaming Architecture*: la estructura debe "gritar" el dominio, no el framework. https://blog.cleancoder.com/uncle-bob/2011/09/30/Screaming-Architecture.html
+  - Martin Fowler, *MonolithFirst*: por que un monolito bien modularizado es el punto de partida sano. https://martinfowler.com/bliki/MonolithFirst.html
+- Nombres de campos en el JSON: Zalando, *RESTful API Guidelines*, seccion *JSON guidelines*. https://opensource.zalando.com/restful-api-guidelines/
+- EJB vs CDI: Jakarta EE Tutorial, *Introduction to CDI*. https://jakarta.ee/learn/docs/jakartaee-tutorial/current/cdi/cdi-basic/cdi-basic.html
+
 ---
 
 ## Patrones que hay que saber nombrar y defender
@@ -218,7 +281,7 @@ discuten antes. Quedan aqui con su justificacion.
 | DTO | records `*Dto` / `*RequestDto` |
 | Data Mapper / Assembler | MapStruct + `RequestResponseMapper` |
 | Dependency Injection / IoC | CDI `@Inject` |
-| Cache read-through | `ServiceArtifaxImpl` (→ `CatalogoInscripcionCacheImpl`) |
+| Cache read-through | `CatalogoInscripcionCacheImpl` |
 | Exception Translation | `ExceptionMapper` |
 | Unit of Work | `EntityManager` + JTA |
 | Registry | `ApplicationConfig.REGISTRO_ACTIVO` |
