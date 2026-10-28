@@ -43,8 +43,8 @@ public class ApplicationConfig extends ResourceConfig {
         public static final String AMBIENTES = "/ambientes";
         public static final String INSCRIPCIONES = "/inscripciones";
 
-        // "Formaciones complementarias" 1:N ligadas a una Inscripcion por FK -- endpoint
-        // propio, no vienen embebidas en /inscripciones.
+        // "Formaciones complementarias" 1:N ligadas a una Inscripcion por FK -- subrecurso
+        // de solo lectura: GET /inscripciones/{id}/formaciones-complementarias.
         public static final String FORMACIONES_COMPLEMENTARIAS = "/formaciones-complementarias";
 
         // "Tablas genericas" para el formulario de inscripcion -- no es un recurso por
@@ -99,6 +99,8 @@ public class ApplicationConfig extends ResourceConfig {
         // directorio de endpoints. No van en REGISTRO_ACTIVO: son infraestructura, no
         // recursos de dominio que el front mapee 1:1 con un fetchX().
         register(ReglaDeNegocioExceptionMapper.class);
+        register(RecursoNoEncontradoExceptionMapper.class);
+        register(ReferenciaInvalidaExceptionMapper.class);
         register(ValidationExceptionMapper.class);
         register(EndpointsController.class);
     }
