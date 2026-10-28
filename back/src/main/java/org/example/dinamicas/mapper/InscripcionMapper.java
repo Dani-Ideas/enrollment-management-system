@@ -7,7 +7,7 @@ import org.example.estaticos.mapper.MiniFormAmbMapper;
 import org.example.estaticos.mapper.MiniFormEstMapper;
 import org.example.estaticos.mapper.MiniFormRespMapper;
 import org.example.estaticos.mapper.MiniFormSisMapper;
-import org.example.dinamicas.dinamica.InscripcionEty;
+import org.example.dinamicas.model.InscripcionEty;
 import org.example.comun.RequestResponseMapper;
 import org.mapstruct.InheritConfiguration;
 import org.mapstruct.Mapper;

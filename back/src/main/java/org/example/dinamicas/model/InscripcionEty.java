@@ -1,4 +1,4 @@
-package org.example.dinamicas.dinamica;
+package org.example.dinamicas.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

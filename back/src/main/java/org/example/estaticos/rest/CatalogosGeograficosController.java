@@ -8,7 +8,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import org.example.estaticos.lib.CatalogoGeograficoService;
+import org.example.estaticos.service.CatalogoGeograficoService;
 
 import static org.example.general.ApplicationConfig.Endpoints.CATALOGOS_GEOGRAFICOS;
 

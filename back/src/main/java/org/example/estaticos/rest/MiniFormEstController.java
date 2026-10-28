@@ -7,20 +7,20 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import org.example.estaticos.lib.ServiceArtifax;
+import org.example.estaticos.service.CatalogoInscripcionCache;
 
 import static org.example.general.ApplicationConfig.Endpoints.ESTADOS;
 
-// Solo lectura: se sirve desde el cache en memoria (ServiceArtifax).
+// Solo lectura: se sirve desde el cache en memoria (CatalogoInscripcionCache).
 @RequestScoped
 @Path(ESTADOS)
 @Produces(MediaType.APPLICATION_JSON)
 public class MiniFormEstController {
     @Inject
-    private ServiceArtifax serviceArtifax;
+    private CatalogoInscripcionCache catalogoInscripcionCache;
 
     @GET
     public Response listar() {
-        return Response.ok(serviceArtifax.listarEstados()).build();
+        return Response.ok(catalogoInscripcionCache.listarEstados()).build();
     }
 }

@@ -14,8 +14,8 @@ Antes de la etapa 1 ya quedaron hechos (commit "Hot fix: id existente..."):
 
 | Etapa | Tema | Estado |
 |---|---|---|
-| 1 | Limpieza: comentarios que mienten y codigo muerto | Hecha, falta commit |
-| 2 | Paquetes y nombres | Pendiente |
+| 1 | Limpieza: comentarios que mienten y codigo muerto | Hecha (commit b6882f6) |
+| 2 | Paquetes y nombres | Hecha, falta commit |
 | 3 | Resolucion de FKs consistente en los mappers | Pendiente |
 | 4 | Errores y API REST (Problem Details, 201, logging) | Pendiente |
 | 5 | Pruebas unitarias | Pendiente |

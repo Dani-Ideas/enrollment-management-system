@@ -1,4 +1,4 @@
-package org.example.dinamicas.lib;
+package org.example.dinamicas.service;
 
 import org.example.dinamicas.dto.DireccionDto;
 

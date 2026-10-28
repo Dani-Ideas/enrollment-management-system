@@ -1,7 +1,7 @@
 package org.example.dinamicas.mapper;
 
 import org.example.comun.RequestResponseMapper;
-import org.example.dinamicas.dinamica.PersonaEty;
+import org.example.dinamicas.model.PersonaEty;
 import org.example.dinamicas.dto.PersonaDto;
 import org.example.dinamicas.dto.PersonaRequestDto;
 import org.mapstruct.Mapper;

@@ -1,4 +1,4 @@
-package org.example.estaticos.lib;
+package org.example.estaticos.repository;
 
 import jakarta.data.repository.CrudRepository;
 import jakarta.data.repository.Repository;

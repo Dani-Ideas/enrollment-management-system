@@ -2,7 +2,7 @@ package org.example.estaticos.mapper;
 
 import jakarta.inject.Inject;
 import org.example.estaticos.dto.MiniFormEstDto;
-import org.example.estaticos.lib.MiniFormEstRepository;
+import org.example.estaticos.repository.MiniFormEstRepository;
 import org.example.comun.ReferenciaInvalidaException;
 import org.example.estaticos.model.MiniFormEstEty;
 import org.mapstruct.Mapper;

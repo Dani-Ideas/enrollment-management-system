@@ -1,4 +1,4 @@
-package org.example.estaticos.lib;
+package org.example.estaticos.service;
 
 import org.example.estaticos.dto.MiniFormAmbDto;
 import org.example.estaticos.dto.MiniFormEstDto;
@@ -8,7 +8,7 @@ import org.example.estaticos.dto.TablasInscripcionDto;
 
 import java.util.List;
 
-// "Base de datos artifax" (en memoria): cache de LECTURA de los 4 catalogos estaticos
+// Cache en memoria, de LECTURA, de los 4 catalogos estaticos
 // (Estado/Sistema/Responsable/Ambiente) -- son tablas basicas, estaticas el 99% del
 // tiempo, y nunca se escriben desde ningun endpoint de este proyecto.
 //
@@ -18,8 +18,8 @@ import java.util.List;
 // dos leen siempre directo del Repository (InscripcionRepository/
 // FormacionComplementariaRepository, via InscripcionService).
 //
-// Unica implementacion: ServiceArtifaxImpl.
-public interface ServiceArtifax {
+// Unica implementacion: CatalogoInscripcionCacheImpl.
+public interface CatalogoInscripcionCache {
 
     List<MiniFormEstDto> listarEstados();
 

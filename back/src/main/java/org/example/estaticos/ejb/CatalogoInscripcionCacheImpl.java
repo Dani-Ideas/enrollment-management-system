@@ -11,11 +11,11 @@ import org.example.estaticos.dto.MiniFormEstDto;
 import org.example.estaticos.dto.MiniFormRespDto;
 import org.example.estaticos.dto.MiniFormSisDto;
 import org.example.estaticos.dto.TablasInscripcionDto;
-import org.example.estaticos.lib.MiniFormAmbRepository;
-import org.example.estaticos.lib.MiniFormEstRepository;
-import org.example.estaticos.lib.MiniFormRespRepository;
-import org.example.estaticos.lib.MiniFormSisRepository;
-import org.example.estaticos.lib.ServiceArtifax;
+import org.example.estaticos.repository.MiniFormAmbRepository;
+import org.example.estaticos.repository.MiniFormEstRepository;
+import org.example.estaticos.repository.MiniFormRespRepository;
+import org.example.estaticos.repository.MiniFormSisRepository;
+import org.example.estaticos.service.CatalogoInscripcionCache;
 import org.example.estaticos.mapper.MiniFormAmbMapper;
 import org.example.estaticos.mapper.MiniFormEstMapper;
 import org.example.estaticos.mapper.MiniFormRespMapper;
@@ -31,7 +31,7 @@ import java.util.concurrent.ConcurrentHashMap;
 // no estos 4 mapas arrancan vacios.
 @Singleton
 @Startup
-public class ServiceArtifaxImpl implements ServiceArtifax {
+public class CatalogoInscripcionCacheImpl implements CatalogoInscripcionCache {
 
     @Inject
     private MiniFormEstRepository miniFormEstRepository;

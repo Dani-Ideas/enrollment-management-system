@@ -8,7 +8,7 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import org.example.dinamicas.lib.PersonaService;
+import org.example.dinamicas.service.PersonaService;
 
 import static org.example.general.ApplicationConfig.Endpoints.PERSONAS;
 

@@ -2,8 +2,8 @@ package org.example.dinamicas.mapper;
 
 import org.example.dinamicas.dto.FormacionComplementariaDto;
 import org.example.dinamicas.dto.FormacionComplementariaRequestDto;
-import org.example.dinamicas.dinamica.InscripcionEty;
-import org.example.dinamicas.dinamica.FormacionComplementariaEty;
+import org.example.dinamicas.model.InscripcionEty;
+import org.example.dinamicas.model.FormacionComplementariaEty;
 import org.example.comun.RequestResponseMapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;

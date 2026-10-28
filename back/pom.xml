@@ -132,12 +132,14 @@
                     <failOnMissingWebXml>false</failOnMissingWebXml>
                     <packagingExcludes>
                         WEB-INF/classes/org/example/estaticos/model/**,
-                        WEB-INF/classes/org/example/estaticos/lib/**,
+                        WEB-INF/classes/org/example/estaticos/repository/**,
+                        WEB-INF/classes/org/example/estaticos/service/**,
                         WEB-INF/classes/org/example/estaticos/ejb/**,
                         WEB-INF/classes/org/example/estaticos/mapper/**,
                         WEB-INF/classes/org/example/estaticos/dto/**,
-                        WEB-INF/classes/org/example/dinamicas/dinamica/**,
-                        WEB-INF/classes/org/example/dinamicas/lib/**,
+                        WEB-INF/classes/org/example/dinamicas/model/**,
+                        WEB-INF/classes/org/example/dinamicas/repository/**,
+                        WEB-INF/classes/org/example/dinamicas/service/**,
                         WEB-INF/classes/org/example/dinamicas/ejb/**,
                         WEB-INF/classes/org/example/dinamicas/mapper/**,
                         WEB-INF/classes/org/example/dinamicas/dto/**,

@@ -1,4 +1,4 @@
-package org.example.estaticos.lib;
+package org.example.estaticos.service;
 
 import org.example.estaticos.dto.ColoniaDto;
 import org.example.estaticos.dto.EstadoDto;

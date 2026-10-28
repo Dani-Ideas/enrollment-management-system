@@ -1,4 +1,4 @@
-package org.example.dinamicas.dinamica;
+package org.example.dinamicas.model;
 
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;

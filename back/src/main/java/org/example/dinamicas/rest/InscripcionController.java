@@ -13,7 +13,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.example.dinamicas.dto.InscripcionConFormacionComplementariaRequestDto;
-import org.example.dinamicas.lib.InscripcionService;
+import org.example.dinamicas.service.InscripcionService;
 
 import static org.example.general.ApplicationConfig.Endpoints.FORMACIONES_COMPLEMENTARIAS;
 import static org.example.general.ApplicationConfig.Endpoints.INSCRIPCIONES;

@@ -1,10 +1,10 @@
-package org.example.dinamicas.lib;
+package org.example.dinamicas.repository;
 
 import jakarta.data.repository.CrudRepository;
 import jakarta.data.repository.Query;
 import jakarta.data.repository.Repository;
-import org.example.dinamicas.dinamica.DireccionEty;
-import org.example.dinamicas.dinamica.DireccionId;
+import org.example.dinamicas.model.DireccionEty;
+import org.example.dinamicas.model.DireccionId;
 
 import java.util.List;
 

@@ -1,4 +1,4 @@
-package org.example.dinamicas.lib;
+package org.example.dinamicas.service;
 
 import org.example.dinamicas.dto.FormacionComplementariaDto;
 import org.example.dinamicas.dto.InscripcionConFormacionComplementariaDto;
@@ -13,7 +13,7 @@ import java.util.List;
 // padre.
 public interface InscripcionService {
 
-    // Siempre contra InscripcionRepository: InscripcionEty NO se cachea en ServiceArtifax
+    // Siempre contra InscripcionRepository: InscripcionEty NO se cachea en CatalogoInscripcionCache
     // (esa cache es solo para los 4 catalogos).
     List<InscripcionDto> listar();
 
