@@ -5,6 +5,7 @@ import org.example.estaticos.rest.*;
 import org.example.dinamicas.rest.InscripcionController;
 import org.example.dinamicas.rest.DireccionController;
 import org.example.dinamicas.rest.PersonaController;
+import org.example.dinamicas.rest.EntregaController;
 import org.glassfish.jersey.server.ResourceConfig;
 
 import java.util.LinkedHashMap;
@@ -52,6 +53,9 @@ public class ApplicationConfig extends ResourceConfig {
         public static final String PERSONAS = "/personas";
         public static final String DIRECCIONES = "/direcciones";
 
+        // Ejercicio: PK compartida con la PK de Direccion (ver EntregaEty/EntregaId).
+        public static final String ENTREGAS = "/entregas";
+
         // El propio directorio de endpoints activos (ver REGISTRO_ACTIVO/listEndpoints()
         // abajo, y EndpointsController.java).
         public static final String ENDPOINTS = "/endpoints";
@@ -71,6 +75,7 @@ public class ApplicationConfig extends ResourceConfig {
         REGISTRO_ACTIVO.put(Endpoints.CATALOGOS_GEOGRAFICOS, CatalogosGeograficosController.class);
         REGISTRO_ACTIVO.put(Endpoints.PERSONAS, PersonaController.class);
         REGISTRO_ACTIVO.put(Endpoints.DIRECCIONES, DireccionController.class);
+        REGISTRO_ACTIVO.put(Endpoints.ENTREGAS, EntregaController.class);
     }
 
     // Expuesto por EndpointsController (GET /api/endpoints) -- el front lo consume en
