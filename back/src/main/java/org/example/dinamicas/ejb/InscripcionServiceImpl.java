@@ -25,23 +25,10 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-// ANTES de la etapa 6b, buscarPorId() y el "find-or-404" vivian a mano en este mismo
-// archivo (y en PersonaServiceImpl, palabra por palabra):
-//
-// @Override
-// public InscripcionDto buscarPorId(Long id) {
-//     return inscripcionMapper.toDto(obtener(id));
-// }
-//
-// private InscripcionEty obtener(Long id) {
-//     return inscripcionRepository.findById(id)
-//             .orElseThrow(() -> new RecursoNoEncontradoException("No existe la inscripción " + id));
-// }
-//
-// AHORA: buscarPorId()/obtener() vienen de CrudServiceBase -- crear()/actualizar() siguen
-// 100% propios (insertan/sincronizan las formaciones hijas, que la base no conoce).
-// listar() se sobreescribe: listarConCatalogos() hace JOIN FETCH (ver InscripcionRepository),
-// el findAll() generico de la base volveria a traer el N+1 que la etapa 6a elimino.
+// buscarPorId()/obtener() vienen de CrudServiceBase -- crear()/actualizar() siguen 100%
+// propios (insertan/sincronizan las formaciones hijas, que la base no conoce). listar() se
+// sobreescribe: listarConCatalogos() hace JOIN FETCH (ver InscripcionRepository), el
+// findAll() generico de la base volveria a traer el N+1 que la etapa 6a elimino.
 @Stateless
 public class InscripcionServiceImpl extends CrudServiceBase<InscripcionEty, Long, InscripcionRequestDto, InscripcionDto>
         implements InscripcionService {
