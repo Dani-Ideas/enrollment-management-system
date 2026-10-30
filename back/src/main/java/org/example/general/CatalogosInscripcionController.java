@@ -7,7 +7,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import org.example.estaticos.lib.ServiceArtifax;
+import org.example.estaticos.service.CatalogoInscripcionCache;
 
 import static org.example.general.ApplicationConfig.Endpoints.CATALOGOS_INSCRIPCION;
 
@@ -18,7 +18,7 @@ import static org.example.general.ApplicationConfig.Endpoints.CATALOGOS_INSCRIPC
 // formulario especifico (mismo criterio que FormularioPagoController en
 // HelloJakarta-variante).
 //
-// Llama directo a ServiceArtifax -- un service intermedio aca era pura indireccion sin
+// Llama directo a CatalogoInscripcionCache -- un service intermedio aca era pura indireccion sin
 // logica propia (tablasInscripcion() ya vive en el cache de los 4 catalogos, que es
 // justamente lo que este endpoint expone).
 @RequestScoped
@@ -27,10 +27,10 @@ import static org.example.general.ApplicationConfig.Endpoints.CATALOGOS_INSCRIPC
 public class CatalogosInscripcionController {
 
     @Inject
-    private ServiceArtifax serviceArtifax;
+    private CatalogoInscripcionCache catalogoInscripcionCache;
 
     @GET
     public Response tablas() {
-        return Response.ok(serviceArtifax.tablasInscripcion()).build();
+        return Response.ok(catalogoInscripcionCache.tablasInscripcion()).build();
     }
 }

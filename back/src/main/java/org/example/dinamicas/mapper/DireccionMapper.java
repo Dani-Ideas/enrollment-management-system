@@ -1,7 +1,7 @@
 package org.example.dinamicas.mapper;
 
 import org.example.comun.RequestResponseMapper;
-import org.example.dinamicas.dinamica.DireccionEty;
+import org.example.dinamicas.model.DireccionEty;
 import org.example.dinamicas.dto.DireccionDto;
 import org.example.dinamicas.dto.DireccionRequestDto;
 import org.example.estaticos.mapper.ColoniaMapper;

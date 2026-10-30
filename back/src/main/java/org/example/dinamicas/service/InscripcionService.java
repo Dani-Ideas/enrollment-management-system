@@ -1,0 +1,37 @@
+package org.example.dinamicas.service;
+
+import org.example.dinamicas.dto.FormacionComplementariaDto;
+import org.example.dinamicas.dto.InscripcionConFormacionComplementariaDto;
+import org.example.dinamicas.dto.InscripcionConFormacionComplementariaRequestDto;
+import org.example.dinamicas.dto.InscripcionDto;
+
+import java.util.List;
+
+// Inscripcion y sus FormacionComplementaria son una relacion 1:N (ver InscripcionEty.
+// formacionesComplementarias, @OneToMany) -- no hace falta un service separado para el
+// lado "N": las escrituras de FormacionComplementaria viven aca tambien, junto a las de su
+// padre.
+public interface InscripcionService {
+
+    // Siempre contra InscripcionRepository: InscripcionEty NO se cachea en CatalogoInscripcionCache
+    // (esa cache es solo para los 4 catalogos).
+    List<InscripcionDto> listar();
+
+    // Lanza RecursoNoEncontradoException (404) si el id no existe.
+    InscripcionDto buscarPorId(Long id);
+
+    // Las formaciones que ya tiene la inscripcion -- el front las carga antes de editar,
+    // porque el PUT recibe la lista completa que debe quedar.
+    List<FormacionComplementariaDto> listarFormaciones(Long id);
+
+    // UNA sola peticion HTTP tambien para editar: actualiza los datos propios de la
+    // Inscripcion (y sus 6 FK) Y sincroniza la lista completa de FormacionComplementaria
+    // contra lo que ya existe en la base (borra lo que el cliente sacó de la lista, actualiza
+    // lo que sigue, crea lo nuevo) -- ver InscripcionServiceImpl. Si la lista llega null,
+    // las formaciones no se tocan.
+    InscripcionConFormacionComplementariaDto actualizar(Long id, InscripcionConFormacionComplementariaRequestDto datosActualizados);
+
+    // UNA sola peticion HTTP: crea la Inscripcion y sus formaciones complementarias juntas
+    // -- ver InscripcionServiceImpl.
+    InscripcionConFormacionComplementariaDto crear(InscripcionConFormacionComplementariaRequestDto dto);
+}

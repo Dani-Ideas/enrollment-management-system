@@ -7,12 +7,12 @@ import org.example.estaticos.dto.EstadoDto;
 import org.example.estaticos.dto.MunicipioDto;
 import org.example.estaticos.dto.PaisDto;
 import org.example.estaticos.dto.TipoDireccionDto;
-import org.example.estaticos.lib.CatalogoGeograficoService;
-import org.example.estaticos.lib.ColoniaRepository;
-import org.example.estaticos.lib.EstadoRepository;
-import org.example.estaticos.lib.MunicipioRepository;
-import org.example.estaticos.lib.PaisRepository;
-import org.example.estaticos.lib.TipoDireccionRepository;
+import org.example.estaticos.service.CatalogoGeograficoService;
+import org.example.estaticos.repository.ColoniaRepository;
+import org.example.estaticos.repository.EstadoRepository;
+import org.example.estaticos.repository.MunicipioRepository;
+import org.example.estaticos.repository.PaisRepository;
+import org.example.estaticos.repository.TipoDireccionRepository;
 import org.example.estaticos.mapper.ColoniaMapper;
 import org.example.estaticos.mapper.EstadoMapper;
 import org.example.estaticos.mapper.MunicipioMapper;
@@ -21,7 +21,7 @@ import org.example.estaticos.mapper.TipoDireccionMapper;
 
 import java.util.List;
 
-// Sin cache (a diferencia de ServiceArtifax): colonia puede tener decenas de miles de
+// Sin cache (a diferencia de CatalogoInscripcionCache): colonia puede tener decenas de miles de
 // filas, se lee filtrada por su padre.
 @Stateless
 public class CatalogoGeograficoServiceImpl implements CatalogoGeograficoService {

@@ -1,10 +1,9 @@
 package org.example.comun;
 
-// Excepcion de negocio (no de infraestructura) -- capacidad de clase excedida, profesor sin
-// habilitacion, profesor con 3 clases ya asignadas, estudiante ya matriculado, etc. Se
-// traduce a 409 Conflict en rest/ReglaDeNegocioExceptionMapper, con el mensaje real (a
-// diferencia de un 500 generico) porque es un conflicto esperable de negocio, no un fallo
-// del sistema.
+// Una regla de negocio impide la operacion (conflicto esperable, no un fallo del sistema).
+// Se traduce a 409 Conflict en general/ReglaDeNegocioExceptionMapper, con el mensaje real.
+// Para un id inexistente usar RecursoNoEncontradoException (404) o
+// ReferenciaInvalidaException (422), no esta.
 public class ReglaDeNegocioException extends RuntimeException {
     public ReglaDeNegocioException(String mensaje) {
         super(mensaje);

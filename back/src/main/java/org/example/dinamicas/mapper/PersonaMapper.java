@@ -1,28 +1,34 @@
 package org.example.dinamicas.mapper;
 
+import jakarta.inject.Inject;
+import org.example.comun.ReferenciaInvalidaException;
 import org.example.comun.RequestResponseMapper;
-import org.example.dinamicas.dinamica.PersonaEty;
 import org.example.dinamicas.dto.PersonaDto;
 import org.example.dinamicas.dto.PersonaRequestDto;
+import org.example.dinamicas.model.PersonaEty;
+import org.example.dinamicas.repository.PersonaRepository;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingConstants;
 
+// Clase abstracta (no interfaz) para poder inyectar el Repository: desdeId() resuelve la FK
+// contra la base, igual que MiniFormEstMapper, y un id inexistente responde 422.
 @Mapper(componentModel = MappingConstants.ComponentModel.CDI)
-public interface PersonaMapper extends RequestResponseMapper<PersonaEty, PersonaRequestDto, PersonaDto> {
+public abstract class PersonaMapper implements RequestResponseMapper<PersonaEty, PersonaRequestDto, PersonaDto> {
+
+    @Inject
+    private PersonaRepository personaRepository;
 
     @Override
-    PersonaDto toDto(PersonaEty persona);
+    public abstract PersonaDto toDto(PersonaEty persona);
 
     @Override
-    PersonaEty toEntity(PersonaRequestDto dto);
+    public abstract PersonaEty toEntity(PersonaRequestDto dto);
 
-    // Referencia por id (stub con solo el id) para resolver la FK en DireccionMapper.
-    default PersonaEty desdeId(Long id) {
+    public PersonaEty desdeId(Long id) {
         if (id == null) {
             return null;
         }
-        PersonaEty persona = new PersonaEty();
-        persona.setId(id);
-        return persona;
+        return personaRepository.findById(id)
+                .orElseThrow(() -> new ReferenciaInvalidaException("No existe la persona " + id));
     }
 }

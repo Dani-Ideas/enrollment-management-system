@@ -3,6 +3,7 @@ import { queryOptions } from "@tanstack/react-query";
 import type {
   AmbienteDTO,
   EstadoDTO,
+  FormacionComplementariaDTO,
   InscripcionConFormacionComplementariaDTO,
   InscripcionConFormacionComplementariaRequestDTO,
   InscripcionDTO,
@@ -64,13 +65,17 @@ if (import.meta.env.DEV) {
 // Arma un mensaje legible a partir de un error de axios -- reemplaza al parseErrorBody()
 // que antes leia el body con response.json() (API de fetch); con axios el body de un
 // error ya viene parseado en error.response.data, no hace falta volver a leerlo.
+//
+// Todos los errores del backend llegan como Problem Details (RFC 9457): "detail" es el
+// mensaje y "errores" (solo en un 400 de validacion) trae un mensaje por campo.
 function mensajeDeError(error: unknown): string {
   if (axios.isAxiosError(error)) {
-    const body: unknown = error.response?.data;
-    if (typeof body === "object" && body !== null) {
-      const valores = Object.values(body as Record<string, unknown>);
-      if (valores.length > 0) {
-        return valores.join(", ");
+    const body = error.response?.data as ProblemDetails | undefined;
+    if (typeof body === "object" && body !== null && "status" in body) {
+      const porCampo = Object.entries(body.errores ?? {}).map(([campo, msg]) => `${campo}: ${msg}`);
+      const partes = [body.detail ?? body.title, ...porCampo].filter(Boolean);
+      if (partes.length > 0) {
+        return partes.join(", ");
       }
     }
     if (error.response) {
@@ -84,6 +89,15 @@ function mensajeDeError(error: unknown): string {
 // Unico punto de salida hacia el backend para todo este archivo -- GET/POST/PUT, todos
 // pasan por aqui, todos por axiosClient. "config" es el AxiosRequestConfig normal
 // (method/data/params/...); por defecto es GET si no se especifica method.
+// Espejo de general/ProblemDetails.java.
+interface ProblemDetails {
+  title?: string;
+  status: number;
+  detail?: string;
+  instance?: string;
+  errores?: Record<string, string>;
+}
+
 async function request<T>(path: string, config?: AxiosRequestConfig): Promise<T> {
   try {
     const response = await axiosClient.request<T>({ url: path, ...config });
@@ -144,6 +158,12 @@ export function fetchInscripciones(): Promise<InscripcionDTO[]> {
 
 export function fetchInscripcion(id: number): Promise<InscripcionDTO> {
   return request<InscripcionDTO>(`${RUTAS.inscripciones}/${id}`);
+}
+
+// Las formaciones que ya tiene la inscripcion -- "actualizar" las necesita porque el PUT
+// recibe la lista COMPLETA que debe quedar (lo que falte, el backend lo borra).
+export function fetchFormacionesDeInscripcion(id: number): Promise<FormacionComplementariaDTO[]> {
+  return request<FormacionComplementariaDTO[]>(`${RUTAS.inscripciones}/${id}/formaciones-complementarias`);
 }
 
 // UNA sola peticion HTTP: crea la Inscripcion y sus formaciones complementarias juntas --

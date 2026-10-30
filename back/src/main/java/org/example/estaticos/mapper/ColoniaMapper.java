@@ -1,33 +1,38 @@
 package org.example.estaticos.mapper;
 
+import jakarta.inject.Inject;
+import org.example.comun.ReferenciaInvalidaException;
 import org.example.comun.RequestResponseMapper;
 import org.example.estaticos.dto.ColoniaDto;
 import org.example.estaticos.dto.ColoniaRequestDto;
 import org.example.estaticos.model.ColoniaEty;
+import org.example.estaticos.repository.ColoniaRepository;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
 
+// Clase abstracta (no interfaz) para poder inyectar el Repository: desdeId() resuelve la FK
+// contra la base, igual que MiniFormEstMapper, y un id inexistente responde 422.
 @Mapper(componentModel = MappingConstants.ComponentModel.CDI,
         uses = MunicipioMapper.class)
-public interface ColoniaMapper extends RequestResponseMapper<ColoniaEty, ColoniaRequestDto, ColoniaDto> {
+public abstract class ColoniaMapper implements RequestResponseMapper<ColoniaEty, ColoniaRequestDto, ColoniaDto> {
+
+    @Inject
+    private ColoniaRepository coloniaRepository;
 
     @Override
     @Mapping(target = "municipio", source = "municipio.nombre")
-    ColoniaDto toDto(ColoniaEty colonia);
+    public abstract ColoniaDto toDto(ColoniaEty colonia);
 
     @Override
     @Mapping(target = "municipio", source = "municipioId")
-    ColoniaEty toEntity(ColoniaRequestDto dto);
+    public abstract ColoniaEty toEntity(ColoniaRequestDto dto);
 
-    // Referencia por id (stub con solo el id) para resolver FKs en toEntity() de los
-    // mappers hijos -- una interfaz no puede inyectar el Repository.
-    default ColoniaEty desdeId(Long id) {
+    public ColoniaEty desdeId(Long id) {
         if (id == null) {
             return null;
         }
-        ColoniaEty colonia = new ColoniaEty();
-        colonia.setId(id);
-        return colonia;
+        return coloniaRepository.findById(id)
+                .orElseThrow(() -> new ReferenciaInvalidaException("No existe la colonia " + id));
     }
 }

@@ -3,8 +3,8 @@ package org.example.dinamicas.ejb;
 import jakarta.ejb.Stateless;
 import jakarta.inject.Inject;
 import org.example.dinamicas.dto.DireccionDto;
-import org.example.dinamicas.lib.DireccionRepository;
-import org.example.dinamicas.lib.DireccionService;
+import org.example.dinamicas.repository.DireccionRepository;
+import org.example.dinamicas.service.DireccionService;
 import org.example.dinamicas.mapper.DireccionMapper;
 
 import java.util.List;

@@ -5,6 +5,7 @@ import {
   actualizarInscripcion,
   CATALOGOS_INSCRIPCION_QUERY,
   crearInscripcion,
+  fetchFormacionesDeInscripcion,
   fetchInscripcion,
   fetchInscripciones,
 } from "@/api/client"
@@ -237,7 +238,6 @@ export function useInscripcionForm() {
       inscripcion: camposADto(campos),
       formacionesComplementarias: formacionesNuevas.map((el) => ({
         id: null,
-        inscripcionId: null,
         descripcion: el.descripcion,
       })),
     })
@@ -259,6 +259,7 @@ export function useInscripcionForm() {
   const baselineIdRef = useRef<number | null>(null)
 
   const buscarInscripcionMutation = useMutation({ mutationFn: fetchInscripcion })
+  const buscarFormacionesMutation = useMutation({ mutationFn: fetchFormacionesDeInscripcion })
 
   const [formacionesEditables, setFormacionesEditables] = useState<FormacionComplementariaEditable[]>([])
   const formacionesOriginalRef = useRef<FormacionComplementariaEditable[]>([])
@@ -278,6 +279,7 @@ export function useInscripcionForm() {
   function elegirSolicitud(id: number) {
     setSolicitudIdActual(id)
     buscarInscripcionMutation.mutate(id)
+    if (accion === "actualizar") buscarFormacionesMutation.mutate(id)
   }
 
   function buscarPorIdInput() {
@@ -290,15 +292,12 @@ export function useInscripcionForm() {
   // cargados, se arma el "baseline": los mismos 11 campos pero resueltos a
   // partir del DTO (que trae texto, no ids).
   //
-  // OJO -- formacionesEditables arranca vacio aca: GET /inscripciones/{id}
-  // devuelve InscripcionDto aplanado, SIN sus formaciones complementarias, y
-  // ya no existe ningun GET /formaciones-complementarias?inscripcionId=X para
-  // pedirlas aparte (el backend lo discontinuo). Hasta que el backend expon
-  // ga esa lista en algun GET, "actualizar" solo puede AGREGAR formaciones
-  // nuevas, no ver/editar/borrar las que ya existen.
+  // formacionesEditables arranca con las formaciones que ya existen (GET
+  // /inscripciones/{id}/formaciones-complementarias): el PUT manda la lista
+  // COMPLETA que debe quedar, y si arrancara vacia el backend las borraria.
   useEffect(() => {
     if (accion !== "actualizar") return
-    if (!buscarInscripcionMutation.isSuccess || !catalogosListos) return
+    if (!buscarInscripcionMutation.isSuccess || !buscarFormacionesMutation.isSuccess || !catalogosListos) return
     if (baselineIdRef.current === solicitudIdActual) return
     baselineIdRef.current = solicitudIdActual
 
@@ -316,14 +315,15 @@ export function useInscripcionForm() {
       fechaPlanteada: aInputDatetime(dto.fechaInscripcionPlanteada),
       fechaReal: aInputDatetime(dto.fechaInscripcionReal),
     }
-    formacionesOriginalRef.current = []
-    setFormacionesEditables([])
+    const formacionesExistentes = buscarFormacionesMutation.data.map((f) => ({ id: f.id, descripcion: f.descripcion }))
+    formacionesOriginalRef.current = formacionesExistentes
+    setFormacionesEditables(formacionesExistentes)
     setBaseline(nuevoBaseline)
     form.reset(nuevoBaseline)
     desbloquearHasta(1)
     api?.scrollTo(1)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accion, buscarInscripcionMutation.isSuccess, buscarInscripcionMutation.data, catalogosListos, solicitudIdActual])
+  }, [accion, buscarInscripcionMutation.isSuccess, buscarInscripcionMutation.data, buscarFormacionesMutation.isSuccess, buscarFormacionesMutation.data, catalogosListos, solicitudIdActual])
 
   const huboCambios = baseline !== null && JSON.stringify(campos) !== JSON.stringify(baseline)
   const huboCambiosFormaciones =
@@ -340,7 +340,6 @@ export function useInscripcionForm() {
     mutationFn: (dto: InscripcionRequestDTO) => {
       const formacionesComplementarias: FormacionComplementariaRequestDTO[] = formacionesEditables.map((el) => ({
         id: el.id,
-        inscripcionId: solicitudIdActual,
         descripcion: el.descripcion,
       }))
       return actualizarInscripcion(solicitudIdActual!, { inscripcion: dto, formacionesComplementarias })
@@ -381,6 +380,7 @@ export function useInscripcionForm() {
     formacionesOriginalRef.current = []
     setGuardadoConfirmado(false)
     buscarInscripcionMutation.reset()
+    buscarFormacionesMutation.reset()
     actualizarInscripcionMutation.reset()
     maxStepRef.current = 0
     setMaxStep(0)
@@ -399,6 +399,7 @@ export function useInscripcionForm() {
     baselineIdRef.current = null
     setListaIdInput("")
     buscarInscripcionMutation.reset()
+    buscarFormacionesMutation.reset()
     crearInscripcionMutation.reset()
     actualizarInscripcionMutation.reset()
     setFormacionesNuevas([])

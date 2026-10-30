@@ -48,11 +48,32 @@
             <version>4.0.2</version>
             <scope>provided</scope>
         </dependency>
+
+        <!-- Pruebas unitarias (src/test/java): corren en cada mvn install; si una falla, el
+             build falla. Scope test: no llegan ni al WAR ni al EAR. -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.11.4</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-junit-jupiter</artifactId>
+            <version>5.14.2</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
         <finalName>SistemaMatriculas</finalName>
         <plugins>
+            <!-- Version fija: la que trae Maven por default puede ser vieja para JUnit 5. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.2</version>
+            </plugin>
             <!-- Construye el frontend (../frontend, hermano de back/) antes de empaquetar:
                  vite.config.ts deja el build en back/src/main/webapp. -->
             <plugin>
@@ -132,12 +153,14 @@
                     <failOnMissingWebXml>false</failOnMissingWebXml>
                     <packagingExcludes>
                         WEB-INF/classes/org/example/estaticos/model/**,
-                        WEB-INF/classes/org/example/estaticos/lib/**,
+                        WEB-INF/classes/org/example/estaticos/repository/**,
+                        WEB-INF/classes/org/example/estaticos/service/**,
                         WEB-INF/classes/org/example/estaticos/ejb/**,
                         WEB-INF/classes/org/example/estaticos/mapper/**,
                         WEB-INF/classes/org/example/estaticos/dto/**,
-                        WEB-INF/classes/org/example/dinamicas/dinamica/**,
-                        WEB-INF/classes/org/example/dinamicas/lib/**,
+                        WEB-INF/classes/org/example/dinamicas/model/**,
+                        WEB-INF/classes/org/example/dinamicas/repository/**,
+                        WEB-INF/classes/org/example/dinamicas/service/**,
                         WEB-INF/classes/org/example/dinamicas/ejb/**,
                         WEB-INF/classes/org/example/dinamicas/mapper/**,
                         WEB-INF/classes/org/example/dinamicas/dto/**,
@@ -155,6 +178,9 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
+                    <!-- Nombres reales de parametros en el bytecode: Bean Validation reporta
+                         "paisId" en vez de "arg0" en los errores de @QueryParam. -->
+                    <parameters>true</parameters>
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.projectlombok</groupId>

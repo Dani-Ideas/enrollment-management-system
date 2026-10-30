@@ -5,6 +5,7 @@ import org.example.estaticos.rest.*;
 import org.example.dinamicas.rest.InscripcionController;
 import org.example.dinamicas.rest.DireccionController;
 import org.example.dinamicas.rest.PersonaController;
+import org.example.dinamicas.rest.EntregaController;
 import org.glassfish.jersey.server.ResourceConfig;
 
 import java.util.LinkedHashMap;
@@ -27,24 +28,20 @@ public class ApplicationConfig extends ResourceConfig {
     //
     // OJO: que una constante exista aca NUNCA decide si el endpoint esta activo -- eso lo
     // decide, y solo lo decide, REGISTRO_ACTIVO mas abajo.
-    //
-    // El dominio academico (Carrera/Materia/Profesor/Clase/Estudiante/Matricula) que vivia
-    // en este WAR se elimino del arbol de codigo por completo (entities, repositories,
-    // mappers, services, controllers, DTOs y su seeder) -- no quedo nada que reactivar.
     public static final class Endpoints {
         private Endpoints() {}
 
         public static final String API = "/api";
 
-        // Dominio "solicitud/inscripcion" -- el unico que queda activo en este WAR.
+        // Dominio "solicitud/inscripcion".
         public static final String ESTADOS = "/estados";
         public static final String SISTEMAS = "/sistemas";
         public static final String RESPONSABLES = "/responsables";
         public static final String AMBIENTES = "/ambientes";
         public static final String INSCRIPCIONES = "/inscripciones";
 
-        // "Formaciones complementarias" 1:N ligadas a una Inscripcion por FK -- endpoint
-        // propio, no vienen embebidas en /inscripciones.
+        // "Formaciones complementarias" 1:N ligadas a una Inscripcion por FK -- subrecurso
+        // de solo lectura: GET /inscripciones/{id}/formaciones-complementarias.
         public static final String FORMACIONES_COMPLEMENTARIAS = "/formaciones-complementarias";
 
         // "Tablas genericas" para el formulario de inscripcion -- no es un recurso por
@@ -56,21 +53,17 @@ public class ApplicationConfig extends ResourceConfig {
         public static final String PERSONAS = "/personas";
         public static final String DIRECCIONES = "/direcciones";
 
+        // Ejercicio: PK compartida con la PK de Direccion (ver EntregaEty/EntregaId).
+        public static final String ENTREGAS = "/entregas";
+
         // El propio directorio de endpoints activos (ver REGISTRO_ACTIVO/listEndpoints()
         // abajo, y EndpointsController.java).
         public static final String ENDPOINTS = "/endpoints";
     }
 
-    // LA fuente de verdad de que esta activo -- un path solo cuenta como "activo" si esta
-    // en este mapa. register() (constructor, abajo) y listEndpoints() (metodo, abajo) leen
-    // del MISMO mapa, asi que nunca pueden desincronizarse entre si: antes, comentar o
-    // descomentar una constante de Endpoints no cambiaba nada de verdad (el registro real
-    // vivia aparte, en las llamadas sueltas a register()) -- con este mapa, "estar en la
-    // lista" y "estar registrado" pasan a ser LITERALMENTE lo mismo.
-    //
-    // Para reactivar el dominio academico: agregar aqui las 6 entradas que faltan
-    // (Endpoints.CARRERAS -> CarreraController.class, etc.) -- nada mas hace falta tocar,
-    // register() y listEndpoints() las recogen solas.
+    // LA fuente de verdad de que esta activo: un path solo cuenta como "activo" si esta en
+    // este mapa. register() (constructor) y listEndpoints() leen del MISMO mapa, asi que
+    // "estar en la lista" y "estar registrado" son literalmente lo mismo.
     private static final Map<String, Class<?>> REGISTRO_ACTIVO = new LinkedHashMap<>();
     static {
         REGISTRO_ACTIVO.put(Endpoints.ESTADOS, MiniFormEstController.class);
@@ -82,6 +75,7 @@ public class ApplicationConfig extends ResourceConfig {
         REGISTRO_ACTIVO.put(Endpoints.CATALOGOS_GEOGRAFICOS, CatalogosGeograficosController.class);
         REGISTRO_ACTIVO.put(Endpoints.PERSONAS, PersonaController.class);
         REGISTRO_ACTIVO.put(Endpoints.DIRECCIONES, DireccionController.class);
+        REGISTRO_ACTIVO.put(Endpoints.ENTREGAS, EntregaController.class);
     }
 
     // Expuesto por EndpointsController (GET /api/endpoints) -- el front lo consume en
@@ -92,14 +86,16 @@ public class ApplicationConfig extends ResourceConfig {
     }
 
     public ApplicationConfig() {
-        // Controllers -- uno por entrada de REGISTRO_ACTIVO (dominio academico queda
-        // fuera hasta que se agregue ahi arriba).
+        // Controllers -- uno por entrada de REGISTRO_ACTIVO.
         REGISTRO_ACTIVO.values().forEach(this::register);
         // Providers -- mappers de excepcion transversales a todos los Controller, mas el
         // directorio de endpoints. No van en REGISTRO_ACTIVO: son infraestructura, no
         // recursos de dominio que el front mapee 1:1 con un fetchX().
         register(ReglaDeNegocioExceptionMapper.class);
+        register(RecursoNoEncontradoExceptionMapper.class);
+        register(ReferenciaInvalidaExceptionMapper.class);
         register(ValidationExceptionMapper.class);
+        register(ExcepcionNoControladaMapper.class);
         register(EndpointsController.class);
     }
 }

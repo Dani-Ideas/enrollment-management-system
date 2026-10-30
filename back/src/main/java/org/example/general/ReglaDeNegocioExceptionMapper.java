@@ -1,24 +1,22 @@
 package org.example.general;
 
-import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.UriInfo;
 import jakarta.ws.rs.ext.ExceptionMapper;
 import jakarta.ws.rs.ext.Provider;
 import org.example.comun.ReglaDeNegocioException;
 
-import java.util.Map;
-
-// Traduce cualquier ReglaDeNegocioException (cupo excedido, profesor no habilitado, limite
-// de 3 clases, username duplicado, etc.) a 409 con el mensaje real -- ningun Controller
-// necesita try/catch, la excepcion escapa hasta aca sola.
+// ReglaDeNegocioException -> 409 con el mensaje real. Ningun Controller necesita try/catch:
+// la excepcion escapa hasta aca sola.
 @Provider
 public class ReglaDeNegocioExceptionMapper implements ExceptionMapper<ReglaDeNegocioException> {
 
+    @Context
+    private UriInfo uriInfo;
+
     @Override
     public Response toResponse(ReglaDeNegocioException exception) {
-        return Response.status(Response.Status.CONFLICT)
-                .type(MediaType.APPLICATION_JSON)
-                .entity(Map.of("error", exception.getMessage()))
-                .build();
+        return ProblemDetails.respuesta(Response.Status.CONFLICT, exception.getMessage(), uriInfo);
     }
 }
