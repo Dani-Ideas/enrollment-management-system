@@ -20,7 +20,8 @@ Antes de la etapa 1 ya quedaron hechos (commit "Hot fix: id existente..."):
 | 4 | Errores y API REST (Problem Details, 201, logging) | Hecha |
 | 5 | Pruebas unitarias | Hecha |
 | 6a | N+1: JOIN FETCH en listados | Hecha |
-| 6b | Sufijo `Id` en los request DTO | Pendiente |
+| 6b | `CrudServiceBase<E,K,REQ,RES>`: listar()/buscarPorId() comunes | Hecha, falta commit |
+| 6c | Sufijo `Id` en los request DTO | Pendiente |
 | 6 | Resto de decisiones de arquitectura | Documentadas |
 
 ---
@@ -227,6 +228,69 @@ y en el front, que un error de guardado siga mostrando un toast legible.
 - Martin Fowler, *TestPyramid*: la idea en una pagina. https://martinfowler.com/bliki/TestPyramid.html
 - Martin Fowler, *Mocks Aren't Stubs*: que es un mock, un stub y cuando conviene cada uno. https://martinfowler.com/articles/mocksArentStubs.html
 - Baeldung, *Mockito and JUnit 5 – Using ExtendWith*: el mismo setup de `InscripcionServiceImplTest`. https://www.baeldung.com/mockito-junit-5-extension
+
+---
+
+## Etapa 6b — `CrudServiceBase<E,K,REQ,RES>`: listar()/buscarPorId() comunes
+
+**Por que:** `listar()` y `buscarPorId()` (ir al Repository, mapear a DTO, 404 si no
+existe) eran el mismo codigo en `PersonaServiceImpl` e `InscripcionServiceImpl`. Nace de
+una duda real sobre que tipo de polimorfismo aplica aqui: no es interface-vs-clase-abstracta
+(eso decide COMO se declara un contrato); es polimorfismo de SUBTIPOS (`repository()`/
+`mapper()` son abstractos, cada subclase devuelve lo suyo) + GENERICO (`<E,K,REQ,RES>`
+mantiene todo tipado, sin `Object` ni casts).
+
+**Que NO se hizo, y por que:** la idea original tambien proponia una interfaz `sealed` con
+una "lista de pares" DTO-Entidad y un `switch` para elegir el mapper segun el tipo del DTO
+en tiempo de ejecucion (double dispatch / patron Visitor). Eso resuelve un problema distinto:
+un unico punto que recibe "cualquier DTO" y no sabe de antemano que entidad es. En este
+proyecto no existe ese punto -- cada Controller ya llama a su Service con su DTO tipado
+(`InscripcionController.crear(InscripcionConFormacionComplementariaRequestDto)`, nunca un
+`Object`). Agregar esa interfaz hoy seria codigo sin ningun llamador real, exactamente lo
+que se limpio en la etapa 1. Se deja documentado (ver "Para entender en que se basa" abajo)
+para el dia que aparezca un caso de uso real que lo necesite.
+
+**Cambios:**
+
+- `comun/CrudServiceBase<E,K,REQ,RES>`: `listar()` y `buscarPorId()` (y el `obtener()`
+  protegido que usan) definidos una sola vez. Abstractos: `repository()`, `mapper()`,
+  `mensajeNoEncontrado(K id)`.
+- `PersonaServiceImpl`: pasa a extender la base completa, sin logica propia.
+- `InscripcionServiceImpl`: extiende la base, pero sobreescribe `listar()` (necesita
+  `listarConCatalogos()`, el `JOIN FETCH` de la etapa 6a -- el `findAll()` generico de la
+  base volveria a traer el N+1 que esa etapa elimino). `crear()`/`actualizar()` siguen
+  100% propios: la base no sabe nada de las formaciones complementarias hijas.
+- `DireccionServiceImpl` y `CatalogoGeograficoServiceImpl` NO se tocan: ninguno tiene un
+  `listar()`/`buscarPorId()` liso por id -- filtran por un padre (`personaId`, `paisId`...),
+  que es una forma distinta y no entra en el molde de la base sin forzarla.
+
+**Commit:** `git add -- back/src/main/java/org/example/comun/CrudServiceBase.java back/src/main/java/org/example/dinamicas/ejb/PersonaServiceImpl.java back/src/main/java/org/example/dinamicas/ejb/InscripcionServiceImpl.java DOCUMENTATION/mejorasSenior.md` y
+`"CrudServiceBase: listar()/buscarPorId() comunes por subtipos + genericos"`.
+
+**Verificar:** `mvn clean install`; `GET /api/personas`, `GET /api/personas/{id}` (y su 404),
+`GET /api/inscripciones` (debe seguir en un solo SELECT con JOIN FETCH) y `GET
+/api/inscripciones/{id}` (y su 404) responden igual que antes.
+
+**Para entender en que se basa:**
+
+- Oracle Java Tutorials, *Overriding and Hiding Methods*: polimorfismo de subtipos, la base
+  de por que `repository()`/`mapper()` abstractos resuelven a la implementacion correcta en
+  tiempo de ejecucion. https://docs.oracle.com/javase/tutorial/java/IandI/override.html
+- Oracle Java Tutorials, *Generics*: por que `<E,K,REQ,RES>` evita castear a `Object`. https://docs.oracle.com/javase/tutorial/java/generics/index.html
+- JLS §15.12, *Method Invocation Expressions*: por que una sobrecarga (`toEntity(PersonaRequestDto)`
+  vs `toEntity(DireccionRequestDto)`) se resuelve al compilar, por el tipo DECLARADO del
+  argumento, no por el tipo real en ejecucion -- la razon de fondo de por que el "selector
+  por tipo de DTO" que se descarto arriba necesita algo mas que una sobrecarga.
+  https://docs.oracle.com/javase/specs/jls/se21/html/jls-15.html#jls-15.12
+- JEP 409, *Sealed Classes*, y JLS §9.1.4: como se vería la alternativa descartada (una
+  interfaz `sealed` que documenta la lista de pares DTO-Entidad) si algun dia hace falta.
+  https://openjdk.org/jeps/409 · https://docs.oracle.com/javase/specs/jls/se21/html/jls-9.html#jls-9.1.4
+- Refactoring Guru, *Visitor*: el patron detras del "double dispatch" (el DTO elige su
+  propio mapper) que tambien se descarto por falta de un caso de uso real.
+  https://refactoring.guru/design-patterns/visitor
+- Martin Fowler, *Template Method* no aplica tal cual aqui (no hay un metodo "plantilla"
+  que llame a los abstractos en un orden fijo), pero es la lectura mas cercana si se quiere
+  profundizar en "clase base con huecos abstractos": https://martinfowler.com/eaaCatalog/
 
 ---
 

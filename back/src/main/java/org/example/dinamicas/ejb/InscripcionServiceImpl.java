@@ -1,5 +1,6 @@
 package org.example.dinamicas.ejb;
 
+import jakarta.data.repository.CrudRepository;
 import jakarta.ejb.Stateless;
 import jakarta.inject.Inject;
 import org.example.dinamicas.dto.FormacionComplementariaDto;
@@ -7,11 +8,13 @@ import org.example.dinamicas.dto.FormacionComplementariaRequestDto;
 import org.example.dinamicas.dto.InscripcionConFormacionComplementariaDto;
 import org.example.dinamicas.dto.InscripcionConFormacionComplementariaRequestDto;
 import org.example.dinamicas.dto.InscripcionDto;
+import org.example.dinamicas.dto.InscripcionRequestDto;
 import org.example.dinamicas.repository.FormacionComplementariaRepository;
 import org.example.dinamicas.repository.InscripcionRepository;
 import org.example.dinamicas.service.InscripcionService;
-import org.example.comun.RecursoNoEncontradoException;
+import org.example.comun.CrudServiceBase;
 import org.example.comun.ReferenciaInvalidaException;
+import org.example.comun.RequestResponseMapper;
 import org.example.dinamicas.mapper.FormacionComplementariaMapper;
 import org.example.dinamicas.mapper.InscripcionMapper;
 import org.example.dinamicas.model.FormacionComplementariaEty;
@@ -22,8 +25,13 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+// buscarPorId()/obtener() vienen de CrudServiceBase -- crear()/actualizar() siguen 100%
+// propios (insertan/sincronizan las formaciones hijas, que la base no conoce). listar() se
+// sobreescribe: listarConCatalogos() hace JOIN FETCH (ver InscripcionRepository), el
+// findAll() generico de la base volveria a traer el N+1 que la etapa 6a elimino.
 @Stateless
-public class InscripcionServiceImpl implements InscripcionService {
+public class InscripcionServiceImpl extends CrudServiceBase<InscripcionEty, Long, InscripcionRequestDto, InscripcionDto>
+        implements InscripcionService {
 
     @Inject
     private InscripcionRepository inscripcionRepository;
@@ -37,23 +45,28 @@ public class InscripcionServiceImpl implements InscripcionService {
     private InscripcionMapper inscripcionMapper;
 
     @Override
+    protected CrudRepository<InscripcionEty, Long> repository() {
+        return inscripcionRepository;
+    }
+
+    @Override
+    protected RequestResponseMapper<InscripcionEty, InscripcionRequestDto, InscripcionDto> mapper() {
+        return inscripcionMapper;
+    }
+
+    @Override
+    protected String mensajeNoEncontrado(Long id) {
+        return "No existe la inscripción " + id;
+    }
+
+    @Override
     public List<InscripcionDto> listar() {
         return inscripcionMapper.toDto(inscripcionRepository.listarConCatalogos());
     }
 
     @Override
-    public InscripcionDto buscarPorId(Long id) {
-        return inscripcionMapper.toDto(obtener(id));
-    }
-
-    @Override
     public List<FormacionComplementariaDto> listarFormaciones(Long id) {
         return formacionComplementariaMapper.toDto(obtener(id).getFormacionesComplementarias());
-    }
-
-    private InscripcionEty obtener(Long id) {
-        return inscripcionRepository.findById(id)
-                .orElseThrow(() -> new RecursoNoEncontradoException("No existe la inscripción " + id));
     }
 
     // UNA sola peticion HTTP: crea la Inscripcion y sus formaciones complementarias juntas,
