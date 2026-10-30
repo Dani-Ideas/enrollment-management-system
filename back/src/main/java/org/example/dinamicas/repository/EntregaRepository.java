@@ -7,4 +7,5 @@ import org.example.dinamicas.model.EntregaId;
 
 @Repository
 public interface EntregaRepository extends CrudRepository<EntregaEty, EntregaId> {
+    EntregaEty findById(Long id);
 }

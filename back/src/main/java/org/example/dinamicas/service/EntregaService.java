@@ -9,5 +9,7 @@ public interface EntregaService {
 
     List<EntregaDto> listar();
 
+    EntregaDto listarPorId(Long id);
+
     EntregaDto crear(EntregaRequestDto dto);
 }

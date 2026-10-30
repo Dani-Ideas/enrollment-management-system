@@ -24,6 +24,8 @@ public class EntregaServiceImpl implements EntregaService {
     public List<EntregaDto> listar() {
         return entregaMapper.toDto(entregaRepository.findAll().toList());
     }
+    @Override
+    public EntregaDto listarPorId(Long id){ return entregaMapper.toDto(entregaRepository.findById(id));}
 
     @Override
     public EntregaDto crear(EntregaRequestDto dto) {

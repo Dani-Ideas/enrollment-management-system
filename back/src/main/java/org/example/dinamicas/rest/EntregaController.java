@@ -1,13 +1,10 @@
 package org.example.dinamicas.rest;
 
+import jakarta.data.repository.Param;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.example.dinamicas.dto.EntregaRequestDto;
@@ -30,6 +27,11 @@ public class EntregaController {
     public Response listar() {
         return Response.ok(entregaService.listar()).build();
     }
+
+    @GET
+    @Path("/{id}")
+    public Response porID(@PathParam("id") Long id) {return Response.ok(entregaService.listarPorId(id)).build();}
+
 
     @POST
     public Response crear(@Valid EntregaRequestDto dto) {
