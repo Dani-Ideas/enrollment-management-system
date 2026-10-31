@@ -9,6 +9,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.example.dinamicas.dto.EntregaRequestDto;
 import org.example.dinamicas.service.EntregaService;
+import org.example.general.RespuestasRest;
 
 import static org.example.general.ApplicationConfig.Endpoints.ENTREGAS;
 
@@ -35,6 +36,6 @@ public class EntregaController {
 
     @POST
     public Response crear(@Valid EntregaRequestDto dto) {
-        return Response.status(Response.Status.CREATED).entity(entregaService.crear(dto)).build();
+        return RespuestasRest.creado(entregaService.crear(dto));
     }
 }
