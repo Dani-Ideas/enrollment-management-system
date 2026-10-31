@@ -30,8 +30,7 @@ import java.util.stream.Collectors;
 // sobreescribe: listarConCatalogos() hace JOIN FETCH (ver InscripcionRepository), el
 // findAll() generico de la base volveria a traer el N+1 que la etapa 6a elimino.
 @Stateless
-public class InscripcionServiceImpl extends CrudServiceBase<InscripcionEty, Long, InscripcionRequestDto, InscripcionDto>
-        implements InscripcionService {
+public class InscripcionServiceImpl extends CrudServiceBase<InscripcionEty, Long, InscripcionRequestDto, InscripcionDto> implements InscripcionService {
 
     @Inject
     private InscripcionRepository inscripcionRepository;
