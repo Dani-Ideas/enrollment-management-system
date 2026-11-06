@@ -9,8 +9,7 @@ import org.mapstruct.MappingConstants;
 import org.mapstruct.Mapper;
 
 @Mapper(componentModel = MappingConstants.ComponentModel.CDI)
-public interface FormacionComplementariaMapper
-        extends RequestResponseMapper<FormacionComplementariaEty, FormacionComplementariaRequestDto, FormacionComplementariaDto> {
+public interface FormacionComplementariaMapper extends RequestResponseMapper<FormacionComplementariaEty, FormacionComplementariaRequestDto, FormacionComplementariaDto> {
 
     // toDto(): "inscripcion.id" en vez de aplanar a texto (a diferencia de InscripcionMapper,
     // aqui no hay ningun campo legible que mostrar -- el FK apunta a la Inscripcion dueña,

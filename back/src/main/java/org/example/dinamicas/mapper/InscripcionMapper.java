@@ -1,5 +1,6 @@
 package org.example.dinamicas.mapper;
 
+import org.example.dinamicas.dto.ClonarInscripcionDto;
 import org.example.dinamicas.dto.InscripcionConFormacionComplementariaDto;
 import org.example.dinamicas.dto.InscripcionDto;
 import org.example.dinamicas.dto.InscripcionRequestDto;
@@ -44,4 +45,18 @@ public interface InscripcionMapper extends RequestResponseMapper<InscripcionEty,
     // lista la convierte FormacionComplementariaMapper.toDto (uses).
     @Mapping(target = "inscripcion", source = ".")
     InscripcionConFormacionComplementariaDto toDtoConFormaciones(InscripcionEty entidad);
+
+    // DTO2 (ClonarInscripcionDto) como SEGUNDA puerta de entrada hacia InscripcionEty,
+    // ademas de toEntity(InscripcionRequestDto) arriba -- este ES el "transformador final":
+    // copia los campos comunes de "origen" (MapStruct lo hace solo, mismo nombre en ambos
+    // lados, mismo tipo -- no hace falta un mapper de catalogos aca porque no hay DTO de
+    // por medio, es Entidad -> Entidad) y aplica el override puntual de este DTO.
+    // id: nunca se copia del origen -- es una fila nueva, el id lo pone la secuencia al
+    // insertar. formacionesComplementarias: nunca arranca con las del origen -- son hijas
+    // de ESA fila, no de la nueva (ver InscripcionServiceImpl.sincronizarFormacionesComplementarias
+    // para como se les asigna la inscripcion duena).
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "formacionesComplementarias", ignore = true)
+    @Mapping(target = "proyecto", source = "dto.nuevoProyecto")
+    InscripcionEty clonarDesde(InscripcionEty origen, ClonarInscripcionDto dto);
 }
