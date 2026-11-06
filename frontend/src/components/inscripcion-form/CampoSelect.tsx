@@ -1,5 +1,5 @@
 import { useState } from "react"
-import type { InscripcionDTO } from "@/api/types"
+import type { InscripcionConFormacionComplementariaDTO } from "@/api/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
@@ -50,7 +50,7 @@ export function CampoSelect({
   onBuscar: () => void
   buscando: boolean
   hayError: boolean
-  resultado?: InscripcionDTO | null
+  resultado?: InscripcionConFormacionComplementariaDTO | null
   filtros?: CampoSelectFiltros
 }) {
   const [modo, setModo] = useState<"id" | "filtros">("id")
@@ -85,7 +85,7 @@ export function CampoSelect({
 
       {resultado && (
         <div className="rounded-lg border border-input p-3">
-          <DetalleInscripcion inscripcion={resultado} />
+          <DetalleInscripcion inscripcion={resultado.inscripcion} />
         </div>
       )}
     </>

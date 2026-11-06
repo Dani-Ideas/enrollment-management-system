@@ -25,13 +25,10 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-// buscarPorId()/obtener() vienen de CrudServiceBase -- crear()/actualizar() siguen 100%
-// propios (insertan/sincronizan las formaciones hijas, que la base no conoce). listar() se
-// sobreescribe: listarConCatalogos() hace JOIN FETCH (ver InscripcionRepository), el
-// findAll() generico de la base volveria a traer el N+1 que la etapa 6a elimino.
+
 @Stateless
 public class InscripcionServiceImpl extends CrudServiceBase<InscripcionEty, Long, InscripcionRequestDto, InscripcionDto> implements InscripcionService {
-
+    //region Inject
     @Inject
     private InscripcionRepository inscripcionRepository;
 
@@ -42,7 +39,7 @@ public class InscripcionServiceImpl extends CrudServiceBase<InscripcionEty, Long
     private FormacionComplementariaMapper formacionComplementariaMapper;
     @Inject
     private InscripcionMapper inscripcionMapper;
-
+    //endregion
     @Override
     protected CrudRepository<InscripcionEty, Long> repository() {
         return inscripcionRepository;
@@ -64,17 +61,10 @@ public class InscripcionServiceImpl extends CrudServiceBase<InscripcionEty, Long
     }
 
     @Override
-    public List<FormacionComplementariaDto> listarFormaciones(Long id) {
-        return formacionComplementariaMapper.toDto(obtener(id).getFormacionesComplementarias());
+    public InscripcionConFormacionComplementariaDto buscarConFormaciones(Long id) {
+        return inscripcionMapper.toDtoConFormaciones(obtener(id));
     }
 
-    // UNA sola peticion HTTP: crea la Inscripcion y sus formaciones complementarias juntas,
-    // en dos insert explicitos (nada de cascade) -- toEntity()/toDto() en lista los genera
-    // solo MapStruct (RequestResponseMapper.toEntity(List)/toDto(List)), ningun loop a mano.
-    //
-    // toEntity() deja "inscripcion" en null en cada formacion -- JPA no sincroniza sola las
-    // dos puntas de la relacion, asi que hay que asignarle la InscripcionEty YA creada (con
-    // id real) antes del insertAll().
     @Override
     public InscripcionConFormacionComplementariaDto crear(InscripcionConFormacionComplementariaRequestDto dto) {
         InscripcionEty inscripcionCreada = inscripcionRepository.insert(inscripcionMapper.toEntity(dto.inscripcion()));

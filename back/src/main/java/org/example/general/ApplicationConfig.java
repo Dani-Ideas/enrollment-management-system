@@ -40,10 +40,6 @@ public class ApplicationConfig extends ResourceConfig {
         public static final String AMBIENTES = "/ambientes";
         public static final String INSCRIPCIONES = "/inscripciones";
 
-        // "Formaciones complementarias" 1:N ligadas a una Inscripcion por FK -- subrecurso
-        // de solo lectura: GET /inscripciones/{id}/formaciones-complementarias.
-        public static final String FORMACIONES_COMPLEMENTARIAS = "/formaciones-complementarias";
-
         // "Tablas genericas" para el formulario de inscripcion -- no es un recurso por
         // entidad, es un bundle de los 4 catalogos de arriba en una sola respuesta.
         public static final String CATALOGOS_INSCRIPCION = "/catalogos-inscripcion";

@@ -5,7 +5,6 @@ import {
   actualizarInscripcion,
   CATALOGOS_INSCRIPCION_QUERY,
   crearInscripcion,
-  fetchFormacionesDeInscripcion,
   fetchInscripcion,
   fetchInscripciones,
 } from "@/api/client"
@@ -259,7 +258,6 @@ export function useInscripcionForm() {
   const baselineIdRef = useRef<number | null>(null)
 
   const buscarInscripcionMutation = useMutation({ mutationFn: fetchInscripcion })
-  const buscarFormacionesMutation = useMutation({ mutationFn: fetchFormacionesDeInscripcion })
 
   const [formacionesEditables, setFormacionesEditables] = useState<FormacionComplementariaEditable[]>([])
   const formacionesOriginalRef = useRef<FormacionComplementariaEditable[]>([])
@@ -279,7 +277,6 @@ export function useInscripcionForm() {
   function elegirSolicitud(id: number) {
     setSolicitudIdActual(id)
     buscarInscripcionMutation.mutate(id)
-    if (accion === "actualizar") buscarFormacionesMutation.mutate(id)
   }
 
   function buscarPorIdInput() {
@@ -292,16 +289,16 @@ export function useInscripcionForm() {
   // cargados, se arma el "baseline": los mismos 11 campos pero resueltos a
   // partir del DTO (que trae texto, no ids).
   //
-  // formacionesEditables arranca con las formaciones que ya existen (GET
-  // /inscripciones/{id}/formaciones-complementarias): el PUT manda la lista
-  // COMPLETA que debe quedar, y si arrancara vacia el backend las borraria.
+  // formacionesEditables arranca con las formaciones que ya existen (vienen embebidas en
+  // el mismo GET /inscripciones/{id}): el PUT manda la lista COMPLETA que debe quedar, y si
+  // arrancara vacia el backend las borraria.
   useEffect(() => {
     if (accion !== "actualizar") return
-    if (!buscarInscripcionMutation.isSuccess || !buscarFormacionesMutation.isSuccess || !catalogosListos) return
+    if (!buscarInscripcionMutation.isSuccess || !catalogosListos) return
     if (baselineIdRef.current === solicitudIdActual) return
     baselineIdRef.current = solicitudIdActual
 
-    const dto = buscarInscripcionMutation.data
+    const dto = buscarInscripcionMutation.data.inscripcion
     const nuevoBaseline: CamposFormulario = {
       estadoId: String(estadosQuery.data!.find((e) => e.estado === dto.estado)?.id ?? ""),
       sistemaId: String(sistemasQuery.data!.find((s) => s.nombre === dto.sistema)?.id ?? ""),
@@ -315,7 +312,10 @@ export function useInscripcionForm() {
       fechaPlanteada: aInputDatetime(dto.fechaInscripcionPlanteada),
       fechaReal: aInputDatetime(dto.fechaInscripcionReal),
     }
-    const formacionesExistentes = buscarFormacionesMutation.data.map((f) => ({ id: f.id, descripcion: f.descripcion }))
+    const formacionesExistentes = buscarInscripcionMutation.data.formacionesComplementarias.map((f) => ({
+      id: f.id,
+      descripcion: f.descripcion,
+    }))
     formacionesOriginalRef.current = formacionesExistentes
     setFormacionesEditables(formacionesExistentes)
     setBaseline(nuevoBaseline)
@@ -323,7 +323,7 @@ export function useInscripcionForm() {
     desbloquearHasta(1)
     api?.scrollTo(1)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accion, buscarInscripcionMutation.isSuccess, buscarInscripcionMutation.data, buscarFormacionesMutation.isSuccess, buscarFormacionesMutation.data, catalogosListos, solicitudIdActual])
+  }, [accion, buscarInscripcionMutation.isSuccess, buscarInscripcionMutation.data, catalogosListos, solicitudIdActual])
 
   const huboCambios = baseline !== null && JSON.stringify(campos) !== JSON.stringify(baseline)
   const huboCambiosFormaciones =
@@ -380,7 +380,6 @@ export function useInscripcionForm() {
     formacionesOriginalRef.current = []
     setGuardadoConfirmado(false)
     buscarInscripcionMutation.reset()
-    buscarFormacionesMutation.reset()
     actualizarInscripcionMutation.reset()
     maxStepRef.current = 0
     setMaxStep(0)
@@ -399,7 +398,6 @@ export function useInscripcionForm() {
     baselineIdRef.current = null
     setListaIdInput("")
     buscarInscripcionMutation.reset()
-    buscarFormacionesMutation.reset()
     crearInscripcionMutation.reset()
     actualizarInscripcionMutation.reset()
     setFormacionesNuevas([])

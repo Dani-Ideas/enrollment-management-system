@@ -3,7 +3,6 @@ import { queryOptions } from "@tanstack/react-query";
 import type {
   AmbienteDTO,
   EstadoDTO,
-  FormacionComplementariaDTO,
   InscripcionConFormacionComplementariaDTO,
   InscripcionConFormacionComplementariaRequestDTO,
   InscripcionDTO,
@@ -156,14 +155,11 @@ export function fetchInscripciones(): Promise<InscripcionDTO[]> {
   return request<InscripcionDTO[]>(RUTAS.inscripciones);
 }
 
-export function fetchInscripcion(id: number): Promise<InscripcionDTO> {
-  return request<InscripcionDTO>(`${RUTAS.inscripciones}/${id}`);
-}
-
-// Las formaciones que ya tiene la inscripcion -- "actualizar" las necesita porque el PUT
-// recibe la lista COMPLETA que debe quedar (lo que falte, el backend lo borra).
-export function fetchFormacionesDeInscripcion(id: number): Promise<FormacionComplementariaDTO[]> {
-  return request<FormacionComplementariaDTO[]>(`${RUTAS.inscripciones}/${id}/formaciones-complementarias`);
+// Trae la Inscripcion + sus formaciones complementarias juntas -- "actualizar" necesita las
+// formaciones existentes porque el PUT manda la lista COMPLETA que debe quedar (lo que
+// falte, el backend lo borra). Ya no hay un endpoint aparte solo para las formaciones.
+export function fetchInscripcion(id: number): Promise<InscripcionConFormacionComplementariaDTO> {
+  return request<InscripcionConFormacionComplementariaDTO>(`${RUTAS.inscripciones}/${id}`);
 }
 
 // UNA sola peticion HTTP: crea la Inscripcion y sus formaciones complementarias juntas --

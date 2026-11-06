@@ -19,7 +19,6 @@ import org.example.dinamicas.dto.InscripcionConFormacionComplementariaRequestDto
 import org.example.dinamicas.service.InscripcionService;
 import org.example.general.RespuestasRest;
 
-import static org.example.general.ApplicationConfig.Endpoints.FORMACIONES_COMPLEMENTARIAS;
 import static org.example.general.ApplicationConfig.Endpoints.INSCRIPCIONES;
 
 @RequestScoped
@@ -38,8 +37,10 @@ public class InscripcionController {
 
     @GET
     @Path("/{id}")
+    // Trae la Inscripcion + sus formaciones complementarias -- el front las necesita antes
+    // de un PUT (que manda la lista COMPLETA que debe quedar).
     public Response buscar(@PathParam("id") Long id) {
-        return Response.ok(inscripcionService.buscarPorId(id)).build();
+        return Response.ok(inscripcionService.buscarConFormaciones(id)).build();
     }
 
     @POST

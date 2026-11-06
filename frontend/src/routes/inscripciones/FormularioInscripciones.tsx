@@ -309,7 +309,7 @@ export function FormularioInscripciones() {
                           <CheckCircle2Icon />
                           <AlertTitle>Solicitud #{solicitudIdActual} actualizada</AlertTitle>
                         </Alert>
-                        <DetalleInscripcion inscripcion={buscarInscripcionMutation.data} />
+                        <DetalleInscripcion inscripcion={buscarInscripcionMutation.data.inscripcion} />
                         <Button onClick={actualizarOtra} className="w-fit">
                           Actualizar otra solicitud
                         </Button>
