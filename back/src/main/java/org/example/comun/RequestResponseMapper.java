@@ -2,7 +2,7 @@ package org.example.comun;
 
 import java.util.List;
 
-public interface RequestResponseMapper<E, REQ, RES> {
+public interface RequestResponseMapper<E, REQ,   RES> {
 
     RES toDto(E entity);
     E toEntity(REQ dto);
