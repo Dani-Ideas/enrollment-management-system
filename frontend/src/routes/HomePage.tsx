@@ -34,8 +34,22 @@ export function HomePage() {
                 {
                   to: "/formulario-pago",
                   search: { accion: "actualizar" },
-                  label: "Actualizar una solicitud existente",
+                  label: "Actualizar",
                   icon: PencilIcon,
+                  submenu: [
+                    {
+                      to: "/formulario-pago",
+                      search: { accion: "crear" },
+                      label: "Actualizar una solicitud existente",
+                      icon: PlusIcon,
+                    },
+                    {
+                      to: "/formulario-pago",
+                      search: { accion: "crear" },
+                      label: "Actualizar estado solicitud",
+                      icon: PlusIcon,
+                    },  
+                  ]
                 },
               ],
             },
