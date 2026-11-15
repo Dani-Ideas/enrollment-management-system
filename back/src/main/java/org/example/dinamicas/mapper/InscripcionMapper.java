@@ -35,6 +35,7 @@ public interface InscripcionMapper extends RequestResponseMapper<InscripcionEty,
 
     @Override
     @Mapping(target = "formacionesComplementarias", ignore = true)
+    @Mapping(target = "diplomaPrimaria", ignore = true)
     InscripcionEty toEntity(InscripcionRequestDto dto);
 
     @InheritConfiguration(name = "toEntity")

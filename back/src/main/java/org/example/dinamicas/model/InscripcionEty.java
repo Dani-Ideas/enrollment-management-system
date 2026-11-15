@@ -10,6 +10,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
@@ -97,4 +98,10 @@ public class InscripcionEty {
     // (ver InscripcionServiceImpl), esta coleccion solo se lee.
     @OneToMany(mappedBy = "inscripcion", fetch = FetchType.LAZY)
     private List<FormacionComplementariaEty> formacionesComplementarias = new ArrayList<>();
+
+    // Lado inverso de DiplomaPrimariaEty.inscripcion. Esta Inscripcion es ahora la
+    // "Inscripcion de Primaria" de la cadena Primaria/Secundaria/Universidad; sin cascade,
+    // igual que arriba -- el diploma se crea/actualiza aparte (DiplomaPrimariaServiceImpl).
+    @OneToOne(mappedBy = "inscripcion", fetch = FetchType.LAZY)
+    private DiplomaPrimariaEty diplomaPrimaria;
 }

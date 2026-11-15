@@ -3,6 +3,9 @@ package org.example.general;
 import jakarta.ws.rs.ApplicationPath;
 import org.example.estaticos.rest.*;
 import org.example.dinamicas.rest.InscripcionController;
+import org.example.dinamicas.rest.DiplomaPrimariaController;
+import org.example.dinamicas.rest.InscripcionSecundariaController;
+import org.example.dinamicas.rest.InscripcionUniversidadController;
 import org.example.dinamicas.rest.DireccionController;
 import org.example.dinamicas.rest.PersonaController;
 import org.example.dinamicas.rest.EntregaController;
@@ -40,6 +43,12 @@ public class ApplicationConfig extends ResourceConfig {
         public static final String AMBIENTES = "/ambientes";
         public static final String INSCRIPCIONES = "/inscripciones";
 
+        // Cadena Primaria/Secundaria/Universidad: INSCRIPCIONES (arriba) es ahora la
+        // inscripcion de Primaria; estos 3 paths son el resto de la cadena.
+        public static final String DIPLOMAS_PRIMARIA = "/diplomas-primaria";
+        public static final String INSCRIPCIONES_SECUNDARIA = "/inscripciones-secundaria";
+        public static final String INSCRIPCIONES_UNIVERSIDAD = "/inscripciones-universidad";
+
         // "Tablas genericas" para el formulario de inscripcion -- no es un recurso por
         // entidad, es un bundle de los 4 catalogos de arriba en una sola respuesta.
         public static final String CATALOGOS_INSCRIPCION = "/catalogos-inscripcion";
@@ -67,6 +76,9 @@ public class ApplicationConfig extends ResourceConfig {
         REGISTRO_ACTIVO.put(Endpoints.RESPONSABLES, MiniFormRespController.class);
         REGISTRO_ACTIVO.put(Endpoints.AMBIENTES, MiniFormAmbController.class);
         REGISTRO_ACTIVO.put(Endpoints.INSCRIPCIONES, InscripcionController.class);
+        REGISTRO_ACTIVO.put(Endpoints.DIPLOMAS_PRIMARIA, DiplomaPrimariaController.class);
+        REGISTRO_ACTIVO.put(Endpoints.INSCRIPCIONES_SECUNDARIA, InscripcionSecundariaController.class);
+        REGISTRO_ACTIVO.put(Endpoints.INSCRIPCIONES_UNIVERSIDAD, InscripcionUniversidadController.class);
         REGISTRO_ACTIVO.put(Endpoints.CATALOGOS_INSCRIPCION, CatalogosInscripcionController.class);
         REGISTRO_ACTIVO.put(Endpoints.CATALOGOS_GEOGRAFICOS, CatalogosGeograficosController.class);
         REGISTRO_ACTIVO.put(Endpoints.PERSONAS, PersonaController.class);
