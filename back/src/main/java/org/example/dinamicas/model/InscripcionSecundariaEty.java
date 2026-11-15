@@ -9,6 +9,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
+import jakarta.persistence.PrimaryKeyJoinColumn;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -36,7 +37,7 @@ public class InscripcionSecundariaEty {
 
     @Id
     @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "ID_DIPLOMA_PRIMARIA", nullable = false)
+    @PrimaryKeyJoinColumn(name = "ID_DIPLOMA_PRIMARIA", referencedColumnName = "ID_DIPLOMA_PRIMARIA")
     private DiplomaPrimariaEty diplomaPrimaria;
 
     @ManyToOne(fetch = FetchType.LAZY)

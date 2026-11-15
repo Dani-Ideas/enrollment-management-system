@@ -5,8 +5,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
-import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
+import jakarta.persistence.PrimaryKeyJoinColumn;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
@@ -24,7 +24,7 @@ public class DiplomaUniversidadEty {
 
     @Id
     @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "ID_DIPLOMA_PRIMARIA", nullable = false)
+    @PrimaryKeyJoinColumn(name = "ID_DIPLOMA_PRIMARIA", referencedColumnName = "ID_DIPLOMA_PRIMARIA")
     private InscripcionUniversidadEty inscripcionUniversidad;
 
     @Column(name = "FIRMA_DECANO_FACULTAD", nullable = false)

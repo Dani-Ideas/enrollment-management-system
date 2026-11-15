@@ -57,11 +57,11 @@ class InscripcionUniversidadServiceImplTest {
     void crearConDiplomaSecundariaCompletaCreaInscripcionYDiploma() {
         InscripcionUniversidadEty nuevaInscripcion = new InscripcionUniversidadEty();
         nuevaInscripcion.setDiplomaSecundaria(diplomaSecundariaCompleto());
-        when(inscripcionUniversidadMapper.toEntity(any())).thenReturn(nuevaInscripcion);
+        when(inscripcionUniversidadMapper.toEntity(any(InscripcionUniversidadRequestDto.class))).thenReturn(nuevaInscripcion);
 
         InscripcionUniversidadEty creada = nuevaInscripcion;
         when(inscripcionUniversidadRepository.insert(any())).thenReturn(creada);
-        when(diplomaUniversidadMapper.toEntity(any())).thenReturn(new DiplomaUniversidadEty());
+        when(diplomaUniversidadMapper.toEntity(any(DiplomaUniversidadRequestDto.class))).thenReturn(new DiplomaUniversidadEty());
         when(diplomaUniversidadRepository.insert(any())).thenAnswer(inv -> inv.getArgument(0));
 
         service.crear(peticion());
@@ -75,7 +75,7 @@ class InscripcionUniversidadServiceImplTest {
     void crearConDiplomaSecundariaIncompletaLanza409YNoInsertaNada() {
         InscripcionUniversidadEty nuevaInscripcion = new InscripcionUniversidadEty();
         nuevaInscripcion.setDiplomaSecundaria(diplomaSecundariaIncompleto());
-        when(inscripcionUniversidadMapper.toEntity(any())).thenReturn(nuevaInscripcion);
+        when(inscripcionUniversidadMapper.toEntity(any(InscripcionUniversidadRequestDto.class))).thenReturn(nuevaInscripcion);
 
         assertThrows(ReglaDeNegocioException.class, () -> service.crear(peticion()));
 

@@ -14,6 +14,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
@@ -72,7 +73,7 @@ class DiplomaPrimariaServiceImplTest {
     void crearConTodasLasFirmasVerdaderasMarcaEmitidoYFechaEmision() {
         InscripcionEty inscripcion = inscripcion(10L);
         when(inscripcionRepository.findById(10L)).thenReturn(Optional.of(inscripcion));
-        when(diplomaPrimariaMapper.toEntity(any())).thenReturn(new DiplomaPrimariaEty());
+        when(diplomaPrimariaMapper.toEntity(any(DiplomaPrimariaRequestDto.class))).thenAnswer(DiplomaPrimariaServiceImplTest::entidadDesde);
         when(diplomaPrimariaRepository.insert(any())).thenAnswer(inv -> inv.getArgument(0));
 
         service.crear(peticion(10L, true, true, true, true, true, true, true));
@@ -88,7 +89,7 @@ class DiplomaPrimariaServiceImplTest {
     void crearConUnaFirmaFaltanteNoMarcaEmitido() {
         InscripcionEty inscripcion = inscripcion(10L);
         when(inscripcionRepository.findById(10L)).thenReturn(Optional.of(inscripcion));
-        when(diplomaPrimariaMapper.toEntity(any())).thenReturn(new DiplomaPrimariaEty());
+        when(diplomaPrimariaMapper.toEntity(any(DiplomaPrimariaRequestDto.class))).thenAnswer(DiplomaPrimariaServiceImplTest::entidadDesde);
         when(diplomaPrimariaRepository.insert(any())).thenAnswer(inv -> inv.getArgument(0));
 
         service.crear(peticion(10L, true, true, true, true, true, true, false));
@@ -144,5 +145,20 @@ class DiplomaPrimariaServiceImplTest {
             Long inscripcionId,
             boolean f1, boolean f2, boolean f3, boolean f4, boolean f5, boolean f6, boolean director) {
         return new DiplomaPrimariaRequestDto(inscripcionId, f1, f2, f3, f4, f5, f6, director);
+    }
+
+    // El mapper real (MapStruct) copiaria las firmas del dto a la entidad; como aca esta
+    // simulado, se replica ese efecto a mano a partir del dto que realmente llego.
+    private static DiplomaPrimariaEty entidadDesde(InvocationOnMock invocacion) {
+        DiplomaPrimariaRequestDto dto = invocacion.getArgument(0);
+        DiplomaPrimariaEty entidad = new DiplomaPrimariaEty();
+        entidad.setFirmaMaestro1ro(dto.firmaMaestro1ro());
+        entidad.setFirmaMaestro2do(dto.firmaMaestro2do());
+        entidad.setFirmaMaestro3ro(dto.firmaMaestro3ro());
+        entidad.setFirmaMaestro4to(dto.firmaMaestro4to());
+        entidad.setFirmaMaestro5to(dto.firmaMaestro5to());
+        entidad.setFirmaMaestro6to(dto.firmaMaestro6to());
+        entidad.setFirmaDirectorPrimaria(dto.firmaDirectorPrimaria());
+        return entidad;
     }
 }
