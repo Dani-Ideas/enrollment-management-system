@@ -10,22 +10,17 @@ import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
 import org.mapstruct.MappingTarget;
 
-// A diferencia de DiplomaPrimariaMapper/DiplomaSecundariaMapper, esta SI puede ser una
-// interfaz comun: no hay un nivel despues de Universidad que necesite resolverla via desdeId,
-// asi que no necesita @Inject ni cuerpo propio. "uses" trae DiplomaSecundariaMapper para
-// resolver "diplomaSecundaria" (Long -> entidad real) en toEntity(), igual mecanismo que en
-// DiplomaSecundariaMapper con diplomaPrimaria.
-@Mapper(componentModel = MappingConstants.ComponentModel.CDI, uses = {DiplomaSecundariaMapper.class})
+// Interfaz comun, sin @Inject: cierra la cadena, nadie necesita resolverla por Long despues
+// de Universidad. DiplomaUniversidadRequestDto ya no trae ninguna FK propia (la PK compartida
+// la fija InscripcionUniversidadRequestDto.diplomaSecundaria, un nivel arriba).
+@Mapper(componentModel = MappingConstants.ComponentModel.CDI)
 public interface DiplomaUniversidadMapper extends RequestResponseMapper<DiplomaUniversidadEty, DiplomaUniversidadRequestDto, DiplomaUniversidadDto> {
 
     @Override
-    @Mapping(target = "inscripcionUniversidadId", source = "inscripcionUniversidad.id")
-    @Mapping(target = "diplomaSecundariaId", source = "diplomaSecundaria.id")
+    @Mapping(target = "id", source = "inscripcionUniversidad.diplomaSecundaria.inscripcionSecundaria.diplomaPrimaria.id")
     DiplomaUniversidadDto toDto(DiplomaUniversidadEty entidad);
 
-    // inscripcionUniversidad: la asigna InscripcionUniversidadServiceImpl. diplomaSecundaria
-    // SI se resuelve aca (via "uses"): el service necesita la entidad real para validar que
-    // el diploma de secundaria referenciado este completo.
+    // inscripcionUniversidad: la asigna InscripcionUniversidadServiceImpl (PK compartida).
     @Override
     @Mapping(target = "inscripcionUniversidad", ignore = true)
     @Mapping(target = "emitido", ignore = true)

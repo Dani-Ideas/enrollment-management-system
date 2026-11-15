@@ -10,6 +10,7 @@ import org.example.dinamicas.mapper.InscripcionSecundariaMapper;
 import org.example.dinamicas.model.DiplomaPrimariaEty;
 import org.example.dinamicas.model.DiplomaSecundariaEty;
 import org.example.dinamicas.model.InscripcionSecundariaEty;
+import org.example.dinamicas.model.InscripcionSecundariaId;
 import org.example.dinamicas.repository.DiplomaSecundariaRepository;
 import org.example.dinamicas.repository.InscripcionSecundariaRepository;
 import org.junit.jupiter.api.Test;
@@ -31,9 +32,9 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 // Prueba unitaria: repositorios y mappers simulados, sin GlassFish ni base. Cubre la regla de
-// negocio central de la cadena: no se puede crear/actualizar una InscripcionSecundaria si el
-// DiplomaPrimaria referenciado no esta completo, y que la validacion corre ANTES de insertar
-// la fila padre (no debe quedar ninguna huerfana).
+// negocio central de la cadena -- ahora resuelta por inscripcionSecundariaMapper.toEntity()
+// (ya no por diplomaSecundariaMapper: la PK compartida vive en InscripcionSecundariaEty) -- y
+// que la validacion corre ANTES de insertar la fila padre (no debe quedar ninguna huerfana).
 @ExtendWith(MockitoExtension.class)
 class InscripcionSecundariaServiceImplTest {
 
@@ -54,17 +55,16 @@ class InscripcionSecundariaServiceImplTest {
 
     @Test
     void crearConDiplomaPrimariaCompletaCreaInscripcionYDiploma() {
-        DiplomaSecundariaEty nuevoDiploma = new DiplomaSecundariaEty();
-        nuevoDiploma.setDiplomaPrimaria(diplomaPrimariaCompleto());
-        when(diplomaSecundariaMapper.toEntity(any())).thenReturn(nuevoDiploma);
+        InscripcionSecundariaEty nuevaInscripcion = new InscripcionSecundariaEty();
+        nuevaInscripcion.setDiplomaPrimaria(diplomaPrimariaCompleto());
+        when(inscripcionSecundariaMapper.toEntity(any())).thenReturn(nuevaInscripcion);
 
-        InscripcionSecundariaEty creada = new InscripcionSecundariaEty();
-        creada.setId(20L);
-        when(inscripcionSecundariaMapper.toEntity(any())).thenReturn(new InscripcionSecundariaEty());
+        InscripcionSecundariaEty creada = nuevaInscripcion;
         when(inscripcionSecundariaRepository.insert(any())).thenReturn(creada);
+        when(diplomaSecundariaMapper.toEntity(any())).thenReturn(new DiplomaSecundariaEty());
         when(diplomaSecundariaRepository.insert(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        service.crear(peticion(1L));
+        service.crear(peticion());
 
         verify(inscripcionSecundariaRepository).insert(any());
         verify(diplomaSecundariaRepository).insert(diplomaCaptor.capture());
@@ -73,37 +73,34 @@ class InscripcionSecundariaServiceImplTest {
 
     @Test
     void crearConDiplomaPrimariaIncompletaLanza409YNoInsertaNada() {
-        DiplomaSecundariaEty nuevoDiploma = new DiplomaSecundariaEty();
-        nuevoDiploma.setDiplomaPrimaria(diplomaPrimariaIncompleto());
-        when(diplomaSecundariaMapper.toEntity(any())).thenReturn(nuevoDiploma);
+        InscripcionSecundariaEty nuevaInscripcion = new InscripcionSecundariaEty();
+        nuevaInscripcion.setDiplomaPrimaria(diplomaPrimariaIncompleto());
+        when(inscripcionSecundariaMapper.toEntity(any())).thenReturn(nuevaInscripcion);
 
-        assertThrows(ReglaDeNegocioException.class, () -> service.crear(peticion(1L)));
+        assertThrows(ReglaDeNegocioException.class, () -> service.crear(peticion()));
 
-        verifyNoInteractions(inscripcionSecundariaRepository);
-        verify(diplomaSecundariaRepository, never()).insert(any());
+        verify(inscripcionSecundariaRepository, never()).insert(any());
+        verifyNoInteractions(diplomaSecundariaRepository);
     }
 
     @Test
     void actualizarConDiplomaPrimariaIncompletaLanza409() {
         InscripcionSecundariaEty existente = new InscripcionSecundariaEty();
-        existente.setId(10L);
-        DiplomaSecundariaEty diploma = new DiplomaSecundariaEty();
-        diploma.setDiplomaPrimaria(diplomaPrimariaIncompleto());
-        existente.setDiplomaSecundaria(diploma);
+        existente.setDiplomaPrimaria(diplomaPrimariaIncompleto());
 
-        when(inscripcionSecundariaRepository.findById(10L)).thenReturn(Optional.of(existente));
+        when(inscripcionSecundariaRepository.findById(new InscripcionSecundariaId(10L))).thenReturn(Optional.of(existente));
 
-        assertThrows(ReglaDeNegocioException.class, () -> service.actualizar(10L, peticion(1L)));
+        assertThrows(ReglaDeNegocioException.class, () -> service.actualizar(10L, peticion()));
 
         verify(inscripcionSecundariaRepository, never()).update(any());
-        verify(diplomaSecundariaRepository, never()).update(any());
+        verifyNoInteractions(diplomaSecundariaRepository);
     }
 
     @Test
     void actualizarInexistenteLanza404YNoGuardaNada() {
-        when(inscripcionSecundariaRepository.findById(99L)).thenReturn(Optional.empty());
+        when(inscripcionSecundariaRepository.findById(new InscripcionSecundariaId(99L))).thenReturn(Optional.empty());
 
-        assertThrows(RecursoNoEncontradoException.class, () -> service.actualizar(99L, peticion(1L)));
+        assertThrows(RecursoNoEncontradoException.class, () -> service.actualizar(99L, peticion()));
 
         verify(inscripcionSecundariaRepository, never()).update(any());
         verifyNoInteractions(diplomaSecundariaRepository);
@@ -132,11 +129,10 @@ class InscripcionSecundariaServiceImplTest {
         return diploma;
     }
 
-    private static InscripcionSecundariaConDiplomaRequestDto peticion(Long diplomaPrimariaId) {
+    private static InscripcionSecundariaConDiplomaRequestDto peticion() {
         InscripcionSecundariaRequestDto inscripcion = new InscripcionSecundariaRequestDto(
-                1L, 1L, 1L, 1L, 1L, 1L, "P", "1", null, java.time.LocalDateTime.now(), null);
-        DiplomaSecundariaRequestDto diploma = new DiplomaSecundariaRequestDto(
-                diplomaPrimariaId, false, false, false, false, false);
+                1L, 1L, 1L, 1L, 1L, 1L, 1L, "P", "1", null, java.time.LocalDateTime.now(), null);
+        DiplomaSecundariaRequestDto diploma = new DiplomaSecundariaRequestDto(false, false, false, false, false);
         return new InscripcionSecundariaConDiplomaRequestDto(inscripcion, diploma);
     }
 }

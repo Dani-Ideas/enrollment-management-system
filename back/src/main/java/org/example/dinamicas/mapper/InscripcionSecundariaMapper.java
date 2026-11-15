@@ -9,24 +9,28 @@ import org.example.estaticos.mapper.MiniFormAmbMapper;
 import org.example.estaticos.mapper.MiniFormEstMapper;
 import org.example.estaticos.mapper.MiniFormRespMapper;
 import org.example.estaticos.mapper.MiniFormSisMapper;
-import org.mapstruct.InheritConfiguration;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
 import org.mapstruct.MappingTarget;
 
-// Mismo esqueleto que InscripcionMapper, nivel Secundaria. "uses" trae DiplomaSecundariaMapper
-// solo para toDtoConDiploma -- toEntity()/actualizarDesde() de esta clase no tocan el diploma
-// (lo maneja InscripcionSecundariaServiceImpl aparte, igual que formacionesComplementarias).
+// Mismo esqueleto que InscripcionMapper, nivel Secundaria -- con una diferencia clave: "id"
+// no es un campo propio (la PK es "diplomaPrimaria", PK compartida con DiplomaPrimariaEty),
+// asi que toDto() lo aplana desde "diplomaPrimaria.id". "diplomaPrimaria" en toEntity() SI se
+// resuelve via "uses" (DiplomaPrimariaMapper.desdeId, mismo mecanismo que los 4 catalogos) --
+// es un campo normal mas en el DTO de entrada, aunque termine siendo la PK de la entidad.
+// En el update, en cambio, se ignora: la PK no se puede re-apuntar una vez creada la fila.
 @Mapper(componentModel = MappingConstants.ComponentModel.CDI,
         uses = {MiniFormEstMapper.class,
                 MiniFormSisMapper.class,
                 MiniFormRespMapper.class,
                 MiniFormAmbMapper.class,
+                DiplomaPrimariaMapper.class,
                 DiplomaSecundariaMapper.class})
 public interface InscripcionSecundariaMapper extends RequestResponseMapper<InscripcionSecundariaEty, InscripcionSecundariaRequestDto, InscripcionSecundariaDto> {
 
     @Override
+    @Mapping(target = "id", source = "diplomaPrimaria.id")
     @Mapping(target = "estado", source = "estado.estado")
     @Mapping(target = "sistema", source = "sistema.nombre")
     @Mapping(target = "jefeCarrera", source = "jefeCarrera.nombreLargo")
@@ -35,14 +39,18 @@ public interface InscripcionSecundariaMapper extends RequestResponseMapper<Inscr
     @Mapping(target = "ambiente", source = "ambiente.nombre")
     InscripcionSecundariaDto toDto(InscripcionSecundariaEty inscripcion);
 
+    // diplomaPrimaria: resuelto automaticamente via "uses" (Long -> DiplomaPrimariaEty), igual
+    // que los 6 catalogos de InscripcionMapper -- MapStruct lo encuentra por tipo, no por
+    // nombre de metodo.
     @Override
     @Mapping(target = "diplomaSecundaria", ignore = true)
     InscripcionSecundariaEty toEntity(InscripcionSecundariaRequestDto dto);
 
-    @InheritConfiguration(name = "toEntity")
+    // Update NO puede tocar "diplomaPrimaria": es la PK compartida, inmutable despues de crear.
+    @Mapping(target = "diplomaPrimaria", ignore = true)
+    @Mapping(target = "diplomaSecundaria", ignore = true)
     void actualizarDesde(@MappingTarget InscripcionSecundariaEty inscripcion, InscripcionSecundariaRequestDto dto);
 
-    // Respuesta de GET/{id}, POST y PUT: la Inscripcion Secundaria aplanada + su diploma.
     @Mapping(target = "inscripcionSecundaria", source = ".")
     InscripcionSecundariaConDiplomaDto toDtoConDiploma(InscripcionSecundariaEty entidad);
 }

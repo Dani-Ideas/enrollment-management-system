@@ -1,12 +1,9 @@
 package org.example.dinamicas.dto;
 
-import jakarta.validation.constraints.NotNull;
-
 import java.io.Serializable;
 
-// "diplomaSecundaria": la FK de encadenamiento contra el nivel anterior.
+// Sin FK propia: la PK compartida la fija InscripcionUniversidadRequestDto.diplomaSecundaria.
 public record DiplomaUniversidadRequestDto(
-        @NotNull Long diplomaSecundaria,
         boolean firmaDecanoFacultad,
         boolean firmaCoordinadorCarrera,
         boolean firmaSecretarioAcademico,

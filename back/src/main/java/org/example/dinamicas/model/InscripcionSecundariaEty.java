@@ -3,14 +3,12 @@ package org.example.dinamicas.model;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.IdClass;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
-import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -23,21 +21,23 @@ import org.example.estaticos.model.MiniFormSisEty;
 
 import java.time.LocalDateTime;
 
-// Nivel "Secundaria" de la cadena Primaria/Secundaria/Universidad -- mismo esqueleto que
-// InscripcionEty (Primaria), tabla y secuencia propias. No reemplaza a InscripcionEty, es
-// paralela: cada nivel tiene su propia Inscripcion y su propio Diploma (ver
-// DiplomaSecundariaEty, que es quien de verdad encadena contra el diploma de Primaria).
+// PK compartida con DiplomaPrimariaEty (@IdClass + @Id sobre el @OneToOne, JPA 3.2 S2.4.1.3
+// "derived identity") -- mismo mecanismo que EntregaEty con DireccionEty. No existe un
+// ID_INSCRIPCION_SECUNDARIA propio: la propia fila ES, por identidad, un diploma de primaria
+// completo (la regla de negocio la valida InscripcionSecundariaServiceImpl al crear). Esto
+// garantiza a nivel de esquema que no puede existir una inscripcion de secundaria sin un
+// diploma de primaria real detras.
 @Getter
 @Setter
 @Entity
+@IdClass(InscripcionSecundariaId.class)
 @Table(name = "INSCRIPCION_SECUNDARIA")
 public class InscripcionSecundariaEty {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "inscripcion_secundaria_seq")
-    @SequenceGenerator(name = "inscripcion_secundaria_seq", sequenceName = "INSCRIPCION_SECUNDARIA_SEQ", allocationSize = 1)
-    @Column(name = "ID_INSCRIPCION_SECUNDARIA")
-    private Long id;
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "ID_DIPLOMA_PRIMARIA", nullable = false)
+    private DiplomaPrimariaEty diplomaPrimaria;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_MINIFORMEST", nullable = false)
@@ -84,8 +84,7 @@ public class InscripcionSecundariaEty {
     @Column(name = "FECHA_IMPLANTACION_REAL")
     private LocalDateTime fechaInscripcionReal;
 
-    // Lado inverso de DiplomaSecundariaEty.inscripcionSecundaria. Sin cascade, solo lectura
-    // -- mismo patron que InscripcionEty.diplomaPrimaria.
+    // Lado inverso de DiplomaSecundariaEty.inscripcionSecundaria. Sin cascade, solo lectura.
     @OneToOne(mappedBy = "inscripcionSecundaria", fetch = FetchType.LAZY)
     private DiplomaSecundariaEty diplomaSecundaria;
 }

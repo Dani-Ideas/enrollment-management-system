@@ -4,11 +4,12 @@ import jakarta.data.repository.CrudRepository;
 import jakarta.data.repository.Query;
 import jakarta.data.repository.Repository;
 import org.example.dinamicas.model.InscripcionUniversidadEty;
+import org.example.dinamicas.model.InscripcionUniversidadId;
 
 import java.util.List;
 
 @Repository
-public interface InscripcionUniversidadRepository extends CrudRepository<InscripcionUniversidadEty, Long> {
+public interface InscripcionUniversidadRepository extends CrudRepository<InscripcionUniversidadEty, InscripcionUniversidadId> {
 
     @Query("""
             SELECT i FROM InscripcionUniversidadEty i
@@ -18,6 +19,6 @@ public interface InscripcionUniversidadRepository extends CrudRepository<Inscrip
             JOIN FETCH i.maestro
             JOIN FETCH i.carrera
             JOIN FETCH i.ambiente
-            ORDER BY i.id""")
+            ORDER BY i.diplomaSecundaria.inscripcionSecundaria.diplomaPrimaria.id""")
     List<InscripcionUniversidadEty> listarConCatalogos();
 }

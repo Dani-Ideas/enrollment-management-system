@@ -8,8 +8,11 @@ import org.example.dinamicas.dto.InscripcionUniversidadRequestDto;
 import org.example.dinamicas.mapper.DiplomaUniversidadMapper;
 import org.example.dinamicas.mapper.InscripcionUniversidadMapper;
 import org.example.dinamicas.model.DiplomaSecundariaEty;
+import org.example.dinamicas.model.DiplomaSecundariaId;
 import org.example.dinamicas.model.DiplomaUniversidadEty;
+import org.example.dinamicas.model.InscripcionSecundariaId;
 import org.example.dinamicas.model.InscripcionUniversidadEty;
+import org.example.dinamicas.model.InscripcionUniversidadId;
 import org.example.dinamicas.repository.DiplomaUniversidadRepository;
 import org.example.dinamicas.repository.InscripcionUniversidadRepository;
 import org.junit.jupiter.api.Test;
@@ -31,7 +34,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 // Mismo patron que InscripcionSecundariaServiceImplTest, un nivel arriba: la regla de negocio
-// valida contra DiplomaSecundariaEty en vez de DiplomaPrimariaEty.
+// valida contra DiplomaSecundariaEty, resuelto por inscripcionUniversidadMapper.toEntity().
 @ExtendWith(MockitoExtension.class)
 class InscripcionUniversidadServiceImplTest {
 
@@ -52,17 +55,16 @@ class InscripcionUniversidadServiceImplTest {
 
     @Test
     void crearConDiplomaSecundariaCompletaCreaInscripcionYDiploma() {
-        DiplomaUniversidadEty nuevoDiploma = new DiplomaUniversidadEty();
-        nuevoDiploma.setDiplomaSecundaria(diplomaSecundariaCompleto());
-        when(diplomaUniversidadMapper.toEntity(any())).thenReturn(nuevoDiploma);
+        InscripcionUniversidadEty nuevaInscripcion = new InscripcionUniversidadEty();
+        nuevaInscripcion.setDiplomaSecundaria(diplomaSecundariaCompleto());
+        when(inscripcionUniversidadMapper.toEntity(any())).thenReturn(nuevaInscripcion);
 
-        InscripcionUniversidadEty creada = new InscripcionUniversidadEty();
-        creada.setId(30L);
-        when(inscripcionUniversidadMapper.toEntity(any())).thenReturn(new InscripcionUniversidadEty());
+        InscripcionUniversidadEty creada = nuevaInscripcion;
         when(inscripcionUniversidadRepository.insert(any())).thenReturn(creada);
+        when(diplomaUniversidadMapper.toEntity(any())).thenReturn(new DiplomaUniversidadEty());
         when(diplomaUniversidadRepository.insert(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        service.crear(peticion(1L));
+        service.crear(peticion());
 
         verify(inscripcionUniversidadRepository).insert(any());
         verify(diplomaUniversidadRepository).insert(diplomaCaptor.capture());
@@ -71,37 +73,36 @@ class InscripcionUniversidadServiceImplTest {
 
     @Test
     void crearConDiplomaSecundariaIncompletaLanza409YNoInsertaNada() {
-        DiplomaUniversidadEty nuevoDiploma = new DiplomaUniversidadEty();
-        nuevoDiploma.setDiplomaSecundaria(diplomaSecundariaIncompleto());
-        when(diplomaUniversidadMapper.toEntity(any())).thenReturn(nuevoDiploma);
+        InscripcionUniversidadEty nuevaInscripcion = new InscripcionUniversidadEty();
+        nuevaInscripcion.setDiplomaSecundaria(diplomaSecundariaIncompleto());
+        when(inscripcionUniversidadMapper.toEntity(any())).thenReturn(nuevaInscripcion);
 
-        assertThrows(ReglaDeNegocioException.class, () -> service.crear(peticion(1L)));
+        assertThrows(ReglaDeNegocioException.class, () -> service.crear(peticion()));
 
-        verifyNoInteractions(inscripcionUniversidadRepository);
-        verify(diplomaUniversidadRepository, never()).insert(any());
+        verify(inscripcionUniversidadRepository, never()).insert(any());
+        verifyNoInteractions(diplomaUniversidadRepository);
     }
 
     @Test
     void actualizarConDiplomaSecundariaIncompletaLanza409() {
         InscripcionUniversidadEty existente = new InscripcionUniversidadEty();
-        existente.setId(10L);
-        DiplomaUniversidadEty diploma = new DiplomaUniversidadEty();
-        diploma.setDiplomaSecundaria(diplomaSecundariaIncompleto());
-        existente.setDiplomaUniversidad(diploma);
+        existente.setDiplomaSecundaria(diplomaSecundariaIncompleto());
 
-        when(inscripcionUniversidadRepository.findById(10L)).thenReturn(Optional.of(existente));
+        InscripcionUniversidadId id = new InscripcionUniversidadId(new DiplomaSecundariaId(new InscripcionSecundariaId(10L)));
+        when(inscripcionUniversidadRepository.findById(id)).thenReturn(Optional.of(existente));
 
-        assertThrows(ReglaDeNegocioException.class, () -> service.actualizar(10L, peticion(1L)));
+        assertThrows(ReglaDeNegocioException.class, () -> service.actualizar(10L, peticion()));
 
         verify(inscripcionUniversidadRepository, never()).update(any());
-        verify(diplomaUniversidadRepository, never()).update(any());
+        verifyNoInteractions(diplomaUniversidadRepository);
     }
 
     @Test
     void actualizarInexistenteLanza404YNoGuardaNada() {
-        when(inscripcionUniversidadRepository.findById(99L)).thenReturn(Optional.empty());
+        InscripcionUniversidadId id = new InscripcionUniversidadId(new DiplomaSecundariaId(new InscripcionSecundariaId(99L)));
+        when(inscripcionUniversidadRepository.findById(id)).thenReturn(Optional.empty());
 
-        assertThrows(RecursoNoEncontradoException.class, () -> service.actualizar(99L, peticion(1L)));
+        assertThrows(RecursoNoEncontradoException.class, () -> service.actualizar(99L, peticion()));
 
         verify(inscripcionUniversidadRepository, never()).update(any());
         verifyNoInteractions(diplomaUniversidadRepository);
@@ -111,7 +112,6 @@ class InscripcionUniversidadServiceImplTest {
 
     private static DiplomaSecundariaEty diplomaSecundariaCompleto() {
         DiplomaSecundariaEty diploma = new DiplomaSecundariaEty();
-        diploma.setId(1L);
         diploma.setFirmaMaestroPrimerGrado(true);
         diploma.setFirmaMaestroSegundoGrado(true);
         diploma.setFirmaMaestroTercerGrado(true);
@@ -128,11 +128,10 @@ class InscripcionUniversidadServiceImplTest {
         return diploma;
     }
 
-    private static InscripcionUniversidadConDiplomaRequestDto peticion(Long diplomaSecundariaId) {
+    private static InscripcionUniversidadConDiplomaRequestDto peticion() {
         InscripcionUniversidadRequestDto inscripcion = new InscripcionUniversidadRequestDto(
-                1L, 1L, 1L, 1L, 1L, 1L, "P", "1", null, java.time.LocalDateTime.now(), null);
-        DiplomaUniversidadRequestDto diploma = new DiplomaUniversidadRequestDto(
-                diplomaSecundariaId, false, false, false, false);
+                1L, 1L, 1L, 1L, 1L, 1L, 1L, "P", "1", null, java.time.LocalDateTime.now(), null);
+        DiplomaUniversidadRequestDto diploma = new DiplomaUniversidadRequestDto(false, false, false, false);
         return new InscripcionUniversidadConDiplomaRequestDto(inscripcion, diploma);
     }
 }

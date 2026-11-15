@@ -3,14 +3,12 @@ package org.example.dinamicas.model;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.IdClass;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
-import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -23,18 +21,19 @@ import org.example.estaticos.model.MiniFormSisEty;
 
 import java.time.LocalDateTime;
 
-// Nivel "Universidad" de la cadena -- mismo esqueleto que InscripcionSecundariaEty.
+// PK compartida con DiplomaSecundariaEty -- mismo mecanismo que InscripcionSecundariaEty con
+// DiplomaPrimariaEty, un nivel arriba.
 @Getter
 @Setter
 @Entity
+@IdClass(InscripcionUniversidadId.class)
 @Table(name = "INSCRIPCION_UNIVERSIDAD")
 public class InscripcionUniversidadEty {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "inscripcion_universidad_seq")
-    @SequenceGenerator(name = "inscripcion_universidad_seq", sequenceName = "INSCRIPCION_UNIVERSIDAD_SEQ", allocationSize = 1)
-    @Column(name = "ID_INSCRIPCION_UNIVERSIDAD")
-    private Long id;
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "ID_DIPLOMA_PRIMARIA", nullable = false)
+    private DiplomaSecundariaEty diplomaSecundaria;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_MINIFORMEST", nullable = false)

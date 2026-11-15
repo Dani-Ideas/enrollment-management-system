@@ -1,21 +1,18 @@
 package org.example.dinamicas.ejb;
 
-import jakarta.data.repository.CrudRepository;
 import jakarta.ejb.Stateless;
 import jakarta.inject.Inject;
-import org.example.comun.CrudServiceBase;
 import org.example.comun.RecursoNoEncontradoException;
 import org.example.comun.ReglaDeNegocioException;
-import org.example.comun.RequestResponseMapper;
 import org.example.dinamicas.dto.InscripcionSecundariaConDiplomaDto;
 import org.example.dinamicas.dto.InscripcionSecundariaConDiplomaRequestDto;
 import org.example.dinamicas.dto.InscripcionSecundariaDto;
-import org.example.dinamicas.dto.InscripcionSecundariaRequestDto;
 import org.example.dinamicas.mapper.DiplomaSecundariaMapper;
 import org.example.dinamicas.mapper.InscripcionSecundariaMapper;
 import org.example.dinamicas.model.DiplomaPrimariaEty;
 import org.example.dinamicas.model.DiplomaSecundariaEty;
 import org.example.dinamicas.model.InscripcionSecundariaEty;
+import org.example.dinamicas.model.InscripcionSecundariaId;
 import org.example.dinamicas.repository.DiplomaSecundariaRepository;
 import org.example.dinamicas.repository.InscripcionSecundariaRepository;
 import org.example.dinamicas.service.InscripcionSecundariaService;
@@ -23,15 +20,14 @@ import org.example.dinamicas.service.InscripcionSecundariaService;
 import java.time.LocalDateTime;
 import java.util.List;
 
-// InscripcionSecundariaEty es una entidad nueva, paralela a InscripcionEty (Primaria) --
-// a diferencia de DiplomaPrimariaServiceImpl (standalone), este service SI maneja un wrapper
-// compuesto (inscripcion + diploma), igual patron que InscripcionServiceImpl con sus
-// formacionesComplementarias, salvo que aca el diploma es obligatorio y 1:1, no una lista
-// opcional.
+// InscripcionSecundariaEty tiene PK compartida (con DiplomaPrimariaEty, via
+// InscripcionSecundariaId) -- no encaja en CrudServiceBase<E,K,...> (pensado para un id Long
+// plano, ver DireccionServiceImpl/CatalogoGeograficoServiceImpl para el mismo precedente de
+// "servicio que no entra en el molde"). El Long que ve el cliente (URL, DTOs) es siempre el
+// mismo valor de linaje; esta clase es la unica que sabe envolverlo/desenvolverlo contra la
+// PK compuesta real antes de hablar con el Repository.
 @Stateless
-public class InscripcionSecundariaServiceImpl
-        extends CrudServiceBase<InscripcionSecundariaEty, Long, InscripcionSecundariaRequestDto, InscripcionSecundariaDto>
-        implements InscripcionSecundariaService {
+public class InscripcionSecundariaServiceImpl implements InscripcionSecundariaService {
 
     @Inject
     private InscripcionSecundariaRepository inscripcionSecundariaRepository;
@@ -46,23 +42,13 @@ public class InscripcionSecundariaServiceImpl
     private DiplomaSecundariaMapper diplomaSecundariaMapper;
 
     @Override
-    protected CrudRepository<InscripcionSecundariaEty, Long> repository() {
-        return inscripcionSecundariaRepository;
-    }
-
-    @Override
-    protected RequestResponseMapper<InscripcionSecundariaEty, InscripcionSecundariaRequestDto, InscripcionSecundariaDto> mapper() {
-        return inscripcionSecundariaMapper;
-    }
-
-    @Override
-    protected String mensajeNoEncontrado(Long id) {
-        return "No existe la inscripción de secundaria " + id;
-    }
-
-    @Override
     public List<InscripcionSecundariaDto> listar() {
         return inscripcionSecundariaMapper.toDto(inscripcionSecundariaRepository.listarConCatalogos());
+    }
+
+    @Override
+    public InscripcionSecundariaDto buscarPorId(Long id) {
+        return inscripcionSecundariaMapper.toDto(obtener(id));
     }
 
     @Override
@@ -72,15 +58,14 @@ public class InscripcionSecundariaServiceImpl
 
     @Override
     public InscripcionSecundariaConDiplomaDto crear(InscripcionSecundariaConDiplomaRequestDto dto) {
-        // El diploma se mapea PRIMERO: toEntity() ya resuelve "diplomaPrimaria" (422 si el id
-        // no existe) y la regla de negocio se valida ANTES de insertar nada -- si el diploma
-        // de primaria referenciado no esta completo, no queda ninguna fila huerfana.
+        // toEntity() ya resuelve "diplomaPrimaria" (422 si el id no existe) -- esta ES la PK
+        // compartida de la fila nueva. La regla de negocio se valida ANTES de insertar nada.
+        InscripcionSecundariaEty nuevaInscripcion = inscripcionSecundariaMapper.toEntity(dto.inscripcionSecundaria());
+        validarDiplomaPrimariaCompleto(nuevaInscripcion.getDiplomaPrimaria());
+
+        InscripcionSecundariaEty creada = inscripcionSecundariaRepository.insert(nuevaInscripcion);
+
         DiplomaSecundariaEty nuevoDiploma = diplomaSecundariaMapper.toEntity(dto.diplomaSecundaria());
-        validarDiplomaPrimariaCompleto(nuevoDiploma.getDiplomaPrimaria());
-
-        InscripcionSecundariaEty creada = inscripcionSecundariaRepository.insert(
-                inscripcionSecundariaMapper.toEntity(dto.inscripcionSecundaria()));
-
         nuevoDiploma.setInscripcionSecundaria(creada);
         recomputarEmitido(nuevoDiploma);
         DiplomaSecundariaEty diplomaCreado = diplomaSecundariaRepository.insert(nuevoDiploma);
@@ -92,27 +77,29 @@ public class InscripcionSecundariaServiceImpl
 
     @Override
     public InscripcionSecundariaConDiplomaDto actualizar(Long id, InscripcionSecundariaConDiplomaRequestDto dto) {
-        InscripcionSecundariaEty inscripcion = obtener(id);
+        InscripcionSecundariaEty existente = obtener(id);
+        // diplomaPrimaria es la PK compartida: no se puede re-apuntar en un update.
+        validarDiplomaPrimariaCompleto(existente.getDiplomaPrimaria());
 
-        DiplomaSecundariaEty diploma = inscripcion.getDiplomaSecundaria();
+        inscripcionSecundariaMapper.actualizarDesde(existente, dto.inscripcionSecundaria());
+        InscripcionSecundariaEty actualizada = inscripcionSecundariaRepository.update(existente);
+
+        DiplomaSecundariaEty diploma = actualizada.getDiplomaSecundaria();
         if (diploma == null) {
             throw new RecursoNoEncontradoException("La inscripción de secundaria " + id + " no tiene diploma creado");
         }
-
-        // actualizarDesde() re-resuelve "diplomaPrimaria" por si cambio -- la regla se valida
-        // ANTES de guardar nada, igual que en crear().
         diplomaSecundariaMapper.actualizarDesde(diploma, dto.diplomaSecundaria());
-        validarDiplomaPrimariaCompleto(diploma.getDiplomaPrimaria());
-
-        inscripcionSecundariaMapper.actualizarDesde(inscripcion, dto.inscripcionSecundaria());
-        InscripcionSecundariaEty actualizada = inscripcionSecundariaRepository.update(inscripcion);
-
         recomputarEmitido(diploma);
         DiplomaSecundariaEty diplomaActualizado = diplomaSecundariaRepository.update(diploma);
 
         return new InscripcionSecundariaConDiplomaDto(
                 inscripcionSecundariaMapper.toDto(actualizada),
                 diplomaSecundariaMapper.toDto(diplomaActualizado));
+    }
+
+    private InscripcionSecundariaEty obtener(Long id) {
+        return inscripcionSecundariaRepository.findById(new InscripcionSecundariaId(id))
+                .orElseThrow(() -> new RecursoNoEncontradoException("No existe la inscripción de secundaria " + id));
     }
 
     private void validarDiplomaPrimariaCompleto(DiplomaPrimariaEty diploma) {

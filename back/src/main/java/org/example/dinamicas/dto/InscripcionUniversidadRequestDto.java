@@ -6,7 +6,10 @@ import jakarta.validation.constraints.Size;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
+// "diplomaSecundaria": el id (de linaje) del diploma de secundaria que esta inscripcion de
+// universidad pasa a compartir como PK -- inmutable una vez creada.
 public record InscripcionUniversidadRequestDto(
+        @NotNull Long diplomaSecundaria,
         @NotNull Long estado,
         @NotNull Long sistema,
         @NotNull Long jefeCarrera,

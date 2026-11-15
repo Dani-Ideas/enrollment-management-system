@@ -3,46 +3,33 @@ package org.example.dinamicas.model;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.IdClass;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
-import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
 
-// 1:1 con InscripcionSecundariaEty (ID_INSCRIPCION_SECUNDARIA), igual que DiplomaPrimariaEty
-// con InscripcionEty. "diplomaPrimaria" es la FK de encadenamiento: no se puede inscribir en
-// secundaria sin un diploma de primaria completo (la regla la valida
-// InscripcionSecundariaServiceImpl, no esta entidad).
-//
+// PK compartida con InscripcionSecundariaEty (que a su vez comparte la suya con
+// DiplomaPrimariaEty) -- ya no hace falta una FK propia "diplomaPrimaria": la cadena completa
+// (diploma_primaria -> inscripcion_secundaria -> diploma_secundaria) es, a nivel de valor, UN
+// SOLO id compartido via PK encadenada (ver InscripcionSecundariaId/DiplomaSecundariaId).
 // Nombres de firma son un placeholder razonable (el usuario no detallo los roles exactos de
-// secundaria, solo dijo "el mismo modelo" que primaria) -- renombrar columnas aca es un
-// cambio de una linea, no estructural.
+// secundaria, solo dijo "el mismo modelo" que primaria).
 @Getter
 @Setter
 @Entity
+@IdClass(DiplomaSecundariaId.class)
 @Table(name = "DIPLOMA_SECUNDARIA")
 public class DiplomaSecundariaEty {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "diploma_secundaria_seq")
-    @SequenceGenerator(name = "diploma_secundaria_seq", sequenceName = "DIPLOMA_SECUNDARIA_SEQ", allocationSize = 1)
-    @Column(name = "ID_DIPLOMA_SECUNDARIA")
-    private Long id;
-
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ID_INSCRIPCION_SECUNDARIA", nullable = false, unique = true)
-    private InscripcionSecundariaEty inscripcionSecundaria;
-
-    @ManyToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "ID_DIPLOMA_PRIMARIA", nullable = false)
-    private DiplomaPrimariaEty diplomaPrimaria;
+    private InscripcionSecundariaEty inscripcionSecundaria;
 
     @Column(name = "FIRMA_MAESTRO_1ER_GRADO", nullable = false)
     private boolean firmaMaestroPrimerGrado = false;
