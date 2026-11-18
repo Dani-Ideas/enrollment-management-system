@@ -64,12 +64,26 @@ export function aInputDatetime(iso: string | null): string {
 // Universidad -> Diploma Universidad, en UNA sola peticion (POST /inscripciones/{id}/
 // cadena-diplomas) recien cuando el usuario elige "Finalizar y enviar" en CUALQUIER
 // Confirmacion de la cadena (3/5/7/9/11) -- el front no valida la dependencia entre
-// niveles, eso lo hace el back y responde 409 si no corresponde. "actualizar" todavia no
-// tiene su propia cadena (eso sigue en los 3 pasos viejos).
+// niveles, eso lo hace el back y responde 409 si no corresponde.
+//
+// "actualizar" en cambio NO tiene Confirmaciones intermedias (pasos 2-6 son navegacion
+// local libre) y su cadena se manda entera recien en la Confirmacion final (paso 7, PUT
+// /inscripciones/{id}/cadena-diplomas -- upsert, ver construirCadenaDtoActualizar).
 export function etiquetaPaso(accion: Accion | null, indice: number): string {
   if (accion === "lista") return indice === 0 ? "Lista de solicitudes" : ""
   if (accion === "actualizar") {
-    return { 0: "Elegir solicitud", 1: "Editar campos", 2: "Confirmación" }[indice] ?? ""
+    return (
+      {
+        0: "Elegir solicitud",
+        1: "Datos de la inscripción primaria",
+        2: "Datos del diploma primaria",
+        3: "Datos de la inscripción secundaria",
+        4: "Datos del diploma secundaria",
+        5: "Datos de la inscripción universidad",
+        6: "Datos del diploma universidad",
+        7: "Confirmación",
+      }[indice] ?? ""
+    )
   }
   if (accion === "crear") {
     return (
@@ -94,7 +108,7 @@ export function etiquetaPaso(accion: Accion | null, indice: number): string {
 
 export function totalPasos(accion: Accion | null): number {
   if (accion === "lista") return 1
-  if (accion === "actualizar") return 3
+  if (accion === "actualizar") return 8
   if (accion === "crear") return 12
   return 0
 }

@@ -12,7 +12,6 @@ import {
   CampoSelect,
   CampoVistaDetalle,
   DetalleInscripcion,
-  FormacionesComplementariasEditor,
   PasosNavegacion,
   ResumenCadena,
   ResumenFirmas,
@@ -25,7 +24,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
-import { FieldGroup, FieldSet } from "@/components/ui/field"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Spinner } from "@/components/ui/spinner"
 import { useMediaQuery } from "@/hooks/useMediaQuery"
@@ -123,6 +121,8 @@ export function FormularioInscripciones() {
     cadenaDiplomasMutation,
     enviarCadena,
     continuarCadena,
+    actualizarCadenaMutation,
+    guardarCadena,
     seccionesResumen,
     listaIdInput,
     setListaIdInput,
@@ -383,81 +383,69 @@ export function FormularioInscripciones() {
                     </div>
                   ) : (
                     <>
-                      <FieldGroup>
-                        <FieldSet>
-                          <CampoCatalogo
-                            form={form}
-                            idPrefix="pago-tf-edit"
-                            estadosQuery={estadosQuery}
-                            sistemasQuery={sistemasQuery}
-                            ambientesQuery={ambientesQuery}
-                            mostrarPlaceholder={false}
-                          />
-                          <CampoResponsables
-                            form={form}
-                            idPrefix="pago-tf-edit"
-                            responsablesQuery={responsablesQuery}
-                            mostrarPlaceholder={false}
-                          />
-                          <CampoDatosProyecto form={form} idPrefix="pago-tf-edit" mostrarEjemplos={false} />
-
-                          <FormacionesComplementariasEditor
-                            items={formacionesEditables}
-                            onAgregar={agregarFormacionComplementariaEditable}
-                            onCambiar={cambiarFormacionComplementariaEditable}
-                            onQuitar={quitarFormacionComplementariaEditable}
-                            descripcionAyuda="Lista 1:N ligada a esta solicitud -- podés agregar filas nuevas, borrar las que ya no hagan falta, o editar el texto de las existentes."
-                          />
-
-                          <Button
-                            onClick={guardarCambios}
-                            disabled={!hayAlgoQueGuardar || !formularioCompleto || actualizarInscripcionMutation.isPending}
-                            className="w-fit"
-                          >
-                            Guardar cambios
-                          </Button>
-                          {!hayAlgoQueGuardar && (
-                            <p className="text-xs text-muted-foreground">
-                              No se detectó ningún cambio todavía -- modificá algún campo o
-                              alguna formación complementaria para poder guardar.
-                            </p>
-                          )}
-                          {actualizarInscripcionMutation.isError && (
-                            <Alert variant="destructive">
-                              <TriangleAlertIcon />
-                              <AlertTitle>No se pudo guardar el cambio</AlertTitle>
-                              <AlertDescription>
-                                {(actualizarInscripcionMutation.error as Error).message}
-                              </AlertDescription>
-                            </Alert>
-                          )}
-                        </FieldSet>
-                      </FieldGroup>
+                      <CamposInscripcionCompletos
+                        form={form}
+                        idPrefix="pago-tf-edit"
+                        estadosQuery={estadosQuery}
+                        sistemasQuery={sistemasQuery}
+                        responsablesQuery={responsablesQuery}
+                        ambientesQuery={ambientesQuery}
+                        mostrarPlaceholder={false}
+                        mostrarEjemplos={false}
+                        formaciones={formacionesEditables}
+                        onAgregarFormacion={agregarFormacionComplementariaEditable}
+                        onCambiarFormacion={cambiarFormacionComplementariaEditable}
+                        onQuitarFormacion={quitarFormacionComplementariaEditable}
+                        descripcionAyudaFormaciones="Lista 1:N ligada a esta solicitud -- podés agregar filas nuevas, borrar las que ya no hagan falta, o editar el texto de las existentes."
+                        catalogoCompleto={catalogoCompleto}
+                        responsablesCompletos={responsablesCompletos}
+                        datosProyectoCompletos={datosProyectoCompletos}
+                        etiquetaAccion="Guardar cambios"
+                        onAccion={guardarCambios}
+                        deshabilitarAccion={!hayAlgoQueGuardar || actualizarInscripcionMutation.isPending}
+                      />
+                      {!hayAlgoQueGuardar && (
+                        <p className="text-xs text-muted-foreground">
+                          No se detectó ningún cambio todavía -- modificá algún campo o
+                          alguna formación complementaria para poder guardar.
+                        </p>
+                      )}
+                      {actualizarInscripcionMutation.isError && (
+                        <Alert variant="destructive">
+                          <TriangleAlertIcon />
+                          <AlertTitle>No se pudo guardar el cambio</AlertTitle>
+                          <AlertDescription>
+                            {(actualizarInscripcionMutation.error as Error).message}
+                          </AlertDescription>
+                        </Alert>
+                      )}
                     </>
                   )}
                 </div>
               )}
             </CarouselItem>
 
-            {/* --- Paso 2: Confirmación final en "actualizar" (todavía sin su propia cadena,
-                ver paso 5) / Datos del diploma primaria en "crear" --- */}
+            {/* --- Paso 2: Datos del diploma primaria --- */}
             <CarouselItem className="overflow-y-auto">
               {accion === "actualizar" && (
                 <div className="space-y-4">
-                  {guardadoConfirmado && buscarInscripcionMutation.data ? (
-                    <>
-                      <Alert>
-                        <CheckCircle2Icon />
-                        <AlertTitle>Solicitud #{solicitudIdActual} actualizada</AlertTitle>
-                      </Alert>
-                      <DetalleInscripcion inscripcion={buscarInscripcionMutation.data.inscripcion} />
-                      <Button onClick={actualizarOtra} className="w-fit">
-                        Actualizar otra solicitud
-                      </Button>
-                    </>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">Todavía no guardaste ningún cambio.</p>
+                  <h3 className="text-sm font-medium">Diploma de primaria</h3>
+                  {guardadoConfirmado && (
+                    <p className="text-xs text-muted-foreground">Los datos base ya se guardaron.</p>
                   )}
+                  <p className="text-xs text-muted-foreground">
+                    Opcional: marcá las firmas que ya tengas. El resto de la cadena recién
+                    se guarda en la Confirmación final.
+                  </p>
+                  <CampoFirmas
+                    idPrefix="actualizar-dp"
+                    items={FIRMAS_DIPLOMA_PRIMARIA}
+                    valores={diplomaPrimariaFirmas}
+                    onCambiar={cambiarFirmaDiplomaPrimaria}
+                  />
+                  <Button onClick={() => continuarCadena(3)} className="w-fit">
+                    Siguiente
+                  </Button>
                 </div>
               )}
 
@@ -497,6 +485,32 @@ export function FormularioInscripciones() {
                   />
                 </div>
               )}
+
+              {accion === "actualizar" && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Inscripción de secundaria</h3>
+                  <CampoCatalogo
+                    form={formInscripcionSecundaria}
+                    idPrefix="actualizar-is"
+                    estadosQuery={estadosQuery}
+                    sistemasQuery={sistemasQuery}
+                    ambientesQuery={ambientesQuery}
+                  />
+                  <CampoResponsables
+                    form={formInscripcionSecundaria}
+                    idPrefix="actualizar-is"
+                    responsablesQuery={responsablesQuery}
+                  />
+                  <CampoDatosProyecto form={formInscripcionSecundaria} idPrefix="actualizar-is" />
+                  <Button
+                    onClick={() => continuarCadena(4)}
+                    disabled={!inscripcionSecundariaCompleta}
+                    className="w-fit"
+                  >
+                    Siguiente
+                  </Button>
+                </div>
+              )}
             </CarouselItem>
 
             {/* --- Paso 4: Datos de la inscripción secundaria --- */}
@@ -526,6 +540,21 @@ export function FormularioInscripciones() {
                   </Button>
                 </div>
               )}
+
+              {accion === "actualizar" && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Diploma de secundaria</h3>
+                  <CampoFirmas
+                    idPrefix="actualizar-ds"
+                    items={FIRMAS_DIPLOMA_SECUNDARIA}
+                    valores={diplomaSecundariaFirmas}
+                    onCambiar={cambiarFirmaDiplomaSecundaria}
+                  />
+                  <Button onClick={() => continuarCadena(5)} className="w-fit">
+                    Siguiente
+                  </Button>
+                </div>
+              )}
             </CarouselItem>
 
             {/* --- Paso 5: Confirmación (inscripción secundaria) --- */}
@@ -542,6 +571,32 @@ export function FormularioInscripciones() {
                     onEnviar={enviarCadena}
                     onContinuar={continuarCadena}
                   />
+                </div>
+              )}
+
+              {accion === "actualizar" && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Inscripción de universidad</h3>
+                  <CampoCatalogo
+                    form={formInscripcionUniversidad}
+                    idPrefix="actualizar-iu"
+                    estadosQuery={estadosQuery}
+                    sistemasQuery={sistemasQuery}
+                    ambientesQuery={ambientesQuery}
+                  />
+                  <CampoResponsables
+                    form={formInscripcionUniversidad}
+                    idPrefix="actualizar-iu"
+                    responsablesQuery={responsablesQuery}
+                  />
+                  <CampoDatosProyecto form={formInscripcionUniversidad} idPrefix="actualizar-iu" />
+                  <Button
+                    onClick={() => continuarCadena(6)}
+                    disabled={!inscripcionUniversidadCompleta}
+                    className="w-fit"
+                  >
+                    Siguiente
+                  </Button>
                 </div>
               )}
             </CarouselItem>
@@ -562,9 +617,27 @@ export function FormularioInscripciones() {
                   </Button>
                 </div>
               )}
+
+              {accion === "actualizar" && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Diploma de universidad</h3>
+                  <CampoFirmas
+                    idPrefix="actualizar-du"
+                    items={FIRMAS_DIPLOMA_UNIVERSIDAD}
+                    valores={diplomaUniversidadFirmas}
+                    onCambiar={cambiarFirmaDiplomaUniversidad}
+                  />
+                  <Button onClick={() => continuarCadena(7)} className="w-fit">
+                    Siguiente
+                  </Button>
+                </div>
+              )}
             </CarouselItem>
 
-            {/* --- Paso 7: Confirmación (diploma secundaria) --- */}
+            {/* --- Paso 7: Confirmación (diploma secundaria) en "crear" / Confirmación final
+                en "actualizar" -- unico lugar que envia el PUT de la cadena (upsert), sin
+                importar que niveles tengan datos de verdad (ver construirCadenaDtoActualizar
+                en useInscripcionForm). --- */}
             <CarouselItem className="overflow-y-auto">
               {accion === "crear" && (
                 <div className="space-y-4">
@@ -578,6 +651,87 @@ export function FormularioInscripciones() {
                     onEnviar={enviarCadena}
                     onContinuar={continuarCadena}
                   />
+                </div>
+              )}
+
+              {accion === "actualizar" && (
+                <div className="space-y-4">
+                  {actualizarCadenaMutation.isSuccess ? (
+                    <>
+                      <Alert>
+                        <CheckCircle2Icon />
+                        <AlertTitle>Solicitud #{solicitudIdActual} actualizada</AlertTitle>
+                      </Alert>
+                      <ul className="space-y-1 text-sm">
+                        {actualizarCadenaMutation.data.diplomaPrimaria && (
+                          <li>
+                            Diploma de primaria #{actualizarCadenaMutation.data.diplomaPrimaria.id} --{" "}
+                            {actualizarCadenaMutation.data.diplomaPrimaria.emitido ? "emitido" : "pendiente de firmas"}
+                          </li>
+                        )}
+                        {actualizarCadenaMutation.data.inscripcionSecundaria && (
+                          <li>Inscripción de secundaria guardada.</li>
+                        )}
+                        {actualizarCadenaMutation.data.diplomaSecundaria && (
+                          <li>
+                            Diploma de secundaria #{actualizarCadenaMutation.data.diplomaSecundaria.id} --{" "}
+                            {actualizarCadenaMutation.data.diplomaSecundaria.emitido ? "emitido" : "pendiente de firmas"}
+                          </li>
+                        )}
+                        {actualizarCadenaMutation.data.inscripcionUniversidad && (
+                          <li>Inscripción de universidad guardada.</li>
+                        )}
+                        {actualizarCadenaMutation.data.diplomaUniversidad && (
+                          <li>
+                            Diploma de universidad #{actualizarCadenaMutation.data.diplomaUniversidad.id} --{" "}
+                            {actualizarCadenaMutation.data.diplomaUniversidad.emitido ? "emitido" : "pendiente de firmas"}
+                          </li>
+                        )}
+                      </ul>
+                      <Button onClick={actualizarOtra} className="w-fit">
+                        Actualizar otra solicitud
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <h3 className="text-sm font-medium">Confirmación</h3>
+                      <p className="text-xs text-muted-foreground">
+                        Se guarda todo lo llenado en los pasos anteriores (lo que ya existía
+                        se actualiza, lo nuevo se crea) en una sola petición.
+                      </p>
+                      <div className="space-y-3 text-sm">
+                        <div>
+                          <p className="font-medium">Diploma de primaria</p>
+                          <ResumenFirmas items={FIRMAS_DIPLOMA_PRIMARIA} valores={diplomaPrimariaFirmas} />
+                        </div>
+                        <div>
+                          <p className="font-medium">Diploma de secundaria</p>
+                          <ResumenFirmas items={FIRMAS_DIPLOMA_SECUNDARIA} valores={diplomaSecundariaFirmas} />
+                        </div>
+                        <div>
+                          <p className="font-medium">Diploma de universidad</p>
+                          <ResumenFirmas items={FIRMAS_DIPLOMA_UNIVERSIDAD} valores={diplomaUniversidadFirmas} />
+                        </div>
+                      </div>
+                      <Button
+                        onClick={guardarCadena}
+                        disabled={actualizarCadenaMutation.isPending}
+                        className="w-fit"
+                      >
+                        {actualizarCadenaMutation.isPending && <Spinner />}
+                        Guardar
+                      </Button>
+                      {actualizarCadenaMutation.isError && (
+                        <Alert variant="destructive">
+                          <TriangleAlertIcon />
+                          <AlertTitle>No se pudo guardar la cadena</AlertTitle>
+                          <AlertDescription>
+                            {(actualizarCadenaMutation.error as Error).message}
+                          </AlertDescription>
+                        </Alert>
+                      )}
+                    </>
+                  )}
                 </div>
               )}
             </CarouselItem>

@@ -9,7 +9,7 @@ import { Toaster } from "@/components/ui/toast";
 // nunca "parpadea" al cambiar de pagina, solo el contenido de <Outlet/> cambia.
 //
 // Sin <nav> a proposito: la navegacion entre paginas vive en HomePage (la lista de
-// botones + el PieMenu), no en un menu fijo arriba -- para volver a "/" desde cualquier
+// botones + el DrillMenu), no en un menu fijo arriba -- para volver a "/" desde cualquier
 // pagina, usa el boton "atras" del navegador o escribe la URL.
 export function RootLayout() {
   const queryClient = useQueryClient();

@@ -2,12 +2,16 @@ import { useEffect, useRef, useState } from "react"
 import { useForm, useStore } from "@tanstack/react-form"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
+  actualizarCadenaDiplomas,
   actualizarInscripcion,
   CATALOGOS_INSCRIPCION_QUERY,
   crearCadenaDiplomas,
   crearInscripcion,
+  fetchDiplomaPrimaria,
   fetchInscripcion,
   fetchInscripciones,
+  fetchInscripcionSecundaria,
+  fetchInscripcionUniversidad,
 } from "@/api/client"
 import type {
   CadenaDiplomasRequestDTO,
@@ -21,6 +25,7 @@ import type {
   InscripcionUniversidadDatosDTO,
 } from "@/api/types"
 import type { CarouselApi } from "@/components/ui/carousel"
+import { toast } from "@/components/ui/toast"
 import type { SeccionResumen } from "./ResumenCadena"
 import {
   type Accion,
@@ -342,7 +347,14 @@ export function useInscripcionForm() {
     formacionesOriginalRef.current = formacionesExistentes
     setFormacionesEditables(formacionesExistentes)
     setBaseline(nuevoBaseline)
-    form.reset(nuevoBaseline)
+    // keepDefaultValues: sin esto, useForm({defaultValues: CAMPOS_VACIOS}) (arriba) vuelve a
+    // escribir CAMPOS_VACIOS por encima de esto en el render SIGUIENTE -- su propio efecto
+    // interno (sin deps, corre en cada render) compara options.defaultValues contra lo que
+    // reset() dejo puesto ahi y, al no coincidir, lo pisa de vuelta a vacio. keepDefaultValues
+    // evita que reset() cambie options.defaultValues, asi la comparacion de ese efecto sigue
+    // dando "igual" y no hay pisada.
+    form.reset(nuevoBaseline, { keepDefaultValues: true })
+    if (dto.diplomaPrimariaId !== null) void cargarCadenaExistente(dto.diplomaPrimariaId)
     desbloquearHasta(1)
     api?.scrollTo(1)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -407,6 +419,7 @@ export function useInscripcionForm() {
     maxStepRef.current = 0
     setMaxStep(0)
     api?.scrollTo(0)
+    resetearCadena()
   }
 
   // Mantiene la accion (viene de la URL, ya no hay paso para elegirla) y vuelve al
@@ -491,6 +504,16 @@ export function useInscripcionForm() {
   function cambiarFirmaDiplomaUniversidad(campo: string, valor: boolean) {
     setDiplomaUniversidadFirmas((actual) => ({ ...actual, [campo]: valor }))
   }
+
+  // "Ya existia" por nivel -- solo se usa en "actualizar" (ver cargarCadenaExistente): un
+  // nivel sin estos flags en true se manda en el PUT de la cadena SOLO si el usuario de
+  // verdad completo algo ahi (ver construirCadenaDtoActualizar), para no crear filas vacias
+  // nada mas porque el wizard paso por ese escalon.
+  const [diplomaPrimariaYaExistia, setDiplomaPrimariaYaExistia] = useState(false)
+  const [inscripcionSecundariaYaExistia, setInscripcionSecundariaYaExistia] = useState(false)
+  const [diplomaSecundariaYaExistia, setDiplomaSecundariaYaExistia] = useState(false)
+  const [inscripcionUniversidadYaExistia, setInscripcionUniversidadYaExistia] = useState(false)
+  const [diplomaUniversidadYaExistia, setDiplomaUniversidadYaExistia] = useState(false)
 
   // Mismo renombre que camposADto (CamposFormulario -> *DatosDTO, sin sufijo "Id").
   function camposInscripcionADatos(c: CamposFormulario): InscripcionSecundariaDatosDTO | InscripcionUniversidadDatosDTO {
@@ -581,9 +604,173 @@ export function useInscripcionForm() {
     api?.scrollTo(siguientePaso)
   }
 
-  // Todavia solo resetea lo que existe hasta este punto (firmas/forms/la mutation de
-  // "crear") -- "actualizar" (sus propios flags "ya existia" + su mutation) se suma aca
-  // mismo mas adelante.
+  // Variante de construirCadenaDto() para "actualizar": no hay "hastaPaso" (los pasos 2-6
+  // son navegacion local libre, sin Confirmacion intermedia -- el unico envio es el de la
+  // Confirmacion final, paso 7), asi que la pregunta no es "hasta donde llego" sino "que
+  // nivel tiene datos de verdad": un nivel entra si YA EXISTIA (se precargo con
+  // cargarCadenaExistente) o si el usuario completo algo ahi recien ahora -- evita mandar
+  // (y que el back cree) un nivel que el usuario solo de paso sin tocar.
+  function construirCadenaDtoActualizar(): CadenaDiplomasRequestDTO {
+    const dto: CadenaDiplomasRequestDTO = {}
+    const primariaFirmada = Object.values(diplomaPrimariaFirmas).some(Boolean)
+    const incluyePrimaria = diplomaPrimariaYaExistia || primariaFirmada
+    if (incluyePrimaria) {
+      dto.diplomaPrimaria = {
+        firmaMaestro1ro: diplomaPrimariaFirmas.firmaMaestro1ro ?? false,
+        firmaMaestro2do: diplomaPrimariaFirmas.firmaMaestro2do ?? false,
+        firmaMaestro3ro: diplomaPrimariaFirmas.firmaMaestro3ro ?? false,
+        firmaMaestro4to: diplomaPrimariaFirmas.firmaMaestro4to ?? false,
+        firmaMaestro5to: diplomaPrimariaFirmas.firmaMaestro5to ?? false,
+        firmaMaestro6to: diplomaPrimariaFirmas.firmaMaestro6to ?? false,
+        firmaDirectorPrimaria: diplomaPrimariaFirmas.firmaDirectorPrimaria ?? false,
+      } satisfies DiplomaPrimariaDatosDTO
+    }
+
+    const incluyeSecundaria = incluyePrimaria && (inscripcionSecundariaYaExistia || inscripcionSecundariaCompleta)
+    if (incluyeSecundaria) {
+      dto.inscripcionSecundaria = camposInscripcionADatos(camposInscripcionSecundaria) as InscripcionSecundariaDatosDTO
+    }
+
+    const secundariaFirmada = Object.values(diplomaSecundariaFirmas).some(Boolean)
+    if (incluyeSecundaria && (diplomaSecundariaYaExistia || secundariaFirmada)) {
+      dto.diplomaSecundaria = {
+        firmaMaestroPrimerGrado: diplomaSecundariaFirmas.firmaMaestroPrimerGrado ?? false,
+        firmaMaestroSegundoGrado: diplomaSecundariaFirmas.firmaMaestroSegundoGrado ?? false,
+        firmaMaestroTercerGrado: diplomaSecundariaFirmas.firmaMaestroTercerGrado ?? false,
+        firmaOrientador: diplomaSecundariaFirmas.firmaOrientador ?? false,
+        firmaDirectorSecundaria: diplomaSecundariaFirmas.firmaDirectorSecundaria ?? false,
+      } satisfies DiplomaSecundariaRequestDTO
+    }
+
+    const incluyeUniversidad =
+      dto.diplomaSecundaria !== undefined && (inscripcionUniversidadYaExistia || inscripcionUniversidadCompleta)
+    if (incluyeUniversidad) {
+      dto.inscripcionUniversidad = camposInscripcionADatos(camposInscripcionUniversidad) as InscripcionUniversidadDatosDTO
+    }
+
+    const universidadFirmada = Object.values(diplomaUniversidadFirmas).some(Boolean)
+    if (incluyeUniversidad && (diplomaUniversidadYaExistia || universidadFirmada)) {
+      dto.diplomaUniversidad = {
+        firmaDecanoFacultad: diplomaUniversidadFirmas.firmaDecanoFacultad ?? false,
+        firmaCoordinadorCarrera: diplomaUniversidadFirmas.firmaCoordinadorCarrera ?? false,
+        firmaSecretarioAcademico: diplomaUniversidadFirmas.firmaSecretarioAcademico ?? false,
+        firmaRector: diplomaUniversidadFirmas.firmaRector ?? false,
+      } satisfies DiplomaUniversidadRequestDTO
+    }
+
+    return dto
+  }
+
+  // UNICO envio de la cadena en "actualizar" -- PUT (upsert), disparado solo desde la
+  // Confirmacion final (paso 7): a diferencia de "crear", no hay Confirmacion intermedia
+  // que permita enviar parcial, asi que no hace falta "hastaPaso" aca.
+  const actualizarCadenaMutation = useMutation({
+    mutationFn: (inscripcionId: number) => actualizarCadenaDiplomas(inscripcionId, construirCadenaDtoActualizar()),
+  })
+
+  function guardarCadena() {
+    if (solicitudIdActual === null) return
+    actualizarCadenaMutation.mutate(solicitudIdActual)
+  }
+
+  // Precarga la cadena Secundaria/Universidad existente (si hay) apenas se arma el baseline
+  // de "actualizar" -- "lineageId" es diplomaPrimariaId (ver InscripcionDTO), el mismo id
+  // compartido por TODA la cadena. Los 3 niveles se intentan por SEPARADO (servicio propio
+  // cada uno, GET /diplomas-primaria, /inscripciones-secundaria, /inscripciones-universidad)
+  // e INDEPENDIENTES entre si -- que uno no tenga datos todavia no corta la precarga de los
+  // demas (a diferencia de la validacion de secuencia del backend, que si es estricta). Cada
+  // nivel sin datos muestra su propio toast informativo en vez de quedar en silencio.
+  async function cargarCadenaExistente(lineageId: number) {
+    function aCampos(i: {
+      estado: string
+      sistema: string
+      jefeCarrera: string
+      maestro: string
+      carrera: string
+      ambiente: string
+      proyecto: string
+      version: string
+      descripcion: string | null
+      fechaInscripcionPlanteada: string
+      fechaInscripcionReal: string | null
+    }): CamposFormulario {
+      return {
+        estadoId: String(estadosQuery.data!.find((e) => e.estado === i.estado)?.id ?? ""),
+        sistemaId: String(sistemasQuery.data!.find((s) => s.nombre === i.sistema)?.id ?? ""),
+        jefeCarreraId: String(responsablesQuery.data!.find((r) => r.nombreLargo === i.jefeCarrera)?.id ?? ""),
+        maestroId: String(responsablesQuery.data!.find((r) => r.nombreLargo === i.maestro)?.id ?? ""),
+        carreraId: String(responsablesQuery.data!.find((r) => r.nombreLargo === i.carrera)?.id ?? ""),
+        ambienteId: String(ambientesQuery.data!.find((a) => a.nombre === i.ambiente)?.id ?? ""),
+        proyecto: i.proyecto,
+        version: i.version,
+        descripcion: i.descripcion ?? "",
+        fechaPlanteada: aInputDatetime(i.fechaInscripcionPlanteada),
+        fechaReal: aInputDatetime(i.fechaInscripcionReal),
+      }
+    }
+
+    try {
+      const diploma = await fetchDiplomaPrimaria(lineageId)
+      setDiplomaPrimariaFirmas({
+        firmaMaestro1ro: diploma.firmaMaestro1ro,
+        firmaMaestro2do: diploma.firmaMaestro2do,
+        firmaMaestro3ro: diploma.firmaMaestro3ro,
+        firmaMaestro4to: diploma.firmaMaestro4to,
+        firmaMaestro5to: diploma.firmaMaestro5to,
+        firmaMaestro6to: diploma.firmaMaestro6to,
+        firmaDirectorPrimaria: diploma.firmaDirectorPrimaria,
+      })
+      setDiplomaPrimariaYaExistia(true)
+    } catch {
+      toast.add({
+        type: "info",
+        title: "Sin diploma de primaria",
+        description: "Esta solicitud todavía no tiene diploma de primaria registrado en la base.",
+      })
+    }
+
+    try {
+      const { inscripcionSecundaria, diplomaSecundaria } = await fetchInscripcionSecundaria(lineageId)
+      // keepDefaultValues: mismo motivo que en form.reset() de arriba (cargarBaseline).
+      formInscripcionSecundaria.reset(aCampos(inscripcionSecundaria), { keepDefaultValues: true })
+      setInscripcionSecundariaYaExistia(true)
+      setDiplomaSecundariaFirmas({
+        firmaMaestroPrimerGrado: diplomaSecundaria.firmaMaestroPrimerGrado,
+        firmaMaestroSegundoGrado: diplomaSecundaria.firmaMaestroSegundoGrado,
+        firmaMaestroTercerGrado: diplomaSecundaria.firmaMaestroTercerGrado,
+        firmaOrientador: diplomaSecundaria.firmaOrientador,
+        firmaDirectorSecundaria: diplomaSecundaria.firmaDirectorSecundaria,
+      })
+      setDiplomaSecundariaYaExistia(true)
+    } catch {
+      toast.add({
+        type: "info",
+        title: "Sin inscripción de secundaria",
+        description: "Esta solicitud todavía no tiene inscripción de secundaria registrada en la base.",
+      })
+    }
+
+    try {
+      const { inscripcionUniversidad, diplomaUniversidad } = await fetchInscripcionUniversidad(lineageId)
+      // keepDefaultValues: mismo motivo que en form.reset() de arriba (cargarBaseline).
+      formInscripcionUniversidad.reset(aCampos(inscripcionUniversidad), { keepDefaultValues: true })
+      setInscripcionUniversidadYaExistia(true)
+      setDiplomaUniversidadFirmas({
+        firmaDecanoFacultad: diplomaUniversidad.firmaDecanoFacultad,
+        firmaCoordinadorCarrera: diplomaUniversidad.firmaCoordinadorCarrera,
+        firmaSecretarioAcademico: diplomaUniversidad.firmaSecretarioAcademico,
+        firmaRector: diplomaUniversidad.firmaRector,
+      })
+      setDiplomaUniversidadYaExistia(true)
+    } catch {
+      toast.add({
+        type: "info",
+        title: "Sin inscripción de universidad",
+        description: "Esta solicitud todavía no tiene inscripción de universidad registrada en la base.",
+      })
+    }
+  }
+
   function resetearCadena() {
     setDiplomaPrimariaFirmas({})
     setDiplomaSecundariaFirmas({})
@@ -591,6 +778,12 @@ export function useInscripcionForm() {
     formInscripcionSecundaria.reset()
     formInscripcionUniversidad.reset()
     cadenaDiplomasMutation.reset()
+    setDiplomaPrimariaYaExistia(false)
+    setInscripcionSecundariaYaExistia(false)
+    setDiplomaSecundariaYaExistia(false)
+    setInscripcionUniversidadYaExistia(false)
+    setDiplomaUniversidadYaExistia(false)
+    actualizarCadenaMutation.reset()
   }
 
   // Resumen de "todo lo llenado hasta ahora" en la cadena -- segun maxStep (el paso mas
@@ -659,8 +852,7 @@ export function useInscripcionForm() {
     }
   }
   // "actualizar": mismos 6 niveles, pero via maxStep 2-6 (no hay Confirmacion intermedia que
-  // los separe de a 2 pasos como en "crear" -- ver construirCadenaDtoActualizar, todavia sin
-  // existir aca).
+  // los separe de a 2 pasos como en "crear" -- ver construirCadenaDtoActualizar).
   if (accion === "actualizar" && baseline !== null) {
     seccionesResumen.push({
       titulo: "Inscripción primaria",
@@ -777,6 +969,8 @@ export function useInscripcionForm() {
     cadenaDiplomasMutation,
     enviarCadena,
     continuarCadena,
+    actualizarCadenaMutation,
+    guardarCadena,
     seccionesResumen,
 
     listaIdInput,
