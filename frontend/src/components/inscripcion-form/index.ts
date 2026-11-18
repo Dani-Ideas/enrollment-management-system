@@ -1,6 +1,7 @@
 export { useInscripcionForm } from "./useInscripcionForm"
 export type { InscripcionFormApi } from "./useInscripcionForm"
 export { CampoCatalogo } from "./CampoCatalogo"
+export { CamposInscripcionCompletos } from "./CamposInscripcionCompletos"
 export { CampoSelect } from "./CampoSelect"
 export { CampoVistaDetalle } from "./CampoVistaDetalle"
 export { CampoResponsables } from "./CampoResponsables"

@@ -227,8 +227,8 @@ export function useInscripcionForm() {
     mutationFn: crearInscripcion,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inscripciones"] })
-      desbloquearHasta(3)
-      api?.scrollTo(3)
+      desbloquearHasta(1)
+      api?.scrollTo(1)
     },
   })
 

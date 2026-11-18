@@ -54,18 +54,20 @@ export function aInputDatetime(iso: string | null): string {
 
 // PASOS por rama -- sin paso de "elegir accion": la accion llega por la URL
 // (?accion=..., la elige el submenu de HomePage), asi que el paso 0 ya es el primero
-// real de cada rama. El Carousel SIEMPRE tiene 4 CarouselItem (el maximo, "crear"):
+// real de cada rama. El Carousel SIEMPRE tiene 3 CarouselItem (el maximo, "actualizar"):
 // mantener la CANTIDAD de slides fija evita que Embla tenga que re-detectar slides
 // nuevos a mitad de sesion.
+//
+// "crear" ahora son solo 2 pasos: CamposInscripcionCompletos junta en UNA pantalla lo que
+// antes eran 3 pasos separados (Catalogo/Responsables/Datos del proyecto), asi que la
+// Confirmacion final pasa de paso 3 a paso 1.
 export function etiquetaPaso(accion: Accion | null, indice: number): string {
   if (accion === "lista") return indice === 0 ? "Lista de solicitudes" : ""
   if (accion === "actualizar") {
     return { 0: "Elegir solicitud", 1: "Editar campos", 2: "Confirmación" }[indice] ?? ""
   }
   if (accion === "crear") {
-    return (
-      { 0: "Catálogo", 1: "Responsables", 2: "Datos del proyecto", 3: "Confirmación" }[indice] ?? ""
-    )
+    return ({ 0: "Datos de la inscripción primaria", 1: "Confirmación" }[indice] ?? "")
   }
   return ""
 }
@@ -73,6 +75,6 @@ export function etiquetaPaso(accion: Accion | null, indice: number): string {
 export function totalPasos(accion: Accion | null): number {
   if (accion === "lista") return 1
   if (accion === "actualizar") return 3
-  if (accion === "crear") return 4
+  if (accion === "crear") return 2
   return 0
 }
