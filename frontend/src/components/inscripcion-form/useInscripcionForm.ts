@@ -10,7 +10,17 @@ import {
 } from "@/api/client"
 import type { FormacionComplementariaRequestDTO, InscripcionDTO, InscripcionRequestDTO } from "@/api/types"
 import type { CarouselApi } from "@/components/ui/carousel"
-import { type Accion, type CamposFormulario, type FormacionComplementariaEditable, CAMPOS_VACIOS, aInputDatetime } from "./types"
+import type { SeccionResumen } from "./ResumenCadena"
+import {
+  type Accion,
+  type CamposFormulario,
+  type FormacionComplementariaEditable,
+  CAMPOS_VACIOS,
+  aInputDatetime,
+  FIRMAS_DIPLOMA_PRIMARIA,
+  FIRMAS_DIPLOMA_SECUNDARIA,
+  FIRMAS_DIPLOMA_UNIVERSIDAD,
+} from "./types"
 
 // Toda la logica NO visual de los wizards de Inscripcion (TanStack Form),
 // compartida entre FormularioPagoPage.tanstack.tsx (sin rama "lista") e
@@ -410,6 +420,188 @@ export function useInscripcionForm() {
     setDetalleAbiertoId(null)
   }
 
+  // --- Cadena Primaria/Secundaria/Universidad: estado del checklist de firmas y de los
+  // formularios de Inscripcion Secundaria/Universidad -- el envio por HTTP de todo esto
+  // (crear/actualizar) todavia no existe, solo el estado local y el resumen de abajo. ---
+
+  // DiplomaPrimaria/DiplomaSecundaria/DiplomaUniversidad: checklist de firmas, sin TanStack
+  // Form (no son campos de texto/select, son booleans sueltos -- ver CampoFirmas).
+  const [diplomaPrimariaFirmas, setDiplomaPrimariaFirmas] = useState<Record<string, boolean>>({})
+  function cambiarFirmaDiplomaPrimaria(campo: string, valor: boolean) {
+    setDiplomaPrimariaFirmas((actual) => ({ ...actual, [campo]: valor }))
+  }
+
+  // InscripcionSecundaria/InscripcionUniversidad: mismos 11 campos que la Inscripcion de
+  // Primaria (CamposFormulario) -- instancia de TanStack Form PROPIA para cada nivel, asi
+  // CampoCatalogo/CampoResponsables/CampoDatosProyecto se reusan tal cual, sin modificarlos.
+  const formInscripcionSecundaria = useForm({ defaultValues: CAMPOS_VACIOS })
+  const camposInscripcionSecundaria = useStore(formInscripcionSecundaria.store, (state) => state.values)
+  const catalogoSecundariaCompleto =
+    camposInscripcionSecundaria.estadoId !== "" &&
+    camposInscripcionSecundaria.sistemaId !== "" &&
+    camposInscripcionSecundaria.ambienteId !== ""
+  const responsablesSecundariaCompletos =
+    camposInscripcionSecundaria.jefeCarreraId !== "" &&
+    camposInscripcionSecundaria.maestroId !== "" &&
+    camposInscripcionSecundaria.carreraId !== ""
+  const datosProyectoSecundariaCompletos =
+    camposInscripcionSecundaria.proyecto.trim() !== "" &&
+    camposInscripcionSecundaria.version.trim() !== "" &&
+    camposInscripcionSecundaria.fechaPlanteada !== ""
+  const inscripcionSecundariaCompleta =
+    catalogoSecundariaCompleto && responsablesSecundariaCompletos && datosProyectoSecundariaCompletos
+
+  const [diplomaSecundariaFirmas, setDiplomaSecundariaFirmas] = useState<Record<string, boolean>>({})
+  function cambiarFirmaDiplomaSecundaria(campo: string, valor: boolean) {
+    setDiplomaSecundariaFirmas((actual) => ({ ...actual, [campo]: valor }))
+  }
+
+  const formInscripcionUniversidad = useForm({ defaultValues: CAMPOS_VACIOS })
+  const camposInscripcionUniversidad = useStore(formInscripcionUniversidad.store, (state) => state.values)
+  const catalogoUniversidadCompleto =
+    camposInscripcionUniversidad.estadoId !== "" &&
+    camposInscripcionUniversidad.sistemaId !== "" &&
+    camposInscripcionUniversidad.ambienteId !== ""
+  const responsablesUniversidadCompletos =
+    camposInscripcionUniversidad.jefeCarreraId !== "" &&
+    camposInscripcionUniversidad.maestroId !== "" &&
+    camposInscripcionUniversidad.carreraId !== ""
+  const datosProyectoUniversidadCompletos =
+    camposInscripcionUniversidad.proyecto.trim() !== "" &&
+    camposInscripcionUniversidad.version.trim() !== "" &&
+    camposInscripcionUniversidad.fechaPlanteada !== ""
+  const inscripcionUniversidadCompleta =
+    catalogoUniversidadCompleto && responsablesUniversidadCompletos && datosProyectoUniversidadCompletos
+
+  const [diplomaUniversidadFirmas, setDiplomaUniversidadFirmas] = useState<Record<string, boolean>>({})
+  function cambiarFirmaDiplomaUniversidad(campo: string, valor: boolean) {
+    setDiplomaUniversidadFirmas((actual) => ({ ...actual, [campo]: valor }))
+  }
+
+  // Resumen de "todo lo llenado hasta ahora" en la cadena -- segun maxStep (el paso mas
+  // lejano ya desbloqueado), no "current": si el usuario vuelve a un paso anterior, lo ya
+  // llenado mas adelante sigue apareciendo aca. Vive aca (no en FormularioInscripciones.tsx)
+  // porque el componente solo pone el JSX -- ningun calculo de estado derivado vive ahi.
+  // ResumenCadena decide por si mismo si se renderiza (no en mobile); aca solo se junta el
+  // contenido. maxStep todavia no puede pasar de 1 ("crear") / 2 ("actualizar") -- los
+  // "if (maxStep >= N)" de abajo son estado futuro, listos para cuando la cadena HTTP exista.
+  const seccionesResumen: SeccionResumen[] = []
+  if (accion === "crear") {
+    if (crearInscripcionMutation.isSuccess) {
+      const i = crearInscripcionMutation.data.inscripcion
+      seccionesResumen.push({
+        titulo: "Inscripción primaria",
+        filas: [
+          { etiqueta: "Proyecto", valor: i.proyecto },
+          { etiqueta: "Versión", valor: i.version },
+          { etiqueta: "Estado", valor: i.estado },
+        ],
+      })
+    }
+    if (maxStep >= 3) {
+      seccionesResumen.push({
+        titulo: "Diploma primaria",
+        filas: FIRMAS_DIPLOMA_PRIMARIA.map((item) => ({
+          etiqueta: item.etiqueta,
+          valor: diplomaPrimariaFirmas[item.campo] ? "Firmado" : "Pendiente",
+        })),
+      })
+    }
+    if (maxStep >= 5) {
+      seccionesResumen.push({
+        titulo: "Inscripción secundaria",
+        filas: [
+          { etiqueta: "Proyecto", valor: camposInscripcionSecundaria.proyecto },
+          { etiqueta: "Versión", valor: camposInscripcionSecundaria.version },
+        ],
+      })
+    }
+    if (maxStep >= 7) {
+      seccionesResumen.push({
+        titulo: "Diploma secundaria",
+        filas: FIRMAS_DIPLOMA_SECUNDARIA.map((item) => ({
+          etiqueta: item.etiqueta,
+          valor: diplomaSecundariaFirmas[item.campo] ? "Firmado" : "Pendiente",
+        })),
+      })
+    }
+    if (maxStep >= 9) {
+      seccionesResumen.push({
+        titulo: "Inscripción universidad",
+        filas: [
+          { etiqueta: "Proyecto", valor: camposInscripcionUniversidad.proyecto },
+          { etiqueta: "Versión", valor: camposInscripcionUniversidad.version },
+        ],
+      })
+    }
+    if (maxStep >= 11) {
+      seccionesResumen.push({
+        titulo: "Diploma universidad",
+        filas: FIRMAS_DIPLOMA_UNIVERSIDAD.map((item) => ({
+          etiqueta: item.etiqueta,
+          valor: diplomaUniversidadFirmas[item.campo] ? "Firmado" : "Pendiente",
+        })),
+      })
+    }
+  }
+  // "actualizar": mismos 6 niveles, pero via maxStep 2-6 (no hay Confirmacion intermedia que
+  // los separe de a 2 pasos como en "crear" -- ver construirCadenaDtoActualizar, todavia sin
+  // existir aca).
+  if (accion === "actualizar" && baseline !== null) {
+    seccionesResumen.push({
+      titulo: "Inscripción primaria",
+      filas: [
+        { etiqueta: "Proyecto", valor: baseline.proyecto },
+        { etiqueta: "Versión", valor: baseline.version },
+      ],
+    })
+    if (maxStep >= 2) {
+      seccionesResumen.push({
+        titulo: "Diploma primaria",
+        filas: FIRMAS_DIPLOMA_PRIMARIA.map((item) => ({
+          etiqueta: item.etiqueta,
+          valor: diplomaPrimariaFirmas[item.campo] ? "Firmado" : "Pendiente",
+        })),
+      })
+    }
+    if (maxStep >= 3) {
+      seccionesResumen.push({
+        titulo: "Inscripción secundaria",
+        filas: [
+          { etiqueta: "Proyecto", valor: camposInscripcionSecundaria.proyecto },
+          { etiqueta: "Versión", valor: camposInscripcionSecundaria.version },
+        ],
+      })
+    }
+    if (maxStep >= 4) {
+      seccionesResumen.push({
+        titulo: "Diploma secundaria",
+        filas: FIRMAS_DIPLOMA_SECUNDARIA.map((item) => ({
+          etiqueta: item.etiqueta,
+          valor: diplomaSecundariaFirmas[item.campo] ? "Firmado" : "Pendiente",
+        })),
+      })
+    }
+    if (maxStep >= 5) {
+      seccionesResumen.push({
+        titulo: "Inscripción universidad",
+        filas: [
+          { etiqueta: "Proyecto", valor: camposInscripcionUniversidad.proyecto },
+          { etiqueta: "Versión", valor: camposInscripcionUniversidad.version },
+        ],
+      })
+    }
+    if (maxStep >= 6) {
+      seccionesResumen.push({
+        titulo: "Diploma universidad",
+        filas: FIRMAS_DIPLOMA_UNIVERSIDAD.map((item) => ({
+          etiqueta: item.etiqueta,
+          valor: diplomaUniversidadFirmas[item.campo] ? "Firmado" : "Pendiente",
+        })),
+      })
+    }
+  }
+
   return {
     accion,
     elegirAccion,
@@ -455,6 +647,20 @@ export function useInscripcionForm() {
     crearInscripcionMutation,
     crearInscripcionConFormaciones,
     crearOtra,
+
+    diplomaPrimariaFirmas,
+    cambiarFirmaDiplomaPrimaria,
+    formInscripcionSecundaria,
+    camposInscripcionSecundaria,
+    inscripcionSecundariaCompleta,
+    diplomaSecundariaFirmas,
+    cambiarFirmaDiplomaSecundaria,
+    formInscripcionUniversidad,
+    camposInscripcionUniversidad,
+    inscripcionUniversidadCompleta,
+    diplomaUniversidadFirmas,
+    cambiarFirmaDiplomaUniversidad,
+    seccionesResumen,
 
     listaIdInput,
     setListaIdInput,

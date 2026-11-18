@@ -1,4 +1,5 @@
-import { useEffect } from "react"
+import { useEffect, useRef, useState } from "react"
+import type { PanelImperativeHandle } from "react-resizable-panels"
 import { Link } from "@tanstack/react-router"
 import { formularioPagoRoute } from "@/router"
 import {
@@ -11,16 +12,55 @@ import {
   DetalleInscripcion,
   FormacionesComplementariasEditor,
   PasosNavegacion,
+  ResumenCadena,
   useInscripcionForm,
 } from "@/components/inscripcion-form"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel"
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
 import { FieldGroup, FieldLabel, FieldSet } from "@/components/ui/field"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Spinner } from "@/components/ui/spinner"
-import { ArrowLeftIcon, CheckCircle2Icon, RotateCcwIcon, TriangleAlertIcon } from "lucide-react"
+import { useMediaQuery } from "@/hooks/useMediaQuery"
+import {
+  ArrowLeftIcon,
+  CheckCircle2Icon,
+  PanelLeftCloseIcon,
+  PanelLeftOpenIcon,
+  RotateCcwIcon,
+  TriangleAlertIcon,
+} from "lucide-react"
 
+// "Fantasma" que se pisa con el rect real del Card del formulario y, un frame despues, con
+// el rect real de la fila nueva del Resumen -- la transicion CSS (transition-all) interpola
+// posicion/tamaño entre esos dos rects. onTransitionEnd desmonta el fantasma -- para entonces
+// la fila real del Resumen ya esta ahi debajo, la ilusion queda completa.
+function TransformacionPaso({
+  desde,
+  hasta,
+  onTerminar,
+}: {
+  desde: DOMRect
+  hasta: DOMRect
+  onTerminar: () => void
+}) {
+  const [rect, setRect] = useState(desde)
+
+  useEffect(() => {
+    const cuadro = requestAnimationFrame(() => setRect(hasta))
+    return () => cancelAnimationFrame(cuadro)
+  }, [hasta])
+
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none fixed z-50 rounded-xl border bg-card shadow-2xl ring-foreground/20 transition-all duration-500 ease-in-out"
+      style={{ top: rect.top, left: rect.left, width: rect.width, height: rect.height }}
+      onTransitionEnd={onTerminar}
+    />
+  )
+}
 
 export function FormularioInscripciones() {
   const wizard = useInscripcionForm()
@@ -62,6 +102,7 @@ export function FormularioInscripciones() {
     crearInscripcionMutation,
     crearInscripcionConFormaciones,
     crearOtra,
+    seccionesResumen,
     listaIdInput,
     setListaIdInput,
     buscarPorIdInput,
@@ -82,8 +123,27 @@ export function FormularioInscripciones() {
 
   const inscripcionesQuery = useInscripciones()
 
+  // El Resumen de la cadena (panel "Uno") SOLO existe en escritorio -- ni tablet ni celular:
+  // ahi se arma como ResizablePanelGroup (el usuario arrastra el ancho a gusto). Por debajo
+  // de este corte es una sola columna angosta, sin resumen, el formulario ocupa todo.
+  const esEscritorio = useMediaQuery("(min-width: 1024px)")
+
+  // Boton "minimizar de golpe" / "volver a ampliar" el Resumen -- ademas del arrastre normal
+  // del handle. panelRef expone collapse()/expand()/isCollapsed() de la libreria; onResize
+  // mantiene resumenColapsado sincronizado pase lo que pase.
+  const resumenPanelRef = useRef<PanelImperativeHandle>(null)
+  const [resumenColapsado, setResumenColapsado] = useState(false)
+
+  function alternarResumen() {
+    if (resumenPanelRef.current?.isCollapsed()) {
+      resumenPanelRef.current.expand()
+    } else {
+      resumenPanelRef.current?.collapse()
+    }
+  }
+
   // "accion" llega por la URL (?accion=lista|crear|actualizar) -- la elige el submenu de
-  // HomePage (ver PieMenu.tsx) ANTES de navegar aca. No hay paso para elegirla: el paso 0
+  // HomePage (ver DrillMenu.tsx) ANTES de navegar aca. No hay paso para elegirla: el paso 0
   // ya es el primero de esa accion. Solo una vez por visita (guarda accion === null).
   const { accion: accionInicial } = formularioPagoRoute.useSearch()
   useEffect(() => {
@@ -93,257 +153,358 @@ export function FormularioInscripciones() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accionInicial])
 
-  return (
-    <section className="max-w-2xl">
+  // Cada vez que "Siguiente"/"Continuar" agrega una seccion nueva al Resumen, el paso que se
+  // acaba de completar se "transforma" en esa fila: mide el Card ANTES de que la fila nueva
+  // exista, y un frame despues mide la fila real para animar el fantasma de un rect al otro.
+  // No corre en el primer montaje ni si el Resumen no esta montado.
+  const cardRef = useRef<HTMLDivElement>(null)
+  const resumenRef = useRef<HTMLDivElement>(null)
+  const seccionesAnteriorRef = useRef(0)
+  const montadoRef = useRef(false)
+  const [transformacion, setTransformacion] = useState<{ desde: DOMRect; hasta: DOMRect } | null>(null)
+
+  useEffect(() => {
+    if (!montadoRef.current) {
+      montadoRef.current = true
+      seccionesAnteriorRef.current = seccionesResumen.length
+      return
+    }
+    if (seccionesResumen.length > seccionesAnteriorRef.current && cardRef.current) {
+      const desde = cardRef.current.getBoundingClientRect()
+      const cuadro = requestAnimationFrame(() => {
+        const contenido = resumenRef.current?.querySelector('[data-slot="card-content"]')
+        const filaNueva = contenido?.lastElementChild
+        if (filaNueva) {
+          setTransformacion({ desde, hasta: filaNueva.getBoundingClientRect() })
+        }
+      })
+      seccionesAnteriorRef.current = seccionesResumen.length
+      return () => cancelAnimationFrame(cuadro)
+    }
+    seccionesAnteriorRef.current = seccionesResumen.length
+  }, [seccionesResumen.length])
+
+  const encabezado = (
+    <>
       <Button variant="outline" size="sm" className="mb-4" nativeButton={false} render={<Link to="/" />}>
         <ArrowLeftIcon />
         Volver al menú principal
       </Button>
       <h2>Solicitudes de inscripción</h2>
-      <PasosNavegacion accion={accion} current={current} maxStep={maxStep} onIrAPaso={irAPaso} />
+    </>
+  )
 
-      <Card>
-        <CardContent>
-          <Carousel setApi={setApi} opts={{ watchDrag: false }} className="w-full" orientation="vertical">
-            <CarouselContent className="h-[min(70vh,36rem)]">
-              {/* --- Paso 0 --- */}
-              <CarouselItem className="overflow-y-auto">
-                {accion === "lista" && (
-                  <div className="space-y-3">
-                    <h3 className="text-sm font-medium">Solicitudes existentes</h3>
+  const pasosNavegacion = <PasosNavegacion accion={accion} current={current} maxStep={maxStep} onIrAPaso={irAPaso} />
 
-                    {/* Un solo modo a la vez -- CampoSelect decide si se ve "por número" o
-                        "por categoría" (toggle interno), nunca los dos juntos. */}
-                    <CampoSelect
-                      idPrefix="pago-tf-lista"
-                      valor={listaIdInput}
-                      onCambiarValor={setListaIdInput}
-                      onBuscar={buscarPorIdInput}
-                      buscando={buscarInscripcionMutation.isPending}
-                      hayError={buscarInscripcionMutation.isError}
-                      resultado={buscarInscripcionMutation.data}
-                      filtros={{
-                        filtroEstadoId,
-                        onCambiarFiltroEstadoId: setFiltroEstadoId,
-                        filtroSistemaId,
-                        onCambiarFiltroSistemaId: setFiltroSistemaId,
-                        filtroAmbienteId,
-                        onCambiarFiltroAmbienteId: setFiltroAmbienteId,
-                        estadosQuery,
-                        sistemasQuery,
-                        ambientesQuery,
-                        cargando: inscripcionesQuery.isLoading,
-                        error: inscripcionesQuery.error as Error | null,
-                        hayResultados: (inscripcionesQuery.data?.length ?? 0) > 0,
-                      }}
-                    />
-                    <CampoVistaDetalle
-                      modo="detalle"
-                      inscripciones={inscripcionesQuery.data ?? []}
-                      detalleAbiertoId={detalleAbiertoId}
-                      onAlternarDetalle={alternarDetalle}
-                    />
-                  </div>
-                )}
+  const tarjetaFormulario = (
+    <Card ref={cardRef} className="h-full min-w-0">
+      <CardContent>
+        <Carousel setApi={setApi} opts={{ watchDrag: false }} className="w-full" orientation="vertical">
+          <CarouselContent className="h-[min(70vh,36rem)]">
+            {/* --- Paso 0 --- */}
+            <CarouselItem className="overflow-y-auto">
+              {accion === "lista" && (
+                <div className="space-y-3">
+                  <h3 className="text-sm font-medium">Solicitudes existentes</h3>
 
-                {accion === "actualizar" && (
-                  <div className="space-y-4">
-                    <CampoSelect
-                      idPrefix="pago-tf"
-                      valor={listaIdInput}
-                      onCambiarValor={setListaIdInput}
-                      onBuscar={buscarPorIdInput}
-                      buscando={buscarInscripcionMutation.isPending}
-                      hayError={buscarInscripcionMutation.isError}
-                    />
-
-                    <CampoVistaDetalle
-                      modo="seleccionar"
-                      inscripciones={inscripcionesQuery.data ?? []}
-                      cargando={inscripcionesQuery.isLoading}
-                      onSeleccionar={elegirSolicitud}
-                    />
-                  </div>
-                )}
-
-                {accion === "crear" && (
-                  <CamposInscripcionCompletos
-                    form={form}
-                    idPrefix="pago-tf"
-                    estadosQuery={estadosQuery}
-                    sistemasQuery={sistemasQuery}
-                    responsablesQuery={responsablesQuery}
-                    ambientesQuery={ambientesQuery}
-                    formaciones={formacionesNuevas}
-                    onAgregarFormacion={agregarFormacionNueva}
-                    onCambiarFormacion={cambiarFormacionNueva}
-                    onQuitarFormacion={quitarFormacionNueva}
-                    descripcionAyudaFormaciones="Opcional -- se crean automáticamente después de la solicitud, ya con su id real como referencia."
-                    catalogoCompleto={catalogoCompleto}
-                    responsablesCompletos={responsablesCompletos}
-                    datosProyectoCompletos={datosProyectoCompletos}
-                    etiquetaAccion="Siguiente"
-                    onAccion={() => {
-                      desbloquearHasta(1)
-                      api?.scrollTo(1)
+                  {/* Un solo modo a la vez -- CampoSelect decide si se ve "por número" o
+                      "por categoría" (toggle interno), nunca los dos juntos. */}
+                  <CampoSelect
+                    idPrefix="pago-tf-lista"
+                    valor={listaIdInput}
+                    onCambiarValor={setListaIdInput}
+                    onBuscar={buscarPorIdInput}
+                    buscando={buscarInscripcionMutation.isPending}
+                    hayError={buscarInscripcionMutation.isError}
+                    resultado={buscarInscripcionMutation.data}
+                    filtros={{
+                      filtroEstadoId,
+                      onCambiarFiltroEstadoId: setFiltroEstadoId,
+                      filtroSistemaId,
+                      onCambiarFiltroSistemaId: setFiltroSistemaId,
+                      filtroAmbienteId,
+                      onCambiarFiltroAmbienteId: setFiltroAmbienteId,
+                      estadosQuery,
+                      sistemasQuery,
+                      ambientesQuery,
+                      cargando: inscripcionesQuery.isLoading,
+                      error: inscripcionesQuery.error as Error | null,
+                      hayResultados: (inscripcionesQuery.data?.length ?? 0) > 0,
                     }}
                   />
-                )}
-              </CarouselItem>
+                  <CampoVistaDetalle
+                    modo="detalle"
+                    inscripciones={inscripcionesQuery.data ?? []}
+                    detalleAbiertoId={detalleAbiertoId}
+                    onAlternarDetalle={alternarDetalle}
+                  />
+                </div>
+              )}
 
-              {/* --- Paso 1 --- */}
-              <CarouselItem className="overflow-y-auto">
-                {accion === "crear" && (
-                  <div className="space-y-4">
-                    {crearInscripcionMutation.isSuccess ? (
-                      <>
+              {accion === "actualizar" && (
+                <div className="space-y-4">
+                  <CampoSelect
+                    idPrefix="pago-tf"
+                    valor={listaIdInput}
+                    onCambiarValor={setListaIdInput}
+                    onBuscar={buscarPorIdInput}
+                    buscando={buscarInscripcionMutation.isPending}
+                    hayError={buscarInscripcionMutation.isError}
+                  />
+
+                  <CampoVistaDetalle
+                    modo="seleccionar"
+                    inscripciones={inscripcionesQuery.data ?? []}
+                    cargando={inscripcionesQuery.isLoading}
+                    onSeleccionar={elegirSolicitud}
+                  />
+                </div>
+              )}
+
+              {accion === "crear" && (
+                <CamposInscripcionCompletos
+                  form={form}
+                  idPrefix="pago-tf"
+                  estadosQuery={estadosQuery}
+                  sistemasQuery={sistemasQuery}
+                  responsablesQuery={responsablesQuery}
+                  ambientesQuery={ambientesQuery}
+                  formaciones={formacionesNuevas}
+                  onAgregarFormacion={agregarFormacionNueva}
+                  onCambiarFormacion={cambiarFormacionNueva}
+                  onQuitarFormacion={quitarFormacionNueva}
+                  descripcionAyudaFormaciones="Opcional -- se crean automáticamente después de la solicitud, ya con su id real como referencia."
+                  catalogoCompleto={catalogoCompleto}
+                  responsablesCompletos={responsablesCompletos}
+                  datosProyectoCompletos={datosProyectoCompletos}
+                  etiquetaAccion="Siguiente"
+                  onAccion={() => {
+                    desbloquearHasta(1)
+                    api?.scrollTo(1)
+                  }}
+                />
+              )}
+            </CarouselItem>
+
+            {/* --- Paso 1 --- */}
+            <CarouselItem className="overflow-y-auto">
+              {accion === "crear" && (
+                <div className="space-y-4">
+                  {crearInscripcionMutation.isSuccess ? (
+                    <>
+                      <Alert>
+                        <CheckCircle2Icon />
+                        <AlertTitle>Solicitud #{crearInscripcionMutation.data.inscripcion.id} creada</AlertTitle>
+                      </Alert>
+                      <DetalleInscripcion inscripcion={crearInscripcionMutation.data.inscripcion} />
+
+                      {crearInscripcionMutation.data.formacionesComplementarias.length > 0 && (
                         <Alert>
                           <CheckCircle2Icon />
-                          <AlertTitle>Solicitud #{crearInscripcionMutation.data.inscripcion.id} creada</AlertTitle>
+                          <AlertTitle>
+                            {crearInscripcionMutation.data.formacionesComplementarias.length} formación
+                            {crearInscripcionMutation.data.formacionesComplementarias.length === 1 ? "" : "es"} complementaria
+                            {crearInscripcionMutation.data.formacionesComplementarias.length === 1 ? "" : "s"} creada
+                            {crearInscripcionMutation.data.formacionesComplementarias.length === 1 ? "" : "s"}
+                          </AlertTitle>
                         </Alert>
-                        <DetalleInscripcion inscripcion={crearInscripcionMutation.data.inscripcion} />
+                      )}
 
-                        {crearInscripcionMutation.data.formacionesComplementarias.length > 0 && (
-                          <Alert>
-                            <CheckCircle2Icon />
-                            <AlertTitle>
-                              {crearInscripcionMutation.data.formacionesComplementarias.length} formación
-                              {crearInscripcionMutation.data.formacionesComplementarias.length === 1 ? "" : "es"} complementaria
-                              {crearInscripcionMutation.data.formacionesComplementarias.length === 1 ? "" : "s"} creada
-                              {crearInscripcionMutation.data.formacionesComplementarias.length === 1 ? "" : "s"}
-                            </AlertTitle>
-                          </Alert>
-                        )}
+                      <Button onClick={crearOtra} className="w-fit">
+                        Crear otra solicitud
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <h3 className="text-sm font-medium">Revisá antes de finalizar</h3>
+                      <DetalleInscripcion inscripcion={camposAVistaPrevia(campos)} />
 
-                        <Button onClick={crearOtra} className="w-fit">
-                          Crear otra solicitud
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <h3 className="text-sm font-medium">Revisá antes de finalizar</h3>
-                        <DetalleInscripcion inscripcion={camposAVistaPrevia(campos)} />
-
-                        <Button
-                          onClick={crearInscripcionConFormaciones}
-                          disabled={!formularioCompleto || crearInscripcionMutation.isPending}
-                          className="w-fit"
-                        >
-                          Finalizar y crear
-                        </Button>
-                        {crearInscripcionMutation.isError && (
-                          <Alert variant="destructive">
-                            <TriangleAlertIcon />
-                            <AlertTitle>No se pudo crear la solicitud</AlertTitle>
-                            <AlertDescription>{(crearInscripcionMutation.error as Error).message}</AlertDescription>
-                          </Alert>
-                        )}
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {accion === "actualizar" && (
-                  <div className="space-y-4">
-                    {!baseline ? (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Spinner /> Cargando solicitud…
-                      </div>
-                    ) : (
-                      <>
-                        <FieldGroup>
-                          <FieldSet>
-                            <CampoCatalogo
-                              form={form}
-                              idPrefix="pago-tf-edit"
-                              estadosQuery={estadosQuery}
-                              sistemasQuery={sistemasQuery}
-                              ambientesQuery={ambientesQuery}
-                              mostrarPlaceholder={false}
-                            />
-                            <CampoResponsables
-                              form={form}
-                              idPrefix="pago-tf-edit"
-                              responsablesQuery={responsablesQuery}
-                              mostrarPlaceholder={false}
-                            />
-                            <CampoDatosProyecto form={form} idPrefix="pago-tf-edit" mostrarEjemplos={false} />
-
-                            <FormacionesComplementariasEditor
-                              items={formacionesEditables}
-                              onAgregar={agregarFormacionComplementariaEditable}
-                              onCambiar={cambiarFormacionComplementariaEditable}
-                              onQuitar={quitarFormacionComplementariaEditable}
-                              descripcionAyuda="Lista 1:N ligada a esta solicitud -- podés agregar filas nuevas, borrar las que ya no hagan falta, o editar el texto de las existentes."
-                            />
-
-                            <Button
-                              onClick={guardarCambios}
-                              disabled={!hayAlgoQueGuardar || !formularioCompleto || actualizarInscripcionMutation.isPending}
-                              className="w-fit"
-                            >
-                              Guardar cambios
-                            </Button>
-                            {!hayAlgoQueGuardar && (
-                              <p className="text-xs text-muted-foreground">
-                                No se detectó ningún cambio todavía -- modificá algún campo o
-                                alguna formación complementaria para poder guardar.
-                              </p>
-                            )}
-                            {actualizarInscripcionMutation.isError && (
-                              <Alert variant="destructive">
-                                <TriangleAlertIcon />
-                                <AlertTitle>No se pudo guardar el cambio</AlertTitle>
-                                <AlertDescription>
-                                  {(actualizarInscripcionMutation.error as Error).message}
-                                </AlertDescription>
-                              </Alert>
-                            )}
-                          </FieldSet>
-                        </FieldGroup>
-                      </>
-                    )}
-                  </div>
-                )}
-              </CarouselItem>
-
-              {/* --- Paso 2 (solo "actualizar") --- */}
-              <CarouselItem className="overflow-y-auto">
-                {accion === "actualizar" && (
-                  <div className="space-y-4">
-                    {guardadoConfirmado && buscarInscripcionMutation.data ? (
-                      <>
-                        <Alert>
-                          <CheckCircle2Icon />
-                          <AlertTitle>Solicitud #{solicitudIdActual} actualizada</AlertTitle>
+                      <Button
+                        onClick={crearInscripcionConFormaciones}
+                        disabled={!formularioCompleto || crearInscripcionMutation.isPending}
+                        className="w-fit"
+                      >
+                        Finalizar y crear
+                      </Button>
+                      {crearInscripcionMutation.isError && (
+                        <Alert variant="destructive">
+                          <TriangleAlertIcon />
+                          <AlertTitle>No se pudo crear la solicitud</AlertTitle>
+                          <AlertDescription>{(crearInscripcionMutation.error as Error).message}</AlertDescription>
                         </Alert>
-                        <DetalleInscripcion inscripcion={buscarInscripcionMutation.data.inscripcion} />
-                        <Button onClick={actualizarOtra} className="w-fit">
-                          Actualizar otra solicitud
-                        </Button>
-                      </>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">Todavía no guardaste ningún cambio.</p>
-                    )}
-                  </div>
-                )}
-              </CarouselItem>
-            </CarouselContent>
-          </Carousel>
-        </CardContent>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
 
-        <CardFooter className="justify-between">
-          <Button variant="outline" onClick={anterior} disabled={current === 0}>
-            Atrás
+              {accion === "actualizar" && (
+                <div className="space-y-4">
+                  {!baseline ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Spinner /> Cargando solicitud…
+                    </div>
+                  ) : (
+                    <>
+                      <FieldGroup>
+                        <FieldSet>
+                          <CampoCatalogo
+                            form={form}
+                            idPrefix="pago-tf-edit"
+                            estadosQuery={estadosQuery}
+                            sistemasQuery={sistemasQuery}
+                            ambientesQuery={ambientesQuery}
+                            mostrarPlaceholder={false}
+                          />
+                          <CampoResponsables
+                            form={form}
+                            idPrefix="pago-tf-edit"
+                            responsablesQuery={responsablesQuery}
+                            mostrarPlaceholder={false}
+                          />
+                          <CampoDatosProyecto form={form} idPrefix="pago-tf-edit" mostrarEjemplos={false} />
+
+                          <FormacionesComplementariasEditor
+                            items={formacionesEditables}
+                            onAgregar={agregarFormacionComplementariaEditable}
+                            onCambiar={cambiarFormacionComplementariaEditable}
+                            onQuitar={quitarFormacionComplementariaEditable}
+                            descripcionAyuda="Lista 1:N ligada a esta solicitud -- podés agregar filas nuevas, borrar las que ya no hagan falta, o editar el texto de las existentes."
+                          />
+
+                          <Button
+                            onClick={guardarCambios}
+                            disabled={!hayAlgoQueGuardar || !formularioCompleto || actualizarInscripcionMutation.isPending}
+                            className="w-fit"
+                          >
+                            Guardar cambios
+                          </Button>
+                          {!hayAlgoQueGuardar && (
+                            <p className="text-xs text-muted-foreground">
+                              No se detectó ningún cambio todavía -- modificá algún campo o
+                              alguna formación complementaria para poder guardar.
+                            </p>
+                          )}
+                          {actualizarInscripcionMutation.isError && (
+                            <Alert variant="destructive">
+                              <TriangleAlertIcon />
+                              <AlertTitle>No se pudo guardar el cambio</AlertTitle>
+                              <AlertDescription>
+                                {(actualizarInscripcionMutation.error as Error).message}
+                              </AlertDescription>
+                            </Alert>
+                          )}
+                        </FieldSet>
+                      </FieldGroup>
+                    </>
+                  )}
+                </div>
+              )}
+            </CarouselItem>
+
+            {/* --- Paso 2 (solo "actualizar") --- */}
+            <CarouselItem className="overflow-y-auto">
+              {accion === "actualizar" && (
+                <div className="space-y-4">
+                  {guardadoConfirmado && buscarInscripcionMutation.data ? (
+                    <>
+                      <Alert>
+                        <CheckCircle2Icon />
+                        <AlertTitle>Solicitud #{solicitudIdActual} actualizada</AlertTitle>
+                      </Alert>
+                      <DetalleInscripcion inscripcion={buscarInscripcionMutation.data.inscripcion} />
+                      <Button onClick={actualizarOtra} className="w-fit">
+                        Actualizar otra solicitud
+                      </Button>
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Todavía no guardaste ningún cambio.</p>
+                  )}
+                </div>
+              )}
+            </CarouselItem>
+          </CarouselContent>
+        </Carousel>
+      </CardContent>
+
+      <CardFooter className="justify-between">
+        <Button variant="outline" onClick={anterior} disabled={current === 0}>
+          Atrás
+        </Button>
+        {accion !== null && (
+          <Button variant="outline" onClick={empezarDeNuevo} size="sm">
+            <RotateCcwIcon />
+            Empezar de nuevo
           </Button>
-          {accion !== null && (
-            <Button variant="outline" onClick={empezarDeNuevo} size="sm">
-              <RotateCcwIcon />
-              Empezar de nuevo
-            </Button>
-          )}
-        </CardFooter>
-      </Card>
+        )}
+      </CardFooter>
+    </Card>
+  )
+
+  return (
+    <section className="w-full">
+      {esEscritorio ? (
+        // ResizablePanelGroup fuerza height:100% por INLINE style (pisa cualquier clase que
+        // se le ponga a el mismo) -- la altura real hay que darsela al padre, no al grupo.
+        <div className="h-[min(85vh,900px)]">
+          <ResizablePanelGroup orientation="horizontal">
+            <ResizablePanel
+              panelRef={resumenPanelRef}
+              collapsible
+              collapsedSize="0px"
+              defaultSize="280px"
+              minSize="220px"
+              maxSize="420px"
+              onResize={() => setResumenColapsado(resumenPanelRef.current?.isCollapsed() ?? false)}
+            >
+              <ResumenCadena ref={resumenRef} secciones={seccionesResumen} />
+            </ResizablePanel>
+            <ResizableHandle withHandle />
+            <ResizablePanel>
+              {/* Division encabezado/formulario fija -- a diferencia de la de arriba, esta
+                  NO se arrastra (handle disabled, sin grip): el encabezado es un titulo, no
+                  tiene sentido redimensionarlo. */}
+              <ResizablePanelGroup orientation="vertical">
+                <ResizablePanel defaultSize="96px" disabled>
+                  <div className="flex h-full items-start justify-between gap-2 overflow-y-auto">
+                    <div>{encabezado}</div>
+                    <Button
+                      variant="outline"
+                      size="icon-sm"
+                      className="shrink-0"
+                      onClick={alternarResumen}
+                      title={resumenColapsado ? "Mostrar resumen" : "Ocultar resumen"}
+                    >
+                      {resumenColapsado ? <PanelLeftOpenIcon /> : <PanelLeftCloseIcon />}
+                    </Button>
+                  </div>
+                </ResizablePanel>
+                <ResizableHandle disabled />
+                <ResizablePanel disabled>
+                  <div className="flex h-full flex-col gap-4 overflow-y-auto">
+                    {pasosNavegacion}
+                    {tarjetaFormulario}
+                  </div>
+                </ResizablePanel>
+              </ResizablePanelGroup>
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        </div>
+      ) : (
+        <div className="max-w-2xl sm:max-w-3xl">
+          {encabezado}
+          {pasosNavegacion}
+          {tarjetaFormulario}
+        </div>
+      )}
+
+      {transformacion && (
+        <TransformacionPaso
+          desde={transformacion.desde}
+          hasta={transformacion.hasta}
+          onTerminar={() => setTransformacion(null)}
+        />
+      )}
     </section>
   )
 }

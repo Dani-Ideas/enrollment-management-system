@@ -78,3 +78,38 @@ export function totalPasos(accion: Accion | null): number {
   if (accion === "crear") return 2
   return 0
 }
+
+// Un item del checklist de firmas de un diploma -- "campo" es la clave real del DTO
+// (firmaMaestro1ro, firmaDirectorPrimaria, ...), "etiqueta" es el texto que ve el usuario.
+// Vive aca (no en CampoFirmas.tsx) porque useInscripcionForm tambien lo necesita para armar
+// el resumen de la cadena (ResumenCadena) -- un tipo/constante compartida entre el hook y
+// el componente de UI, igual motivo que CamposFormulario/CAMPOS_VACIOS de arriba.
+export interface FirmaItem {
+  campo: string
+  etiqueta: string
+}
+
+export const FIRMAS_DIPLOMA_PRIMARIA: FirmaItem[] = [
+  { campo: "firmaMaestro1ro", etiqueta: "Maestro de 1er grado" },
+  { campo: "firmaMaestro2do", etiqueta: "Maestro de 2do grado" },
+  { campo: "firmaMaestro3ro", etiqueta: "Maestro de 3er grado" },
+  { campo: "firmaMaestro4to", etiqueta: "Maestro de 4to grado" },
+  { campo: "firmaMaestro5to", etiqueta: "Maestro de 5to grado" },
+  { campo: "firmaMaestro6to", etiqueta: "Maestro de 6to grado" },
+  { campo: "firmaDirectorPrimaria", etiqueta: "Director de primaria" },
+]
+
+export const FIRMAS_DIPLOMA_SECUNDARIA: FirmaItem[] = [
+  { campo: "firmaMaestroPrimerGrado", etiqueta: "Maestro de 1er grado" },
+  { campo: "firmaMaestroSegundoGrado", etiqueta: "Maestro de 2do grado" },
+  { campo: "firmaMaestroTercerGrado", etiqueta: "Maestro de 3er grado" },
+  { campo: "firmaOrientador", etiqueta: "Orientador" },
+  { campo: "firmaDirectorSecundaria", etiqueta: "Director de secundaria" },
+]
+
+export const FIRMAS_DIPLOMA_UNIVERSIDAD: FirmaItem[] = [
+  { campo: "firmaDecanoFacultad", etiqueta: "Decano de la facultad" },
+  { campo: "firmaCoordinadorCarrera", etiqueta: "Coordinador de carrera" },
+  { campo: "firmaSecretarioAcademico", etiqueta: "Secretario académico" },
+  { campo: "firmaRector", etiqueta: "Rector" },
+]
