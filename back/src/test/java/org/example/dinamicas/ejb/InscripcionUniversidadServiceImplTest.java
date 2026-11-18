@@ -8,11 +8,8 @@ import org.example.dinamicas.dto.InscripcionUniversidadRequestDto;
 import org.example.dinamicas.mapper.DiplomaUniversidadMapper;
 import org.example.dinamicas.mapper.InscripcionUniversidadMapper;
 import org.example.dinamicas.model.DiplomaSecundariaEty;
-import org.example.dinamicas.model.DiplomaSecundariaId;
 import org.example.dinamicas.model.DiplomaUniversidadEty;
-import org.example.dinamicas.model.InscripcionSecundariaId;
 import org.example.dinamicas.model.InscripcionUniversidadEty;
-import org.example.dinamicas.model.InscripcionUniversidadId;
 import org.example.dinamicas.repository.DiplomaUniversidadRepository;
 import org.example.dinamicas.repository.InscripcionUniversidadRepository;
 import org.junit.jupiter.api.Test;
@@ -88,8 +85,7 @@ class InscripcionUniversidadServiceImplTest {
         InscripcionUniversidadEty existente = new InscripcionUniversidadEty();
         existente.setDiplomaSecundaria(diplomaSecundariaIncompleto());
 
-        InscripcionUniversidadId id = new InscripcionUniversidadId(new DiplomaSecundariaId(new InscripcionSecundariaId(10L)));
-        when(inscripcionUniversidadRepository.findById(id)).thenReturn(Optional.of(existente));
+        when(inscripcionUniversidadRepository.findById(10L)).thenReturn(Optional.of(existente));
 
         assertThrows(ReglaDeNegocioException.class, () -> service.actualizar(10L, peticion()));
 
@@ -99,8 +95,7 @@ class InscripcionUniversidadServiceImplTest {
 
     @Test
     void actualizarInexistenteLanza404YNoGuardaNada() {
-        InscripcionUniversidadId id = new InscripcionUniversidadId(new DiplomaSecundariaId(new InscripcionSecundariaId(99L)));
-        when(inscripcionUniversidadRepository.findById(id)).thenReturn(Optional.empty());
+        when(inscripcionUniversidadRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThrows(RecursoNoEncontradoException.class, () -> service.actualizar(99L, peticion()));
 

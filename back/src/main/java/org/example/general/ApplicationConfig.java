@@ -6,6 +6,7 @@ import org.example.dinamicas.rest.InscripcionController;
 import org.example.dinamicas.rest.DiplomaPrimariaController;
 import org.example.dinamicas.rest.InscripcionSecundariaController;
 import org.example.dinamicas.rest.InscripcionUniversidadController;
+import org.example.dinamicas.rest.CadenaDiplomasController;
 import org.example.dinamicas.rest.DireccionController;
 import org.example.dinamicas.rest.PersonaController;
 import org.example.dinamicas.rest.EntregaController;
@@ -48,6 +49,9 @@ public class ApplicationConfig extends ResourceConfig {
         public static final String DIPLOMAS_PRIMARIA = "/diplomas-primaria";
         public static final String INSCRIPCIONES_SECUNDARIA = "/inscripciones-secundaria";
         public static final String INSCRIPCIONES_UNIVERSIDAD = "/inscripciones-universidad";
+        // Continua la cadena a partir de una Inscripcion (Primaria) que ya existe, en UNA
+        // sola peticion -- ver CadenaDiplomasRequestDto/CadenaDiplomasServiceImpl.
+        public static final String CADENA_DIPLOMAS = "/inscripciones/{id}/cadena-diplomas";
 
         // "Tablas genericas" para el formulario de inscripcion -- no es un recurso por
         // entidad, es un bundle de los 4 catalogos de arriba en una sola respuesta.
@@ -79,6 +83,7 @@ public class ApplicationConfig extends ResourceConfig {
         REGISTRO_ACTIVO.put(Endpoints.DIPLOMAS_PRIMARIA, DiplomaPrimariaController.class);
         REGISTRO_ACTIVO.put(Endpoints.INSCRIPCIONES_SECUNDARIA, InscripcionSecundariaController.class);
         REGISTRO_ACTIVO.put(Endpoints.INSCRIPCIONES_UNIVERSIDAD, InscripcionUniversidadController.class);
+        REGISTRO_ACTIVO.put(Endpoints.CADENA_DIPLOMAS, CadenaDiplomasController.class);
         REGISTRO_ACTIVO.put(Endpoints.CATALOGOS_INSCRIPCION, CatalogosInscripcionController.class);
         REGISTRO_ACTIVO.put(Endpoints.CATALOGOS_GEOGRAFICOS, CatalogosGeograficosController.class);
         REGISTRO_ACTIVO.put(Endpoints.PERSONAS, PersonaController.class);

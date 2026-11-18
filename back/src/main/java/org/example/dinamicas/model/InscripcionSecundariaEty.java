@@ -4,12 +4,10 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
-import jakarta.persistence.IdClass;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
-import jakarta.persistence.PrimaryKeyJoinColumn;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -22,22 +20,24 @@ import org.example.estaticos.model.MiniFormSisEty;
 
 import java.time.LocalDateTime;
 
-// PK compartida con DiplomaPrimariaEty (@IdClass + @Id sobre el @OneToOne, JPA 3.2 S2.4.1.3
-// "derived identity") -- mismo mecanismo que EntregaEty con DireccionEty. No existe un
-// ID_INSCRIPCION_SECUNDARIA propio: la propia fila ES, por identidad, un diploma de primaria
-// completo (la regla de negocio la valida InscripcionSecundariaServiceImpl al crear). Esto
-// garantiza a nivel de esquema que no puede existir una inscripcion de secundaria sin un
-// diploma de primaria real detras.
+// PK compartida con DiplomaPrimariaEty: identidad derivada de un solo @OneToOne (JPA 3.2
+// S2.4.1.3, caso simple -- el mismo ejemplo "EmployeeInfo" del spec, @Id + @OneToOne +
+// @JoinColumn liso, SIN @IdClass). @IdClass solo hace falta cuando el destino tiene una PK
+// de VARIAS columnas (ver EntregaEty/DireccionEty, PK de 3 columnas) -- no es el caso aca:
+// DiplomaPrimariaEty tiene PK simple (Long), asi que el tipo de id de esta entidad es
+// tambien Long, sin envoltorio. No existe un ID_INSCRIPCION_SECUNDARIA propio: la propia fila
+// ES, por identidad, un diploma de primaria completo (la regla de negocio la valida
+// InscripcionSecundariaServiceImpl al crear). Esto garantiza a nivel de esquema que no puede
+// existir una inscripcion de secundaria sin un diploma de primaria real detras.
 @Getter
 @Setter
 @Entity
-@IdClass(InscripcionSecundariaId.class)
 @Table(name = "INSCRIPCION_SECUNDARIA")
 public class InscripcionSecundariaEty {
 
     @Id
     @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @PrimaryKeyJoinColumn(name = "ID_DIPLOMA_PRIMARIA", referencedColumnName = "ID_DIPLOMA_PRIMARIA")
+    @JoinColumn(name = "ID_DIPLOMA_PRIMARIA", nullable = false)
     private DiplomaPrimariaEty diplomaPrimaria;
 
     @ManyToOne(fetch = FetchType.LAZY)

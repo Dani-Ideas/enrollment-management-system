@@ -54,20 +54,40 @@ export function aInputDatetime(iso: string | null): string {
 
 // PASOS por rama -- sin paso de "elegir accion": la accion llega por la URL
 // (?accion=..., la elige el submenu de HomePage), asi que el paso 0 ya es el primero
-// real de cada rama. El Carousel SIEMPRE tiene 3 CarouselItem (el maximo, "actualizar"):
-// mantener la CANTIDAD de slides fija evita que Embla tenga que re-detectar slides
-// nuevos a mitad de sesion.
+// real de cada rama. El Carousel SIEMPRE tiene 12 CarouselItem (el maximo, "crear" con la
+// cadena completa): mantener la CANTIDAD de slides fija evita que Embla tenga que
+// re-detectar slides nuevos a mitad de sesion.
 //
-// "crear" ahora son solo 2 pasos: CamposInscripcionCompletos junta en UNA pantalla lo que
-// antes eran 3 pasos separados (Catalogo/Responsables/Datos del proyecto), asi que la
-// Confirmacion final pasa de paso 3 a paso 1.
+// "crear" es dos peticiones HTTP distintas: la Inscripcion de Primaria (pasos 0-1, POST
+// /inscripciones, ya existia) y, opcionalmente, el resto de la cadena (pasos 2-11) --
+// Diploma Primaria -> Inscripcion Secundaria -> Diploma Secundaria -> Inscripcion
+// Universidad -> Diploma Universidad, en UNA sola peticion (POST /inscripciones/{id}/
+// cadena-diplomas) recien cuando el usuario elige "Finalizar y enviar" en CUALQUIER
+// Confirmacion de la cadena (3/5/7/9/11) -- el front no valida la dependencia entre
+// niveles, eso lo hace el back y responde 409 si no corresponde. "actualizar" todavia no
+// tiene su propia cadena (eso sigue en los 3 pasos viejos).
 export function etiquetaPaso(accion: Accion | null, indice: number): string {
   if (accion === "lista") return indice === 0 ? "Lista de solicitudes" : ""
   if (accion === "actualizar") {
     return { 0: "Elegir solicitud", 1: "Editar campos", 2: "Confirmación" }[indice] ?? ""
   }
   if (accion === "crear") {
-    return ({ 0: "Datos de la inscripción primaria", 1: "Confirmación" }[indice] ?? "")
+    return (
+      {
+        0: "Datos de la inscripción primaria",
+        1: "Confirmación",
+        2: "Datos del diploma primaria",
+        3: "Confirmación",
+        4: "Datos de la inscripción secundaria",
+        5: "Confirmación",
+        6: "Datos del diploma secundaria",
+        7: "Confirmación",
+        8: "Datos de la inscripción universidad",
+        9: "Confirmación",
+        10: "Datos del diploma universidad",
+        11: "Confirmación",
+      }[indice] ?? ""
+    )
   }
   return ""
 }
@@ -75,7 +95,7 @@ export function etiquetaPaso(accion: Accion | null, indice: number): string {
 export function totalPasos(accion: Accion | null): number {
   if (accion === "lista") return 1
   if (accion === "actualizar") return 3
-  if (accion === "crear") return 2
+  if (accion === "crear") return 12
   return 0
 }
 

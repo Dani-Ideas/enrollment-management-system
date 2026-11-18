@@ -31,6 +31,7 @@ public interface InscripcionMapper extends RequestResponseMapper<InscripcionEty,
     @Mapping(target = "maestro", source = "maestro.nombreLargo")
     @Mapping(target = "carrera", source = "carrera.nombreLargo")
     @Mapping(target = "ambiente", source = "ambiente.nombre")
+    @Mapping(target = "diplomaPrimariaId", source = "diplomaPrimaria.id")
     InscripcionDto toDto(InscripcionEty inscripcion);
 
     @Override

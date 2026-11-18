@@ -14,11 +14,18 @@ export function PasosNavegacion({
   current,
   maxStep,
   onIrAPaso,
+  pasoEnCurso,
+  bloqueadoGlobalmente,
 }: {
   accion: Accion | null
   current: number
   maxStep: number
   onIrAPaso: (indice: number) => void
+  // Mientras se espera la confirmacion del back de la cadena completa (ver
+  // useInscripcionForm.cadenaDiplomasMutation): ese paso muestra un Spinner y NADA es
+  // clickeable hasta que resuelva.
+  pasoEnCurso?: number | null
+  bloqueadoGlobalmente?: boolean
 }) {
   const pasos = Array.from({ length: totalPasos(accion) }, (_, i) => etiquetaPaso(accion, i))
 
@@ -28,6 +35,8 @@ export function PasosNavegacion({
       current={current}
       maxStep={maxStep}
       onStepChange={onIrAPaso}
+      pasoEnCurso={pasoEnCurso}
+      bloqueadoGlobalmente={bloqueadoGlobalmente}
       className="mb-4"
       palette={["#f59e0b", "#3b82f6", "#10b981", "#8b5cf6"]}
     />

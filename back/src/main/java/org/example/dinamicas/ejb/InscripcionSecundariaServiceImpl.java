@@ -12,7 +12,6 @@ import org.example.dinamicas.mapper.InscripcionSecundariaMapper;
 import org.example.dinamicas.model.DiplomaPrimariaEty;
 import org.example.dinamicas.model.DiplomaSecundariaEty;
 import org.example.dinamicas.model.InscripcionSecundariaEty;
-import org.example.dinamicas.model.InscripcionSecundariaId;
 import org.example.dinamicas.repository.DiplomaSecundariaRepository;
 import org.example.dinamicas.repository.InscripcionSecundariaRepository;
 import org.example.dinamicas.service.InscripcionSecundariaService;
@@ -20,12 +19,10 @@ import org.example.dinamicas.service.InscripcionSecundariaService;
 import java.time.LocalDateTime;
 import java.util.List;
 
-// InscripcionSecundariaEty tiene PK compartida (con DiplomaPrimariaEty, via
-// InscripcionSecundariaId) -- no encaja en CrudServiceBase<E,K,...> (pensado para un id Long
-// plano, ver DireccionServiceImpl/CatalogoGeograficoServiceImpl para el mismo precedente de
-// "servicio que no entra en el molde"). El Long que ve el cliente (URL, DTOs) es siempre el
-// mismo valor de linaje; esta clase es la unica que sabe envolverlo/desenvolverlo contra la
-// PK compuesta real antes de hablar con el Repository.
+// InscripcionSecundariaEty tiene PK compartida (identidad derivada de DiplomaPrimariaEty, sin
+// @IdClass -- ver InscripcionSecundariaEty) -- no extiende CrudServiceBase porque buscarPorId/
+// crear/actualizar ya estaban sobreescritos de punta a punta igual (mismo precedente de
+// "servicio que no entra en el molde" que DireccionServiceImpl/CatalogoGeograficoServiceImpl).
 @Stateless
 public class InscripcionSecundariaServiceImpl implements InscripcionSecundariaService {
 
@@ -98,7 +95,7 @@ public class InscripcionSecundariaServiceImpl implements InscripcionSecundariaSe
     }
 
     private InscripcionSecundariaEty obtener(Long id) {
-        return inscripcionSecundariaRepository.findById(new InscripcionSecundariaId(id))
+        return inscripcionSecundariaRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("No existe la inscripción de secundaria " + id));
     }
 

@@ -25,6 +25,10 @@ export interface AmbienteDTO {
 
 // Forma de SALIDA -- aplanada a texto (igual que el SELECT original), no trae
 // objetos anidados.
+// diplomaPrimariaId: null si esta Inscripcion todavia no tiene diploma de primaria --
+// cuando viene, ES el id de linaje compartido por el resto de la cadena (ver nota en
+// DiplomaPrimariaDTO mas abajo), asi que "actualizar" lo usa para saber si ya hay una
+// cadena Secundaria/Universidad que traer.
 export interface InscripcionDTO {
   id: number;
   estado: string;
@@ -38,6 +42,7 @@ export interface InscripcionDTO {
   descripcion: string | null;
   fechaInscripcionPlanteada: string;
   fechaInscripcionReal: string | null;
+  diplomaPrimariaId: number | null;
 }
 
 // Forma de ENTRADA -- las relaciones viajan como id suelto, no como texto.
@@ -100,4 +105,245 @@ export interface InscripcionConFormacionComplementariaRequestDTO {
 export interface InscripcionConFormacionComplementariaDTO {
   inscripcion: InscripcionDTO;
   formacionesComplementarias: FormacionComplementariaDTO[];
+}
+
+// --- Cadena Primaria/Secundaria/Universidad -- espejo de los DTO nuevos del backend ---
+//
+// InscripcionDTO/InscripcionRequestDTO (arriba) son ahora, en los hechos, "Primaria": la
+// tabla INSCRIPCION no se renombro. DiplomaPrimariaDTO es standalone (su propio
+// GET/POST/PUT), sin wrapper compuesto, porque InscripcionEty no se tocó.
+//
+// "id" en Diploma*DTO (Secundaria/Universidad) es SIEMPRE el mismo numero que
+// DiplomaPrimariaDTO.id -- toda la cadena comparte un unico id de linaje (PK compartida en
+// el backend), por eso aca no hay inscripcionXId/diplomaXId por separado.
+
+// Espejo de DiplomaPrimariaDto.java.
+export interface DiplomaPrimariaDTO {
+  id: number;
+  inscripcionId: number;
+  firmaMaestro1ro: boolean;
+  firmaMaestro2do: boolean;
+  firmaMaestro3ro: boolean;
+  firmaMaestro4to: boolean;
+  firmaMaestro5to: boolean;
+  firmaMaestro6to: boolean;
+  firmaDirectorPrimaria: boolean;
+  emitido: boolean;
+  fechaEmision: string | null;
+}
+
+// Espejo de DiplomaPrimariaRequestDto.java -- sin emitido/fechaEmision: los calcula el
+// backend, nunca se mandan.
+export interface DiplomaPrimariaRequestDTO {
+  inscripcion: number;
+  firmaMaestro1ro: boolean;
+  firmaMaestro2do: boolean;
+  firmaMaestro3ro: boolean;
+  firmaMaestro4to: boolean;
+  firmaMaestro5to: boolean;
+  firmaMaestro6to: boolean;
+  firmaDirectorPrimaria: boolean;
+}
+
+// Espejo de InscripcionSecundariaDto.java -- mismo aplanado que InscripcionDTO.
+export interface InscripcionSecundariaDTO {
+  id: number;
+  estado: string;
+  sistema: string;
+  jefeCarrera: string;
+  maestro: string;
+  carrera: string;
+  ambiente: string;
+  proyecto: string;
+  version: string;
+  descripcion: string | null;
+  fechaInscripcionPlanteada: string;
+  fechaInscripcionReal: string | null;
+}
+
+// Espejo de InscripcionSecundariaRequestDto.java -- "diplomaPrimaria" fija la PK compartida
+// de la fila nueva; es inmutable despues de crear (el backend lo ignora en el PUT).
+export interface InscripcionSecundariaRequestDTO {
+  diplomaPrimaria: number;
+  estado: number;
+  sistema: number;
+  jefeCarrera: number;
+  maestro: number;
+  carrera: number;
+  ambiente: number;
+  proyecto: string;
+  version: string;
+  descripcion: string | null;
+  fechaInscripcionPlanteada: string;
+  fechaInscripcionReal: string | null;
+}
+
+// Espejo de DiplomaSecundariaDto.java -- sin FK propia (ver nota de arriba sobre "id").
+export interface DiplomaSecundariaDTO {
+  id: number;
+  firmaMaestroPrimerGrado: boolean;
+  firmaMaestroSegundoGrado: boolean;
+  firmaMaestroTercerGrado: boolean;
+  firmaOrientador: boolean;
+  firmaDirectorSecundaria: boolean;
+  emitido: boolean;
+  fechaEmision: string | null;
+}
+
+// Espejo de DiplomaSecundariaRequestDto.java -- solo el checklist de firmas; la cadena hacia
+// primaria la fija InscripcionSecundariaRequestDTO.diplomaPrimaria.
+export interface DiplomaSecundariaRequestDTO {
+  firmaMaestroPrimerGrado: boolean;
+  firmaMaestroSegundoGrado: boolean;
+  firmaMaestroTercerGrado: boolean;
+  firmaOrientador: boolean;
+  firmaDirectorSecundaria: boolean;
+}
+
+// Espejo de InscripcionSecundariaConDiplomaDto.java -- a diferencia de
+// InscripcionConFormacionComplementariaDTO, el diploma NUNCA es una lista ni es opcional.
+export interface InscripcionSecundariaConDiplomaDTO {
+  inscripcionSecundaria: InscripcionSecundariaDTO;
+  diplomaSecundaria: DiplomaSecundariaDTO;
+}
+
+// Espejo de InscripcionSecundariaConDiplomaRequestDto.java -- diplomaSecundaria es
+// obligatorio en POST y PUT (siempre trae el checklist de firmas).
+export interface InscripcionSecundariaConDiplomaRequestDTO {
+  inscripcionSecundaria: InscripcionSecundariaRequestDTO;
+  diplomaSecundaria: DiplomaSecundariaRequestDTO;
+}
+
+// Espejo de InscripcionUniversidadDto.java.
+export interface InscripcionUniversidadDTO {
+  id: number;
+  estado: string;
+  sistema: string;
+  jefeCarrera: string;
+  maestro: string;
+  carrera: string;
+  ambiente: string;
+  proyecto: string;
+  version: string;
+  descripcion: string | null;
+  fechaInscripcionPlanteada: string;
+  fechaInscripcionReal: string | null;
+}
+
+// Espejo de InscripcionUniversidadRequestDto.java -- "diplomaSecundaria" fija la PK
+// compartida, inmutable despues de crear.
+export interface InscripcionUniversidadRequestDTO {
+  diplomaSecundaria: number;
+  estado: number;
+  sistema: number;
+  jefeCarrera: number;
+  maestro: number;
+  carrera: number;
+  ambiente: number;
+  proyecto: string;
+  version: string;
+  descripcion: string | null;
+  fechaInscripcionPlanteada: string;
+  fechaInscripcionReal: string | null;
+}
+
+// Espejo de DiplomaUniversidadDto.java.
+export interface DiplomaUniversidadDTO {
+  id: number;
+  firmaDecanoFacultad: boolean;
+  firmaCoordinadorCarrera: boolean;
+  firmaSecretarioAcademico: boolean;
+  firmaRector: boolean;
+  emitido: boolean;
+  fechaEmision: string | null;
+}
+
+// Espejo de DiplomaUniversidadRequestDto.java -- solo el checklist de firmas; la cadena
+// hacia secundaria la fija InscripcionUniversidadRequestDTO.diplomaSecundaria.
+export interface DiplomaUniversidadRequestDTO {
+  firmaDecanoFacultad: boolean;
+  firmaCoordinadorCarrera: boolean;
+  firmaSecretarioAcademico: boolean;
+  firmaRector: boolean;
+}
+
+// Espejo de InscripcionUniversidadConDiplomaDto.java.
+export interface InscripcionUniversidadConDiplomaDTO {
+  inscripcionUniversidad: InscripcionUniversidadDTO;
+  diplomaUniversidad: DiplomaUniversidadDTO;
+}
+
+// Espejo de InscripcionUniversidadConDiplomaRequestDto.java.
+export interface InscripcionUniversidadConDiplomaRequestDTO {
+  inscripcionUniversidad: InscripcionUniversidadRequestDTO;
+  diplomaUniversidad: DiplomaUniversidadRequestDTO;
+}
+
+// --- POST /inscripciones/{id}/cadena-diplomas -- continua la cadena en UNA sola peticion a
+// partir de una Inscripcion (Primaria) que ya existe. Espejo de los DTO *DatosDto.java del
+// backend: cada nivel es opcional (undefined = el usuario no llego hasta ahi en el
+// wizard), pero son ACUMULATIVOS en orden -- el backend rechaza con 409 si falta un nivel
+// intermedio.
+
+// Espejo de DiplomaPrimariaDatosDto.java -- igual que DiplomaPrimariaRequestDTO sin
+// "inscripcion" (fijo por la URL).
+export interface DiplomaPrimariaDatosDTO {
+  firmaMaestro1ro: boolean;
+  firmaMaestro2do: boolean;
+  firmaMaestro3ro: boolean;
+  firmaMaestro4to: boolean;
+  firmaMaestro5to: boolean;
+  firmaMaestro6to: boolean;
+  firmaDirectorPrimaria: boolean;
+}
+
+// Espejo de InscripcionSecundariaDatosDto.java -- igual que InscripcionSecundariaRequestDTO
+// sin "diplomaPrimaria" (el encadenamiento es implicito: el nivel anterior en la MISMA
+// peticion).
+export interface InscripcionSecundariaDatosDTO {
+  estado: number;
+  sistema: number;
+  jefeCarrera: number;
+  maestro: number;
+  carrera: number;
+  ambiente: number;
+  proyecto: string;
+  version: string;
+  descripcion: string | null;
+  fechaInscripcionPlanteada: string;
+  fechaInscripcionReal: string | null;
+}
+
+// Espejo de InscripcionUniversidadDatosDto.java.
+export interface InscripcionUniversidadDatosDTO {
+  estado: number;
+  sistema: number;
+  jefeCarrera: number;
+  maestro: number;
+  carrera: number;
+  ambiente: number;
+  proyecto: string;
+  version: string;
+  descripcion: string | null;
+  fechaInscripcionPlanteada: string;
+  fechaInscripcionReal: string | null;
+}
+
+// Espejo de CadenaDiplomasRequestDto.java.
+export interface CadenaDiplomasRequestDTO {
+  diplomaPrimaria?: DiplomaPrimariaDatosDTO;
+  inscripcionSecundaria?: InscripcionSecundariaDatosDTO;
+  diplomaSecundaria?: DiplomaSecundariaRequestDTO;
+  inscripcionUniversidad?: InscripcionUniversidadDatosDTO;
+  diplomaUniversidad?: DiplomaUniversidadRequestDTO;
+}
+
+// Espejo de CadenaDiplomasDto.java -- cada campo es null si ese nivel no vino en la
+// peticion (el usuario no siguio hasta ahi).
+export interface CadenaDiplomasDTO {
+  diplomaPrimaria: DiplomaPrimariaDTO | null;
+  inscripcionSecundaria: InscripcionSecundariaDTO | null;
+  diplomaSecundaria: DiplomaSecundariaDTO | null;
+  inscripcionUniversidad: InscripcionUniversidadDTO | null;
+  diplomaUniversidad: DiplomaUniversidadDTO | null;
 }

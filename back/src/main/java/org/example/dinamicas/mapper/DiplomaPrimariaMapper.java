@@ -3,6 +3,7 @@ package org.example.dinamicas.mapper;
 import jakarta.inject.Inject;
 import org.example.comun.ReferenciaInvalidaException;
 import org.example.comun.RequestResponseMapper;
+import org.example.dinamicas.dto.DiplomaPrimariaDatosDto;
 import org.example.dinamicas.dto.DiplomaPrimariaDto;
 import org.example.dinamicas.dto.DiplomaPrimariaRequestDto;
 import org.example.dinamicas.model.DiplomaPrimariaEty;
@@ -38,6 +39,10 @@ public abstract class DiplomaPrimariaMapper implements RequestResponseMapper<Dip
 
     @InheritConfiguration(name = "toEntity")
     public abstract void actualizarDesde(@MappingTarget DiplomaPrimariaEty entidad, DiplomaPrimariaRequestDto dto);
+
+    // Usado por CadenaDiplomasServiceImpl: mismas firmas, sin "inscripcion" (fija por otro
+    // lado, ver DiplomaPrimariaDatosDto) ni emitido/fechaEmision (los calcula el service).
+    public abstract DiplomaPrimariaEty toEntity(DiplomaPrimariaDatosDto dto);
 
     public DiplomaPrimariaEty desdeId(Long id) {
         if (id == null) {

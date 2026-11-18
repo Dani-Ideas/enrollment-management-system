@@ -2,10 +2,20 @@ import axios, { type AxiosRequestConfig } from "axios";
 import { queryOptions } from "@tanstack/react-query";
 import type {
   AmbienteDTO,
+  CadenaDiplomasDTO,
+  CadenaDiplomasRequestDTO,
+  DiplomaPrimariaDTO,
+  DiplomaPrimariaRequestDTO,
   EstadoDTO,
   InscripcionConFormacionComplementariaDTO,
   InscripcionConFormacionComplementariaRequestDTO,
   InscripcionDTO,
+  InscripcionSecundariaConDiplomaDTO,
+  InscripcionSecundariaConDiplomaRequestDTO,
+  InscripcionSecundariaDTO,
+  InscripcionUniversidadConDiplomaDTO,
+  InscripcionUniversidadConDiplomaRequestDTO,
+  InscripcionUniversidadDTO,
   ResponsableDTO,
   SistemaDTO,
   TablasInscripcionDTO,
@@ -33,6 +43,11 @@ const RUTAS = {
   ambientes: "/ambientes",
   catalogosInscripcion: "/catalogos-inscripcion",
   inscripciones: "/inscripciones",
+  // Cadena Primaria/Secundaria/Universidad: "inscripciones" (arriba) es ahora Primaria;
+  // estos 3 paths son el resto de la cadena (ver ApplicationConfig.Endpoints).
+  diplomasPrimaria: "/diplomas-primaria",
+  inscripcionesSecundaria: "/inscripciones-secundaria",
+  inscripcionesUniversidad: "/inscripciones-universidad",
   endpoints: "/endpoints",
 } as const;
 
@@ -178,6 +193,106 @@ export function actualizarInscripcion(
   dto: InscripcionConFormacionComplementariaRequestDTO,
 ): Promise<InscripcionConFormacionComplementariaDTO> {
   return request<InscripcionConFormacionComplementariaDTO>(`${RUTAS.inscripciones}/${id}`, {
+    method: "PUT",
+    data: dto,
+  });
+}
+
+// --- Cadena Primaria/Secundaria/Universidad ---
+//
+// DiplomaPrimariaDTO es standalone (CRUD propio, sin wrapper) -- InscripcionEty (arriba) no
+// se tocó. InscripcionSecundaria/Universidad SI son compuestas (inscripcion + diploma en una
+// sola peticion), igual patron que crearInscripcion()/actualizarInscripcion(), salvo que aca
+// el diploma nunca es una lista ni es opcional.
+
+export function fetchDiplomasPrimaria(): Promise<DiplomaPrimariaDTO[]> {
+  return request<DiplomaPrimariaDTO[]>(RUTAS.diplomasPrimaria);
+}
+
+export function fetchDiplomaPrimaria(id: number): Promise<DiplomaPrimariaDTO> {
+  return request<DiplomaPrimariaDTO>(`${RUTAS.diplomasPrimaria}/${id}`);
+}
+
+export function crearDiplomaPrimaria(dto: DiplomaPrimariaRequestDTO): Promise<DiplomaPrimariaDTO> {
+  return request<DiplomaPrimariaDTO>(RUTAS.diplomasPrimaria, { method: "POST", data: dto });
+}
+
+export function actualizarDiplomaPrimaria(id: number, dto: DiplomaPrimariaRequestDTO): Promise<DiplomaPrimariaDTO> {
+  return request<DiplomaPrimariaDTO>(`${RUTAS.diplomasPrimaria}/${id}`, { method: "PUT", data: dto });
+}
+
+export function fetchInscripcionesSecundaria(): Promise<InscripcionSecundariaDTO[]> {
+  return request<InscripcionSecundariaDTO[]>(RUTAS.inscripcionesSecundaria);
+}
+
+// Trae la InscripcionSecundaria + su diploma de secundaria juntos -- igual motivo que
+// fetchInscripcion(): el PUT manda el diploma completo que debe quedar.
+export function fetchInscripcionSecundaria(id: number): Promise<InscripcionSecundariaConDiplomaDTO> {
+  return request<InscripcionSecundariaConDiplomaDTO>(`${RUTAS.inscripcionesSecundaria}/${id}`);
+}
+
+export function crearInscripcionSecundaria(
+  dto: InscripcionSecundariaConDiplomaRequestDTO,
+): Promise<InscripcionSecundariaConDiplomaDTO> {
+  return request<InscripcionSecundariaConDiplomaDTO>(RUTAS.inscripcionesSecundaria, { method: "POST", data: dto });
+}
+
+export function actualizarInscripcionSecundaria(
+  id: number,
+  dto: InscripcionSecundariaConDiplomaRequestDTO,
+): Promise<InscripcionSecundariaConDiplomaDTO> {
+  return request<InscripcionSecundariaConDiplomaDTO>(`${RUTAS.inscripcionesSecundaria}/${id}`, {
+    method: "PUT",
+    data: dto,
+  });
+}
+
+export function fetchInscripcionesUniversidad(): Promise<InscripcionUniversidadDTO[]> {
+  return request<InscripcionUniversidadDTO[]>(RUTAS.inscripcionesUniversidad);
+}
+
+export function fetchInscripcionUniversidad(id: number): Promise<InscripcionUniversidadConDiplomaDTO> {
+  return request<InscripcionUniversidadConDiplomaDTO>(`${RUTAS.inscripcionesUniversidad}/${id}`);
+}
+
+export function crearInscripcionUniversidad(
+  dto: InscripcionUniversidadConDiplomaRequestDTO,
+): Promise<InscripcionUniversidadConDiplomaDTO> {
+  return request<InscripcionUniversidadConDiplomaDTO>(RUTAS.inscripcionesUniversidad, { method: "POST", data: dto });
+}
+
+export function actualizarInscripcionUniversidad(
+  id: number,
+  dto: InscripcionUniversidadConDiplomaRequestDTO,
+): Promise<InscripcionUniversidadConDiplomaDTO> {
+  return request<InscripcionUniversidadConDiplomaDTO>(`${RUTAS.inscripcionesUniversidad}/${id}`, {
+    method: "PUT",
+    data: dto,
+  });
+}
+
+// Continua la cadena a partir de una Inscripcion (Primaria) que ya existe, en UNA sola
+// peticion -- espejo de ApplicationConfig.Endpoints.CADENA_DIPLOMAS ("/inscripciones/{id}/
+// cadena-diplomas"). No va en RUTAS (ese objeto es de paths fijos, este lleva un id) -- el
+// chequeo de endpoints activos de arriba (DEV) por eso no puede validar este path, es un
+// falso positivo inofensivo si alguna vez aparece en consola.
+export function crearCadenaDiplomas(
+  inscripcionId: number,
+  dto: CadenaDiplomasRequestDTO,
+): Promise<CadenaDiplomasDTO> {
+  return request<CadenaDiplomasDTO>(`/inscripciones/${inscripcionId}/cadena-diplomas`, {
+    method: "POST",
+    data: dto,
+  });
+}
+
+// Variante "upsert" de crearCadenaDiplomas() -- usada por "actualizar", que puede estar
+// retomando una cadena a medio llenar: actualiza cada nivel que ya existe, crea el que no.
+export function actualizarCadenaDiplomas(
+  inscripcionId: number,
+  dto: CadenaDiplomasRequestDTO,
+): Promise<CadenaDiplomasDTO> {
+  return request<CadenaDiplomasDTO>(`/inscripciones/${inscripcionId}/cadena-diplomas`, {
     method: "PUT",
     data: dto,
   });

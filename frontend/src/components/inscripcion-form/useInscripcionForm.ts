@@ -4,11 +4,22 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   actualizarInscripcion,
   CATALOGOS_INSCRIPCION_QUERY,
+  crearCadenaDiplomas,
   crearInscripcion,
   fetchInscripcion,
   fetchInscripciones,
 } from "@/api/client"
-import type { FormacionComplementariaRequestDTO, InscripcionDTO, InscripcionRequestDTO } from "@/api/types"
+import type {
+  CadenaDiplomasRequestDTO,
+  DiplomaPrimariaDatosDTO,
+  DiplomaSecundariaRequestDTO,
+  DiplomaUniversidadRequestDTO,
+  FormacionComplementariaRequestDTO,
+  InscripcionDTO,
+  InscripcionRequestDTO,
+  InscripcionSecundariaDatosDTO,
+  InscripcionUniversidadDatosDTO,
+} from "@/api/types"
 import type { CarouselApi } from "@/components/ui/carousel"
 import type { SeccionResumen } from "./ResumenCadena"
 import {
@@ -158,6 +169,7 @@ export function useInscripcionForm() {
   function camposAVistaPrevia(c: CamposFormulario): InscripcionDTO {
     return {
       id: 0,
+      diplomaPrimariaId: null,
       estado: estadosQuery.data?.find((e) => String(e.id) === c.estadoId)?.estado ?? "",
       sistema: sistemasQuery.data?.find((s) => String(s.id) === c.sistemaId)?.nombre ?? "",
       jefeCarrera: responsablesQuery.data?.find((r) => String(r.id) === c.jefeCarreraId)?.nombreLargo ?? "",
@@ -259,6 +271,7 @@ export function useInscripcionForm() {
     maxStepRef.current = 0
     setMaxStep(0)
     api?.scrollTo(0)
+    resetearCadena()
   }
 
   // --- Actualizar: elegir la solicitud, despues editarla ---
@@ -418,6 +431,7 @@ export function useInscripcionForm() {
     setFiltroSistemaId("")
     setFiltroAmbienteId("")
     setDetalleAbiertoId(null)
+    resetearCadena()
   }
 
   // --- Cadena Primaria/Secundaria/Universidad: estado del checklist de firmas y de los
@@ -478,13 +492,113 @@ export function useInscripcionForm() {
     setDiplomaUniversidadFirmas((actual) => ({ ...actual, [campo]: valor }))
   }
 
+  // Mismo renombre que camposADto (CamposFormulario -> *DatosDTO, sin sufijo "Id").
+  function camposInscripcionADatos(c: CamposFormulario): InscripcionSecundariaDatosDTO | InscripcionUniversidadDatosDTO {
+    return {
+      estado: Number(c.estadoId),
+      sistema: Number(c.sistemaId),
+      jefeCarrera: Number(c.jefeCarreraId),
+      maestro: Number(c.maestroId),
+      carrera: Number(c.carreraId),
+      ambiente: Number(c.ambienteId),
+      proyecto: c.proyecto,
+      version: c.version,
+      descripcion: c.descripcion.trim() === "" ? null : c.descripcion,
+      fechaInscripcionPlanteada: c.fechaPlanteada,
+      fechaInscripcionReal: c.fechaReal.trim() === "" ? null : c.fechaReal,
+    }
+  }
+
+  // Arma el CadenaDiplomasRequestDTO con TODO lo llenado hasta "hastaPaso" (inclusive) --
+  // los niveles mas alla de ese paso quedan undefined (el back los trata como "no vino").
+  function construirCadenaDto(hastaPaso: number): CadenaDiplomasRequestDTO {
+    const dto: CadenaDiplomasRequestDTO = {}
+    if (hastaPaso >= 2) {
+      dto.diplomaPrimaria = {
+        firmaMaestro1ro: diplomaPrimariaFirmas.firmaMaestro1ro ?? false,
+        firmaMaestro2do: diplomaPrimariaFirmas.firmaMaestro2do ?? false,
+        firmaMaestro3ro: diplomaPrimariaFirmas.firmaMaestro3ro ?? false,
+        firmaMaestro4to: diplomaPrimariaFirmas.firmaMaestro4to ?? false,
+        firmaMaestro5to: diplomaPrimariaFirmas.firmaMaestro5to ?? false,
+        firmaMaestro6to: diplomaPrimariaFirmas.firmaMaestro6to ?? false,
+        firmaDirectorPrimaria: diplomaPrimariaFirmas.firmaDirectorPrimaria ?? false,
+      } satisfies DiplomaPrimariaDatosDTO
+    }
+    if (hastaPaso >= 4) {
+      dto.inscripcionSecundaria = camposInscripcionADatos(camposInscripcionSecundaria) as InscripcionSecundariaDatosDTO
+    }
+    if (hastaPaso >= 6) {
+      dto.diplomaSecundaria = {
+        firmaMaestroPrimerGrado: diplomaSecundariaFirmas.firmaMaestroPrimerGrado ?? false,
+        firmaMaestroSegundoGrado: diplomaSecundariaFirmas.firmaMaestroSegundoGrado ?? false,
+        firmaMaestroTercerGrado: diplomaSecundariaFirmas.firmaMaestroTercerGrado ?? false,
+        firmaOrientador: diplomaSecundariaFirmas.firmaOrientador ?? false,
+        firmaDirectorSecundaria: diplomaSecundariaFirmas.firmaDirectorSecundaria ?? false,
+      } satisfies DiplomaSecundariaRequestDTO
+    }
+    if (hastaPaso >= 8) {
+      dto.inscripcionUniversidad = camposInscripcionADatos(camposInscripcionUniversidad) as InscripcionUniversidadDatosDTO
+    }
+    if (hastaPaso >= 10) {
+      dto.diplomaUniversidad = {
+        firmaDecanoFacultad: diplomaUniversidadFirmas.firmaDecanoFacultad ?? false,
+        firmaCoordinadorCarrera: diplomaUniversidadFirmas.firmaCoordinadorCarrera ?? false,
+        firmaSecretarioAcademico: diplomaUniversidadFirmas.firmaSecretarioAcademico ?? false,
+        firmaRector: diplomaUniversidadFirmas.firmaRector ?? false,
+      } satisfies DiplomaUniversidadRequestDTO
+    }
+    return dto
+  }
+
+  // onSuccess SIEMPRE salta al paso 11 (la ultima Confirmacion), sin importar desde que
+  // Confirmacion se disparo "Finalizar y enviar" -- asi hay un UNICO lugar que muestra el
+  // resultado final, en vez de duplicar esa vista en cada Confirmacion.
+  const cadenaDiplomasMutation = useMutation({
+    mutationFn: ({ inscripcionId, dto }: { inscripcionId: number; dto: CadenaDiplomasRequestDTO }) =>
+      crearCadenaDiplomas(inscripcionId, dto),
+    onSuccess: () => {
+      desbloquearHasta(11)
+      api?.scrollTo(11)
+    },
+  })
+
+  // Dispara la UNICA peticion HTTP de la cadena, con todo lo llenado hasta "hastaPaso" --
+  // llamado desde cualquier Confirmacion (pasos 3/5/7/9/11): el usuario puede "Finalizar y
+  // enviar" apenas termina un nivel, sin obligacion de llegar al final.
+  function enviarCadena(hastaPaso: number) {
+    if (!crearInscripcionMutation.data) return
+    cadenaDiplomasMutation.mutate({
+      inscripcionId: crearInscripcionMutation.data.inscripcion.id,
+      dto: construirCadenaDto(hastaPaso),
+    })
+  }
+
+  // "Continuar": avanza al siguiente paso de la cadena sin mandar nada todavia -- a
+  // diferencia de desbloquearHasta()+scrollTo() en crearInscripcionMutation.onSuccess (que
+  // avanza porque el back YA confirmo algo), aca el avance es puramente local.
+  function continuarCadena(siguientePaso: number) {
+    desbloquearHasta(siguientePaso)
+    api?.scrollTo(siguientePaso)
+  }
+
+  // Todavia solo resetea lo que existe hasta este punto (firmas/forms/la mutation de
+  // "crear") -- "actualizar" (sus propios flags "ya existia" + su mutation) se suma aca
+  // mismo mas adelante.
+  function resetearCadena() {
+    setDiplomaPrimariaFirmas({})
+    setDiplomaSecundariaFirmas({})
+    setDiplomaUniversidadFirmas({})
+    formInscripcionSecundaria.reset()
+    formInscripcionUniversidad.reset()
+    cadenaDiplomasMutation.reset()
+  }
+
   // Resumen de "todo lo llenado hasta ahora" en la cadena -- segun maxStep (el paso mas
   // lejano ya desbloqueado), no "current": si el usuario vuelve a un paso anterior, lo ya
   // llenado mas adelante sigue apareciendo aca. Vive aca (no en FormularioInscripciones.tsx)
   // porque el componente solo pone el JSX -- ningun calculo de estado derivado vive ahi.
   // ResumenCadena decide por si mismo si se renderiza (no en mobile); aca solo se junta el
-  // contenido. maxStep todavia no puede pasar de 1 ("crear") / 2 ("actualizar") -- los
-  // "if (maxStep >= N)" de abajo son estado futuro, listos para cuando la cadena HTTP exista.
+  // contenido.
   const seccionesResumen: SeccionResumen[] = []
   if (accion === "crear") {
     if (crearInscripcionMutation.isSuccess) {
@@ -660,6 +774,9 @@ export function useInscripcionForm() {
     inscripcionUniversidadCompleta,
     diplomaUniversidadFirmas,
     cambiarFirmaDiplomaUniversidad,
+    cadenaDiplomasMutation,
+    enviarCadena,
+    continuarCadena,
     seccionesResumen,
 
     listaIdInput,

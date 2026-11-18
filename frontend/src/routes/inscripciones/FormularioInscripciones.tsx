@@ -3,9 +3,11 @@ import type { PanelImperativeHandle } from "react-resizable-panels"
 import { Link } from "@tanstack/react-router"
 import { formularioPagoRoute } from "@/router"
 import {
+  BotonesCadena,
   CampoCatalogo,
   CamposInscripcionCompletos,
   CampoDatosProyecto,
+  CampoFirmas,
   CampoResponsables,
   CampoSelect,
   CampoVistaDetalle,
@@ -13,13 +15,17 @@ import {
   FormacionesComplementariasEditor,
   PasosNavegacion,
   ResumenCadena,
+  ResumenFirmas,
   useInscripcionForm,
+  FIRMAS_DIPLOMA_PRIMARIA,
+  FIRMAS_DIPLOMA_SECUNDARIA,
+  FIRMAS_DIPLOMA_UNIVERSIDAD,
 } from "@/components/inscripcion-form"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel"
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
-import { FieldGroup, FieldLabel, FieldSet } from "@/components/ui/field"
+import { FieldGroup, FieldSet } from "@/components/ui/field"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Spinner } from "@/components/ui/spinner"
 import { useMediaQuery } from "@/hooks/useMediaQuery"
@@ -102,6 +108,21 @@ export function FormularioInscripciones() {
     crearInscripcionMutation,
     crearInscripcionConFormaciones,
     crearOtra,
+    diplomaPrimariaFirmas,
+    cambiarFirmaDiplomaPrimaria,
+    formInscripcionSecundaria,
+    camposInscripcionSecundaria,
+    inscripcionSecundariaCompleta,
+    diplomaSecundariaFirmas,
+    cambiarFirmaDiplomaSecundaria,
+    formInscripcionUniversidad,
+    camposInscripcionUniversidad,
+    inscripcionUniversidadCompleta,
+    diplomaUniversidadFirmas,
+    cambiarFirmaDiplomaUniversidad,
+    cadenaDiplomasMutation,
+    enviarCadena,
+    continuarCadena,
     seccionesResumen,
     listaIdInput,
     setListaIdInput,
@@ -194,7 +215,16 @@ export function FormularioInscripciones() {
     </>
   )
 
-  const pasosNavegacion = <PasosNavegacion accion={accion} current={current} maxStep={maxStep} onIrAPaso={irAPaso} />
+  const pasosNavegacion = (
+    <PasosNavegacion
+      accion={accion}
+      current={current}
+      maxStep={maxStep}
+      onIrAPaso={irAPaso}
+      pasoEnCurso={cadenaDiplomasMutation.isPending ? current : null}
+      bloqueadoGlobalmente={cadenaDiplomasMutation.isPending}
+    />
+  )
 
   const tarjetaFormulario = (
     <Card ref={cardRef} className="h-full min-w-0">
@@ -310,9 +340,16 @@ export function FormularioInscripciones() {
                         </Alert>
                       )}
 
-                      <Button onClick={crearOtra} className="w-fit">
-                        Crear otra solicitud
-                      </Button>
+                      {/* La cadena (diploma de primaria en adelante) es OPCIONAL -- el
+                          usuario puede seguir ahora o irse y crear otra solicitud. */}
+                      <div className="flex flex-wrap gap-2">
+                        <Button variant="outline" onClick={() => continuarCadena(2)} className="w-fit">
+                          Continuar con el diploma de primaria
+                        </Button>
+                        <Button onClick={crearOtra} className="w-fit">
+                          Crear otra solicitud
+                        </Button>
+                      </div>
                     </>
                   ) : (
                     <>
@@ -402,7 +439,8 @@ export function FormularioInscripciones() {
               )}
             </CarouselItem>
 
-            {/* --- Paso 2 (solo "actualizar") --- */}
+            {/* --- Paso 2: Confirmación final en "actualizar" (todavía sin su propia cadena,
+                ver paso 5) / Datos del diploma primaria en "crear" --- */}
             <CarouselItem className="overflow-y-auto">
               {accion === "actualizar" && (
                 <div className="space-y-4">
@@ -419,6 +457,240 @@ export function FormularioInscripciones() {
                     </>
                   ) : (
                     <p className="text-sm text-muted-foreground">Todavía no guardaste ningún cambio.</p>
+                  )}
+                </div>
+              )}
+
+              {accion === "crear" && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Diploma de primaria</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Opcional: marcá las firmas que ya tengas. Podés enviarlo incompleto y
+                    completarlo después, o seguir con el resto de la cadena.
+                  </p>
+                  <CampoFirmas
+                    idPrefix="cadena-dp"
+                    items={FIRMAS_DIPLOMA_PRIMARIA}
+                    valores={diplomaPrimariaFirmas}
+                    onCambiar={cambiarFirmaDiplomaPrimaria}
+                  />
+                  <Button onClick={() => continuarCadena(3)} className="w-fit">
+                    Siguiente
+                  </Button>
+                </div>
+              )}
+            </CarouselItem>
+
+            {/* --- Paso 3: Confirmación (diploma primaria) --- */}
+            <CarouselItem className="overflow-y-auto">
+              {accion === "crear" && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Confirmación: diploma de primaria</h3>
+                  <ResumenFirmas items={FIRMAS_DIPLOMA_PRIMARIA} valores={diplomaPrimariaFirmas} />
+                  <BotonesCadena
+                    hastaPaso={2}
+                    siguientePaso={4}
+                    etiquetaSiguiente="Continuar con secundaria"
+                    mutation={cadenaDiplomasMutation}
+                    onEnviar={enviarCadena}
+                    onContinuar={continuarCadena}
+                  />
+                </div>
+              )}
+            </CarouselItem>
+
+            {/* --- Paso 4: Datos de la inscripción secundaria --- */}
+            <CarouselItem className="overflow-y-auto">
+              {accion === "crear" && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Inscripción de secundaria</h3>
+                  <CampoCatalogo
+                    form={formInscripcionSecundaria}
+                    idPrefix="cadena-is"
+                    estadosQuery={estadosQuery}
+                    sistemasQuery={sistemasQuery}
+                    ambientesQuery={ambientesQuery}
+                  />
+                  <CampoResponsables
+                    form={formInscripcionSecundaria}
+                    idPrefix="cadena-is"
+                    responsablesQuery={responsablesQuery}
+                  />
+                  <CampoDatosProyecto form={formInscripcionSecundaria} idPrefix="cadena-is" />
+                  <Button
+                    onClick={() => continuarCadena(5)}
+                    disabled={!inscripcionSecundariaCompleta}
+                    className="w-fit"
+                  >
+                    Siguiente
+                  </Button>
+                </div>
+              )}
+            </CarouselItem>
+
+            {/* --- Paso 5: Confirmación (inscripción secundaria) --- */}
+            <CarouselItem className="overflow-y-auto">
+              {accion === "crear" && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Confirmación: inscripción de secundaria</h3>
+                  <DetalleInscripcion inscripcion={camposAVistaPrevia(camposInscripcionSecundaria)} />
+                  <BotonesCadena
+                    hastaPaso={4}
+                    siguientePaso={6}
+                    etiquetaSiguiente="Continuar con diploma de secundaria"
+                    mutation={cadenaDiplomasMutation}
+                    onEnviar={enviarCadena}
+                    onContinuar={continuarCadena}
+                  />
+                </div>
+              )}
+            </CarouselItem>
+
+            {/* --- Paso 6: Datos del diploma secundaria --- */}
+            <CarouselItem className="overflow-y-auto">
+              {accion === "crear" && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Diploma de secundaria</h3>
+                  <CampoFirmas
+                    idPrefix="cadena-ds"
+                    items={FIRMAS_DIPLOMA_SECUNDARIA}
+                    valores={diplomaSecundariaFirmas}
+                    onCambiar={cambiarFirmaDiplomaSecundaria}
+                  />
+                  <Button onClick={() => continuarCadena(7)} className="w-fit">
+                    Siguiente
+                  </Button>
+                </div>
+              )}
+            </CarouselItem>
+
+            {/* --- Paso 7: Confirmación (diploma secundaria) --- */}
+            <CarouselItem className="overflow-y-auto">
+              {accion === "crear" && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Confirmación: diploma de secundaria</h3>
+                  <ResumenFirmas items={FIRMAS_DIPLOMA_SECUNDARIA} valores={diplomaSecundariaFirmas} />
+                  <BotonesCadena
+                    hastaPaso={6}
+                    siguientePaso={8}
+                    etiquetaSiguiente="Continuar con universidad"
+                    mutation={cadenaDiplomasMutation}
+                    onEnviar={enviarCadena}
+                    onContinuar={continuarCadena}
+                  />
+                </div>
+              )}
+            </CarouselItem>
+
+            {/* --- Paso 8: Datos de la inscripción universidad --- */}
+            <CarouselItem className="overflow-y-auto">
+              {accion === "crear" && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Inscripción de universidad</h3>
+                  <CampoCatalogo
+                    form={formInscripcionUniversidad}
+                    idPrefix="cadena-iu"
+                    estadosQuery={estadosQuery}
+                    sistemasQuery={sistemasQuery}
+                    ambientesQuery={ambientesQuery}
+                  />
+                  <CampoResponsables
+                    form={formInscripcionUniversidad}
+                    idPrefix="cadena-iu"
+                    responsablesQuery={responsablesQuery}
+                  />
+                  <CampoDatosProyecto form={formInscripcionUniversidad} idPrefix="cadena-iu" />
+                  <Button
+                    onClick={() => continuarCadena(9)}
+                    disabled={!inscripcionUniversidadCompleta}
+                    className="w-fit"
+                  >
+                    Siguiente
+                  </Button>
+                </div>
+              )}
+            </CarouselItem>
+
+            {/* --- Paso 9: Confirmación (inscripción universidad) --- */}
+            <CarouselItem className="overflow-y-auto">
+              {accion === "crear" && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Confirmación: inscripción de universidad</h3>
+                  <DetalleInscripcion inscripcion={camposAVistaPrevia(camposInscripcionUniversidad)} />
+                  <BotonesCadena
+                    hastaPaso={8}
+                    siguientePaso={10}
+                    etiquetaSiguiente="Continuar con diploma de universidad"
+                    mutation={cadenaDiplomasMutation}
+                    onEnviar={enviarCadena}
+                    onContinuar={continuarCadena}
+                  />
+                </div>
+              )}
+            </CarouselItem>
+
+            {/* --- Paso 10: Datos del diploma universidad --- */}
+            <CarouselItem className="overflow-y-auto">
+              {accion === "crear" && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Diploma de universidad</h3>
+                  <CampoFirmas
+                    idPrefix="cadena-du"
+                    items={FIRMAS_DIPLOMA_UNIVERSIDAD}
+                    valores={diplomaUniversidadFirmas}
+                    onCambiar={cambiarFirmaDiplomaUniversidad}
+                  />
+                  <Button onClick={() => continuarCadena(11)} className="w-fit">
+                    Siguiente
+                  </Button>
+                </div>
+              )}
+            </CarouselItem>
+
+            {/* --- Paso 11: Confirmación final -- unico lugar que muestra el resultado de
+                "Finalizar y enviar", sin importar desde que Confirmacion se haya disparado
+                (ver cadenaDiplomasMutation.onSuccess en useInscripcionForm). --- */}
+            <CarouselItem className="overflow-y-auto">
+              {accion === "crear" && (
+                <div className="space-y-4">
+                  {cadenaDiplomasMutation.isSuccess ? (
+                    <>
+                      <Alert>
+                        <CheckCircle2Icon />
+                        <AlertTitle>Cadena enviada</AlertTitle>
+                      </Alert>
+                      <ul className="space-y-1 text-sm">
+                        {cadenaDiplomasMutation.data.diplomaPrimaria && (
+                          <li>
+                            Diploma de primaria #{cadenaDiplomasMutation.data.diplomaPrimaria.id} --{" "}
+                            {cadenaDiplomasMutation.data.diplomaPrimaria.emitido ? "emitido" : "pendiente de firmas"}
+                          </li>
+                        )}
+                        {cadenaDiplomasMutation.data.inscripcionSecundaria && <li>Inscripción de secundaria creada.</li>}
+                        {cadenaDiplomasMutation.data.diplomaSecundaria && (
+                          <li>
+                            Diploma de secundaria #{cadenaDiplomasMutation.data.diplomaSecundaria.id} --{" "}
+                            {cadenaDiplomasMutation.data.diplomaSecundaria.emitido ? "emitido" : "pendiente de firmas"}
+                          </li>
+                        )}
+                        {cadenaDiplomasMutation.data.inscripcionUniversidad && <li>Inscripción de universidad creada.</li>}
+                        {cadenaDiplomasMutation.data.diplomaUniversidad && (
+                          <li>
+                            Diploma de universidad #{cadenaDiplomasMutation.data.diplomaUniversidad.id} --{" "}
+                            {cadenaDiplomasMutation.data.diplomaUniversidad.emitido ? "emitido" : "pendiente de firmas"}
+                          </li>
+                        )}
+                      </ul>
+                      <Button onClick={crearOtra} className="w-fit">
+                        Crear otra solicitud
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <h3 className="text-sm font-medium">Confirmación: diploma de universidad</h3>
+                      <ResumenFirmas items={FIRMAS_DIPLOMA_UNIVERSIDAD} valores={diplomaUniversidadFirmas} />
+                      <BotonesCadena hastaPaso={10} mutation={cadenaDiplomasMutation} onEnviar={enviarCadena} />
+                    </>
                   )}
                 </div>
               )}

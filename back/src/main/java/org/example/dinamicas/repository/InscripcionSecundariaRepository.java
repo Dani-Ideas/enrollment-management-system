@@ -4,15 +4,14 @@ import jakarta.data.repository.CrudRepository;
 import jakarta.data.repository.Query;
 import jakarta.data.repository.Repository;
 import org.example.dinamicas.model.InscripcionSecundariaEty;
-import org.example.dinamicas.model.InscripcionSecundariaId;
 
 import java.util.List;
 
 @Repository
-public interface InscripcionSecundariaRepository extends CrudRepository<InscripcionSecundariaEty, InscripcionSecundariaId> {
+public interface InscripcionSecundariaRepository extends CrudRepository<InscripcionSecundariaEty, Long> {
 
-    // "i.id" no existe (la PK es la relacion "diplomaPrimaria", PK compartida) -- se ordena
-    // navegando hasta el Long real.
+    // "i.id" no existe (la PK es la relacion "diplomaPrimaria", identidad derivada) -- se
+    // ordena navegando hasta el Long real.
     @Query("""
             SELECT i FROM InscripcionSecundariaEty i
             JOIN FETCH i.estado

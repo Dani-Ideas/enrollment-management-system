@@ -10,7 +10,6 @@ import org.example.dinamicas.mapper.InscripcionSecundariaMapper;
 import org.example.dinamicas.model.DiplomaPrimariaEty;
 import org.example.dinamicas.model.DiplomaSecundariaEty;
 import org.example.dinamicas.model.InscripcionSecundariaEty;
-import org.example.dinamicas.model.InscripcionSecundariaId;
 import org.example.dinamicas.repository.DiplomaSecundariaRepository;
 import org.example.dinamicas.repository.InscripcionSecundariaRepository;
 import org.junit.jupiter.api.Test;
@@ -88,7 +87,7 @@ class InscripcionSecundariaServiceImplTest {
         InscripcionSecundariaEty existente = new InscripcionSecundariaEty();
         existente.setDiplomaPrimaria(diplomaPrimariaIncompleto());
 
-        when(inscripcionSecundariaRepository.findById(new InscripcionSecundariaId(10L))).thenReturn(Optional.of(existente));
+        when(inscripcionSecundariaRepository.findById(10L)).thenReturn(Optional.of(existente));
 
         assertThrows(ReglaDeNegocioException.class, () -> service.actualizar(10L, peticion()));
 
@@ -98,7 +97,7 @@ class InscripcionSecundariaServiceImplTest {
 
     @Test
     void actualizarInexistenteLanza404YNoGuardaNada() {
-        when(inscripcionSecundariaRepository.findById(new InscripcionSecundariaId(99L))).thenReturn(Optional.empty());
+        when(inscripcionSecundariaRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThrows(RecursoNoEncontradoException.class, () -> service.actualizar(99L, peticion()));
 

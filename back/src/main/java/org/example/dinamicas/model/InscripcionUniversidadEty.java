@@ -4,12 +4,10 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
-import jakarta.persistence.IdClass;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
-import jakarta.persistence.PrimaryKeyJoinColumn;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -22,18 +20,17 @@ import org.example.estaticos.model.MiniFormSisEty;
 
 import java.time.LocalDateTime;
 
-// PK compartida con DiplomaSecundariaEty -- mismo mecanismo que InscripcionSecundariaEty con
-// DiplomaPrimariaEty, un nivel arriba.
+// PK compartida con DiplomaSecundariaEty -- identidad derivada simple, sin @IdClass (ver nota
+// en InscripcionSecundariaEty), un nivel arriba.
 @Getter
 @Setter
 @Entity
-@IdClass(InscripcionUniversidadId.class)
 @Table(name = "INSCRIPCION_UNIVERSIDAD")
 public class InscripcionUniversidadEty {
 
     @Id
     @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @PrimaryKeyJoinColumn(name = "ID_DIPLOMA_PRIMARIA", referencedColumnName = "ID_DIPLOMA_PRIMARIA")
+    @JoinColumn(name = "ID_DIPLOMA_PRIMARIA", nullable = false)
     private DiplomaSecundariaEty diplomaSecundaria;
 
     @ManyToOne(fetch = FetchType.LAZY)

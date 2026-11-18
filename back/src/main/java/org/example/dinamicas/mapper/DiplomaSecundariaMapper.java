@@ -6,8 +6,6 @@ import org.example.comun.RequestResponseMapper;
 import org.example.dinamicas.dto.DiplomaSecundariaDto;
 import org.example.dinamicas.dto.DiplomaSecundariaRequestDto;
 import org.example.dinamicas.model.DiplomaSecundariaEty;
-import org.example.dinamicas.model.DiplomaSecundariaId;
-import org.example.dinamicas.model.InscripcionSecundariaId;
 import org.example.dinamicas.repository.DiplomaSecundariaRepository;
 import org.mapstruct.InheritConfiguration;
 import org.mapstruct.Mapper;
@@ -19,8 +17,7 @@ import org.mapstruct.MappingTarget;
 // "uses" de DiplomaPrimariaMapper: DiplomaSecundariaRequestDto no trae ninguna FK propia (la
 // PK compartida la fija InscripcionSecundariaRequestDto.diplomaPrimaria, un nivel arriba).
 // desdeId() sigue haciendo falta: la usa InscripcionUniversidadMapper para resolver
-// "diplomaSecundaria: Long" (el id de linaje) -> la entidad real, reconstruyendo la PK
-// compuesta real a partir de ese Long.
+// "diplomaSecundaria: Long" (el id de linaje) -> la entidad real.
 @Mapper(componentModel = MappingConstants.ComponentModel.CDI)
 public abstract class DiplomaSecundariaMapper implements RequestResponseMapper<DiplomaSecundariaEty, DiplomaSecundariaRequestDto, DiplomaSecundariaDto> {
 
@@ -45,8 +42,7 @@ public abstract class DiplomaSecundariaMapper implements RequestResponseMapper<D
         if (id == null) {
             return null;
         }
-        DiplomaSecundariaId compuesto = new DiplomaSecundariaId(new InscripcionSecundariaId(id));
-        return diplomaSecundariaRepository.findById(compuesto)
+        return diplomaSecundariaRepository.findById(id)
                 .orElseThrow(() -> new ReferenciaInvalidaException("No existe el diploma de secundaria " + id));
     }
 }

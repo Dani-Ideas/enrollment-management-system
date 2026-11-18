@@ -4,12 +4,11 @@ import jakarta.data.repository.CrudRepository;
 import jakarta.data.repository.Query;
 import jakarta.data.repository.Repository;
 import org.example.dinamicas.model.InscripcionUniversidadEty;
-import org.example.dinamicas.model.InscripcionUniversidadId;
 
 import java.util.List;
 
 @Repository
-public interface InscripcionUniversidadRepository extends CrudRepository<InscripcionUniversidadEty, InscripcionUniversidadId> {
+public interface InscripcionUniversidadRepository extends CrudRepository<InscripcionUniversidadEty, Long> {
 
     @Query("""
             SELECT i FROM InscripcionUniversidadEty i

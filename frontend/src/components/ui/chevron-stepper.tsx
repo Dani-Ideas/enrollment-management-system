@@ -1,9 +1,11 @@
 import { useRef } from "react"
 import type { CSSProperties } from "react"
+import { Spinner } from "@/components/ui/spinner"
 
 // Indicador de pasos en forma de chevron, pegados unos a otros (mismo clip-path que el
-// ejemplo original de ReUI). CERO dependencias de npm aparte de React -- portable a
-// cualquier proyecto React + Tailwind copiando este solo archivo.
+// ejemplo original de ReUI). Unica dependencia de npm aparte de React: Spinner (para
+// pasoEnCurso) -- sin eso, portable a cualquier proyecto React + Tailwind copiando este
+// solo archivo.
 //
 // Por defecto usa los tokens de color estandar de shadcn/ui (--primary, --primary-foreground,
 // --input, --border, --card, --radius-sm) -- si tu proyecto ya usa shadcn/ui, funciona sin
@@ -45,11 +47,29 @@ export interface ChevronStepperProps {
    *  pendiente/completado; el paso ACTIVO sigue usando "colors.active" siempre, para que
    *  nunca sea ambiguo cual es el actual. */
   palette?: string[]
+  /** Indice del paso que esta esperando una confirmacion del backend -- en vez de su
+   *  numero, ese paso muestra un Spinner. Pensado para una espera LARGA (una peticion que
+   *  junta varios pasos, ver CadenaDiplomasServiceImpl), no para transiciones instantaneas. */
+  pasoEnCurso?: number | null
+  /** Bloquea TODOS los pasos (incluso los ya desbloqueados por maxStep) -- usado junto con
+   *  pasoEnCurso: mientras se espera esa confirmacion, no se puede navegar a NINGUN lado,
+   *  ni siquiera para atras. */
+  bloqueadoGlobalmente?: boolean
   /** Clase extra para el contenedor raiz (ej. "mb-4"). */
   className?: string
 }
 
-export function ChevronStepper({ steps, current, maxStep, onStepChange, colors, palette, className }: ChevronStepperProps) {
+export function ChevronStepper({
+  steps,
+  current,
+  maxStep,
+  onStepChange,
+  colors,
+  palette,
+  pasoEnCurso,
+  bloqueadoGlobalmente = false,
+  className,
+}: ChevronStepperProps) {
   const limite = maxStep ?? current
   const botonesRef = useRef<(HTMLButtonElement | null)[]>([])
 
@@ -85,7 +105,7 @@ export function ChevronStepper({ steps, current, maxStep, onStepChange, colors, 
     <div style={vars} className={cn("relative -m-1 overflow-x-auto p-1", className)}>
       <div role="tablist" aria-label="Pasos" className="flex min-w-max">
         {steps.map((titulo, indice) => {
-          const bloqueado = indice > limite
+          const bloqueado = bloqueadoGlobalmente || indice > limite
           const estado: EstadoPaso = indice < current ? "completed" : indice === current ? "active" : "inactive"
           const colorPaso = palette?.[indice % palette.length]
 
@@ -143,7 +163,7 @@ export function ChevronStepper({ steps, current, maxStep, onStepChange, colors, 
                     estado === "active" && "bg-white/20 text-(--chevron-active) after:border-(--chevron-active) after:bg-white",
                   )}
                 >
-                  {indice + 1}
+                  {indice === pasoEnCurso ? <Spinner className="size-3" /> : indice + 1}
                 </span>
                 <span className="whitespace-nowrap text-sm font-medium">{titulo}</span>
               </button>

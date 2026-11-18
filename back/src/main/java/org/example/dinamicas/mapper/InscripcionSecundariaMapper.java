@@ -2,6 +2,7 @@ package org.example.dinamicas.mapper;
 
 import org.example.comun.RequestResponseMapper;
 import org.example.dinamicas.dto.InscripcionSecundariaConDiplomaDto;
+import org.example.dinamicas.dto.InscripcionSecundariaDatosDto;
 import org.example.dinamicas.dto.InscripcionSecundariaDto;
 import org.example.dinamicas.dto.InscripcionSecundariaRequestDto;
 import org.example.dinamicas.model.InscripcionSecundariaEty;
@@ -53,4 +54,10 @@ public interface InscripcionSecundariaMapper extends RequestResponseMapper<Inscr
 
     @Mapping(target = "inscripcionSecundaria", source = ".")
     InscripcionSecundariaConDiplomaDto toDtoConDiploma(InscripcionSecundariaEty entidad);
+
+    // Usado por CadenaDiplomasServiceImpl: mismos 6 catalogos + escalares, sin "diplomaPrimaria"
+    // (fijo a mano por el service, con la fila que se acaba de crear en la misma peticion).
+    @Mapping(target = "diplomaPrimaria", ignore = true)
+    @Mapping(target = "diplomaSecundaria", ignore = true)
+    InscripcionSecundariaEty toEntity(InscripcionSecundariaDatosDto dto);
 }

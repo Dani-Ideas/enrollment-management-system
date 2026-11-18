@@ -10,11 +10,8 @@ import org.example.dinamicas.dto.InscripcionUniversidadDto;
 import org.example.dinamicas.mapper.DiplomaUniversidadMapper;
 import org.example.dinamicas.mapper.InscripcionUniversidadMapper;
 import org.example.dinamicas.model.DiplomaSecundariaEty;
-import org.example.dinamicas.model.DiplomaSecundariaId;
 import org.example.dinamicas.model.DiplomaUniversidadEty;
-import org.example.dinamicas.model.InscripcionSecundariaId;
 import org.example.dinamicas.model.InscripcionUniversidadEty;
-import org.example.dinamicas.model.InscripcionUniversidadId;
 import org.example.dinamicas.repository.DiplomaUniversidadRepository;
 import org.example.dinamicas.repository.InscripcionUniversidadRepository;
 import org.example.dinamicas.service.InscripcionUniversidadService;
@@ -23,8 +20,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 // Mismo patron que InscripcionSecundariaServiceImpl, un nivel arriba (PK compartida con
-// DiplomaSecundariaEty via InscripcionUniversidadId, que a su vez envuelve DiplomaSecundariaId
-// -> InscripcionSecundariaId -> Long).
+// DiplomaSecundariaEty, identidad derivada simple, sin @IdClass).
 @Stateless
 public class InscripcionUniversidadServiceImpl implements InscripcionUniversidadService {
 
@@ -94,9 +90,7 @@ public class InscripcionUniversidadServiceImpl implements InscripcionUniversidad
     }
 
     private InscripcionUniversidadEty obtener(Long id) {
-        InscripcionUniversidadId compuesto = new InscripcionUniversidadId(
-                new DiplomaSecundariaId(new InscripcionSecundariaId(id)));
-        return inscripcionUniversidadRepository.findById(compuesto)
+        return inscripcionUniversidadRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("No existe la inscripción de universidad " + id));
     }
 
