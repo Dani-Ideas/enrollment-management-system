@@ -97,10 +97,29 @@ body {
   line-height: 1.55;
 }
 
+/* Mobile first: 860px (el valor que ya habia) es el ancho base -- en un celular nunca se
+   nota (el viewport ya es mas angosto), asi que hasta aca es un no-op. Recien en tablet/
+   escritorio (>=768px/>=1024px) el contenido quedaba atrapado en una columna angosta con
+   margenes enormes a los lados -- esto lo ensancha en esos breakpoints, mismos puntos de
+   corte que usa Tailwind (md/lg) en el resto del front. */
 .pagina {
   max-width: 860px;
   margin: 0 auto;
   padding: 3rem 1.5rem 5rem;
+}
+
+@media (min-width: 768px) {
+  .pagina {
+    max-width: 1080px;
+    padding: 3rem 2rem 5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .pagina {
+    max-width: 1400px;
+    padding: 3rem 3rem 5rem;
+  }
 }
 
 .encabezado {

@@ -31,7 +31,7 @@ const salirSitioRoute = createRoute({
 });
 
 // "accion" opcional en la URL (?accion=lista|crear|actualizar) -- la elige el submenu de
-// HomePage (ver PieMenu.tsx) ANTES de navegar, asi FormularioInscripciones puede arrancar
+// HomePage (ver DrillMenu.tsx) ANTES de navegar, asi FormularioInscripciones puede arrancar
 // directo en el paso 1 de esa accion, sin pasar por el paso 0 (que ya quedo desactivado).
 export type AccionFormularioInscripciones = "lista" | "crear" | "actualizar";
 

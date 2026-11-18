@@ -1,11 +1,11 @@
 import { FileTextIcon, ListIcon, LogOutIcon, PencilIcon, PlusIcon } from "lucide-react"
-import { PieMenu } from "../components/ui/PieMenu"
+import { DrillMenu } from "../components/ui/DrillMenu"
 
 export function HomePage() {
   return (
     <>
       <section>
-        <PieMenu
+        <DrillMenu
           items={[
             {
               to: "/salir-sitio",
@@ -34,27 +34,12 @@ export function HomePage() {
                 {
                   to: "/formulario-pago",
                   search: { accion: "actualizar" },
-                  label: "Actualizar",
+                  label: "Actualizar una solicitud existente",
                   icon: PencilIcon,
-                  submenu: [
-                    {
-                      to: "/formulario-pago",
-                      search: { accion: "crear" },
-                      label: "Actualizar una solicitud existente",
-                      icon: PlusIcon,
-                    },
-                    {
-                      to: "/formulario-pago",
-                      search: { accion: "crear" },
-                      label: "Actualizar estado solicitud",
-                      icon: PlusIcon,
-                    },  
-                  ]
                 },
               ],
             },
           ]}
-          size={280}
         />
       </section>
     </>
