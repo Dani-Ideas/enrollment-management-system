@@ -2,7 +2,7 @@
 // InscripcionWizard.tanstack.tsx (via useInscripcionForm) -- antes vivian
 // duplicadas, una copia identica en cada archivo.
 
-export type Accion = "lista" | "crear" | "actualizar"
+export type Accion = "lista" | "crear" | "actualizar" | "consultar"
 
 // Fila de "formacion complementaria" en edicion -- id null significa "todavia no existe
 // en el backend" (tanto una fila recien agregada en el flujo "actualizar" como
@@ -99,6 +99,28 @@ export function etiquetaPaso(accion: Accion | null, indice: number): string {
       }[indice] ?? ""
     )
   }
+  // "consultar" -- igual que "crear" pero de solo lectura, con un paso 0 extra para elegir
+  // qué solicitud mirar (por eso va un paso corrida respecto de "crear"). Recorre toda la
+  // cadena automáticamente si existe (ver cargarConsulta en useInscripcionForm).
+  if (accion === "consultar") {
+    return (
+      {
+        0: "Elegir solicitud",
+        1: "Inscripción primaria",
+        2: "Confirmación",
+        3: "Checklist, pruebas y documentación (primaria)",
+        4: "Confirmación",
+        5: "Inscripción secundaria",
+        6: "Confirmación",
+        7: "Checklist, pruebas y documentación (secundaria)",
+        8: "Confirmación",
+        9: "Inscripción universidad",
+        10: "Confirmación",
+        11: "Checklist, pruebas y documentación (universidad)",
+        12: "Confirmación",
+      }[indice] ?? ""
+    )
+  }
   return ""
 }
 
@@ -106,6 +128,7 @@ export function totalPasos(accion: Accion | null): number {
   if (accion === "lista") return 1
   if (accion === "actualizar") return 2
   if (accion === "crear") return 12
+  if (accion === "consultar") return 13
   return 0
 }
 

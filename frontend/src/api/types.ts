@@ -42,23 +42,6 @@ export interface InscripcionDTO {
   fechaInscripcionReal: string | null;
 }
 
-// Forma de ENTRADA -- las relaciones viajan como id suelto, no como texto.
-// Mismo nombre de campo que la entidad del lado del back (estado/sistema/...,
-// no estadoId/sistemaId/...) -- asi quedo el record InscripcionRequestDto.java.
-export interface InscripcionRequestDTO {
-  estado: number;
-  sistema: number;
-  jefeCarrera: number;
-  maestro: number;
-  carrera: number;
-  ambiente: number;
-  proyecto: string;
-  version: string;
-  descripcion: string | null;
-  fechaInscripcionPlanteada: string;
-  fechaInscripcionReal: string | null;
-}
-
 export interface EtapaInscripcionDTO {
   id: number;
   nombre: string;
@@ -99,31 +82,14 @@ export interface FormacionComplementariaRequestDTO {
   descripcion: string;
 }
 
-// Forma de ENTRADA de POST/PUT /inscripciones -- espejo de
-// InscripcionConFormacionComplementariaRequestDto.java. Una sola peticion para la
-// Inscripcion y TODA la lista de formaciones complementarias -- en el PUT, es la lista
-// COMPLETA que debe quedar (una fila con id = editarla, sin id = crearla; la que falte en
-// la lista se borra del lado del backend).
-export interface InscripcionConFormacionComplementariaRequestDTO {
-  inscripcion: InscripcionRequestDTO;
-  formacionesComplementarias: FormacionComplementariaRequestDTO[];
-}
-
-// Forma de SALIDA de POST/PUT /inscripciones -- espejo de
-// InscripcionConFormacionComplementariaDto.java.
-export interface InscripcionConFormacionComplementariaDTO {
-  inscripcion: InscripcionDTO;
-  formacionesComplementarias: FormacionComplementariaDTO[];
-}
-
 // --- Solicitudes (Primaria/Secundaria/Universidad unificadas) + checklist/pruebas/
 // documento/aviso de versiones/VoBo -- espejo de los DTO nuevos del backend. Reemplaza al
 // viejo modelo de firmas booleanas fijas por nivel (Diploma*DTO/InscripcionSecundaria*/
-// InscripcionUniversidad*/CadenaDiplomas*, ya retirados).
+// InscripcionUniversidad*/CadenaDiplomas*, ya retirados) Y al modelo legacy de
+// InscripcionConFormacionComplementaria*DTO/RUTAS.inscripciones -- "lista"/"actualizar"/
+// "consultar" leen y escriben contra esto ahora, no contra la tabla INSCRIPCION vieja.
 //
-// SolicitudDTO unifica los 3 niveles: "etapa" distingue cual es. Para altas nuevas de
-// CUALQUIER nivel (incluida Primaria) se usa esto, no InscripcionDTO/RUTAS.inscripciones
-// (que queda solo para leer/editar lo creado antes de este cambio).
+// SolicitudDTO unifica los 3 niveles: "etapa" distingue cual es.
 
 // Espejo de SolNInscripcionDto.java.
 export interface SolicitudDTO {

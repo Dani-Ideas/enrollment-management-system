@@ -7,10 +7,12 @@ export function AvisoVersionesPanel({
   idPrefix,
   valor,
   onCambiar,
+  disabled = false,
 }: {
   idPrefix: string
   valor: AvisoVersionEditable
   onCambiar: (nuevo: AvisoVersionEditable) => void
+  disabled?: boolean
 }) {
   return (
     <Field>
@@ -19,6 +21,7 @@ export function AvisoVersionesPanel({
         id={`${idPrefix}-aviso-reporte`}
         value={valor.reporte}
         onChange={(e) => onCambiar({ reporte: e.target.value })}
+        disabled={disabled}
       />
     </Field>
   )

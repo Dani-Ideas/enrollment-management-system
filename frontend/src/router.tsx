@@ -30,10 +30,11 @@ const salirSitioRoute = createRoute({
   component: SalirSitioPage,
 });
 
-// "accion" opcional en la URL (?accion=lista|crear|actualizar) -- la elige el submenu de
-// HomePage (ver DrillMenu.tsx) ANTES de navegar, asi FormularioInscripciones puede arrancar
-// directo en el paso 1 de esa accion, sin pasar por el paso 0 (que ya quedo desactivado).
-export type AccionFormularioInscripciones = "lista" | "crear" | "actualizar";
+// "accion" opcional en la URL (?accion=lista|crear|actualizar|consultar) -- la elige el
+// submenu de HomePage (ver DrillMenu.tsx) ANTES de navegar, asi FormularioInscripciones
+// puede arrancar directo en el paso 1 de esa accion, sin pasar por el paso 0 (que ya quedo
+// desactivado). "consultar": igual que "crear" pero de solo lectura (ver useInscripcionForm).
+export type AccionFormularioInscripciones = "lista" | "crear" | "actualizar" | "consultar";
 
 export const formularioPagoRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -41,7 +42,7 @@ export const formularioPagoRoute = createRoute({
   component: FormularioInscripciones,
   validateSearch: (search: Record<string, unknown>): { accion?: AccionFormularioInscripciones } => {
     const accion = search.accion;
-    return accion === "lista" || accion === "crear" || accion === "actualizar"
+    return accion === "lista" || accion === "crear" || accion === "actualizar" || accion === "consultar"
       ? { accion }
       : {};
   },

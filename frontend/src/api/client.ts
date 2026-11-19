@@ -9,9 +9,6 @@ import type {
   DocumentoDTO,
   DocumentoRequestDTO,
   EstadoDTO,
-  InscripcionConFormacionComplementariaDTO,
-  InscripcionConFormacionComplementariaRequestDTO,
-  InscripcionDTO,
   PruebaDTO,
   PruebaRequestDTO,
   ResponsableDTO,
@@ -44,9 +41,6 @@ const RUTAS = {
   responsables: "/responsables",
   ambientes: "/ambientes",
   catalogosInscripcion: "/catalogos-inscripcion",
-  // "inscripciones" queda solo para leer/editar lo creado antes del modelo de
-  // solicitudes de abajo -- las altas nuevas de cualquier nivel usan "solicitudes".
-  inscripciones: "/inscripciones",
   solicitudes: "/solicitudes",
   endpoints: "/endpoints",
 } as const;
@@ -139,11 +133,10 @@ export function fetchAmbientes(): Promise<AmbienteDTO[]> {
   return request<AmbienteDTO[]>(RUTAS.ambientes);
 }
 
-// "Tablas genericas": UNA sola llamada para los 4 catalogos de arriba, en vez de
-// fetchEstados() + fetchSistemas() + fetchResponsables() + fetchAmbientes() por
-// separado. Es la que mas se usa en todo el front: el 100% de los PUT/POST de
-// inscripciones arman su InscripcionRequestDTO resolviendo nombre -> id contra estos
-// mismos catalogos (ver InscripcionWizard.tsx/FormularioPagoPage.tsx).
+// "Tablas genericas": UNA sola llamada para los catalogos de arriba, en vez de uno por
+// separado. Es la que mas se usa en todo el front: el 100% de los PUT/POST de solicitudes
+// arman su SolicitudRequestDTO resolviendo nombre -> id contra estos mismos catalogos (ver
+// useInscripcionForm.ts).
 export function fetchTablasInscripcion(): Promise<TablasInscripcionDTO> {
   return request<TablasInscripcionDTO>(RUTAS.catalogosInscripcion);
 }
@@ -162,41 +155,6 @@ export const CATALOGOS_INSCRIPCION_QUERY = queryOptions({
   queryFn: fetchTablasInscripcion,
   staleTime: "static",
 });
-
-// GET /inscripciones ya no acepta filtros por query param (estadoId/sistemaId/ambienteId)
-// -- el backend los sacó, el filtrado que haga falta se hace del lado del cliente sobre
-// la lista completa.
-export function fetchInscripciones(): Promise<InscripcionDTO[]> {
-  return request<InscripcionDTO[]>(RUTAS.inscripciones);
-}
-
-// Trae la Inscripcion + sus formaciones complementarias juntas -- "actualizar" necesita las
-// formaciones existentes porque el PUT manda la lista COMPLETA que debe quedar (lo que
-// falte, el backend lo borra). Ya no hay un endpoint aparte solo para las formaciones.
-export function fetchInscripcion(id: number): Promise<InscripcionConFormacionComplementariaDTO> {
-  return request<InscripcionConFormacionComplementariaDTO>(`${RUTAS.inscripciones}/${id}`);
-}
-
-// UNA sola peticion HTTP: crea la Inscripcion y sus formaciones complementarias juntas --
-// el backend resuelve el FK internamente (ver InscripcionConFormacionComplementariaRequestDTO).
-export function crearInscripcion(
-  dto: InscripcionConFormacionComplementariaRequestDTO,
-): Promise<InscripcionConFormacionComplementariaDTO> {
-  return request<InscripcionConFormacionComplementariaDTO>(RUTAS.inscripciones, { method: "POST", data: dto });
-}
-
-// UNA sola peticion HTTP tambien para editar: mismo shape compuesto que crearInscripcion()
-// -- formacionesComplementarias es la lista COMPLETA que debe quedar (ver
-// InscripcionConFormacionComplementariaRequestDTO).
-export function actualizarInscripcion(
-  id: number,
-  dto: InscripcionConFormacionComplementariaRequestDTO,
-): Promise<InscripcionConFormacionComplementariaDTO> {
-  return request<InscripcionConFormacionComplementariaDTO>(`${RUTAS.inscripciones}/${id}`, {
-    method: "PUT",
-    data: dto,
-  });
-}
 
 // --- Solicitudes (Primaria/Secundaria/Universidad unificadas) ---
 //

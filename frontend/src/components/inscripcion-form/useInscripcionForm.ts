@@ -3,15 +3,14 @@ import { useForm, useStore } from "@tanstack/react-form"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   actualizarChecklistItem,
-  actualizarInscripcion,
   actualizarPruebaItem,
+  actualizarSolicitud,
   CATALOGOS_INSCRIPCION_QUERY,
   crearChecklistItem,
   crearPruebaItem,
   crearSolicitud,
-  fetchInscripcion,
-  fetchInscripciones,
   fetchSolicitud,
+  fetchSolicitudes,
   guardarAvisoVersiones,
   guardarDocumento,
 } from "@/api/client"
@@ -19,8 +18,8 @@ import type {
   ChecklistItemRequestDTO,
   FormacionComplementariaRequestDTO,
   InscripcionDTO,
-  InscripcionRequestDTO,
   PruebaRequestDTO,
+  SolicitudConPanelesDTO,
   SolicitudRequestDTO,
   VoBoDTO,
 } from "@/api/types"
@@ -106,27 +105,10 @@ export function useInscripcionForm() {
   const campos = useStore(form.store, (state) => state.values)
 
   // Los nombres de campo de CamposFormulario (estadoId/sistemaId/...) son solo del lado
-  // del front (bind de los <select>) -- InscripcionRequestDTO ya no usa el sufijo "Id"
-  // (estado/sistema/..., espejo de InscripcionRequestDto.java), por eso el renombre aca.
-  // Solo lo sigue usando "actualizar" (edita InscripcionEty legacy, ver mas abajo).
-  function camposADto(c: CamposFormulario): InscripcionRequestDTO {
-    return {
-      estado: Number(c.estadoId),
-      sistema: Number(c.sistemaId),
-      jefeCarrera: Number(c.jefeCarreraId),
-      maestro: Number(c.maestroId),
-      carrera: Number(c.carreraId),
-      ambiente: Number(c.ambienteId),
-      proyecto: c.proyecto,
-      version: c.version,
-      descripcion: c.descripcion.trim() === "" ? null : c.descripcion,
-      fechaInscripcionPlanteada: c.fechaPlanteada,
-      fechaInscripcionReal: c.fechaReal.trim() === "" ? null : c.fechaReal,
-    }
-  }
-
-  // Mismo renombre, pero para SolicitudRequestDTO (SOL_N_INSCRIPCION) -- usado por "crear"
-  // (cualquier nivel) y por la continuación de la cadena.
+  // del front (bind de los <select>) -- SolicitudRequestDTO ya no usa el sufijo "Id"
+  // (estado/sistema/..., espejo de SolNInscripcionRequestDto.java), por eso el renombre
+  // aca. Usado por "crear" (cualquier nivel), la continuación de la cadena, y "actualizar"
+  // (que ahora edita SOL_N_INSCRIPCION, no la tabla legacy -- ver mas abajo).
   function armarSolicitudRequestDto(
     c: CamposFormulario,
     etapa: number,
@@ -167,7 +149,8 @@ export function useInscripcionForm() {
   // cache de TanStack Query con HomePage.tsx. "lista" esta incluida en el gate aunque
   // FormularioPagoPage nunca la dispare -- es una rama muerta inofensiva ahi, y necesaria en
   // InscripcionWizard (sus 3 filtros tambien dependen de estos catalogos).
-  const catalogosHabilitados = accion === "crear" || accion === "actualizar" || accion === "lista"
+  const catalogosHabilitados =
+    accion === "crear" || accion === "actualizar" || accion === "lista" || accion === "consultar"
   const catalogosQuery = useQuery({
     ...CATALOGOS_INSCRIPCION_QUERY,
     enabled: catalogosHabilitados,
@@ -240,16 +223,15 @@ export function useInscripcionForm() {
     setDetalleAbiertoId((actual) => (actual === id ? null : id))
   }
 
-  // --- Lista completa -- usada por "lista" (con los 3 filtros de arriba) y por
-  // "actualizar" (elegir de que solicitud partir, sin filtros). "actualizar" SOLO edita
-  // solicitudes legacy (tabla INSCRIPCION, creadas antes de este cambio) -- las creadas por
-  // el modelo nuevo (SOL_N_INSCRIPCION) no tienen cadena que continuar desde aca, ver
-  // comentario de types.ts/etiquetaPaso.
-  function useInscripciones() {
+  // --- Lista completa de SOL_N_INSCRIPCION -- usada por "lista" (con los 3 filtros de
+  // arriba), "actualizar" (elegir cual editar) y "consultar" (elegir cual ver) -- las 3
+  // acciones comparten el MISMO selector (CampoSelect + CampoVistaDetalle), solo cambia
+  // que se hace despues de elegir una fila.
+  function useSolicitudes() {
     return useQuery({
-      queryKey: ["inscripciones"],
-      queryFn: fetchInscripciones,
-      enabled: accion === "lista" || accion === "actualizar",
+      queryKey: ["solicitudes"],
+      queryFn: fetchSolicitudes,
+      enabled: accion === "lista" || accion === "actualizar" || accion === "consultar",
       staleTime: 10 * 1000,
       select: (data) => {
         if (accion !== "lista") return data
@@ -317,15 +299,19 @@ export function useInscripcionForm() {
     resetearCadena()
   }
 
-  // --- Actualizar: elegir la solicitud, despues editarla -- SOLO solicitudes legacy
-  // (InscripcionEty/tabla INSCRIPCION), sin tocar nada de este archivo mas alla de quitar
-  // el enganche a la cadena vieja (ver comentario arriba de useInscripciones). ---
+  // --- Selector compartido por "lista"/"actualizar"/"consultar" -- las 3 acciones eligen
+  // una fila de la MISMA lista (useSolicitudes) con el MISMO CampoSelect/CampoVistaDetalle;
+  // lo que cambia es que hace cada accion despues de elegir (ver los 2 useEffect mas abajo).
   const [listaIdInput, setListaIdInput] = useState("")
   const [solicitudIdActual, setSolicitudIdActual] = useState<number | null>(null)
   const [baseline, setBaseline] = useState<CamposFormulario | null>(null)
   const baselineIdRef = useRef<number | null>(null)
+  // Etapa/solicitudAnterior de la solicitud elegida -- inmutables, pero
+  // SolicitudRequestDTO los exige en cada PUT (ver armarSolicitudRequestDto/guardarCambios).
+  const etapaIdActualRef = useRef<number | null>(null)
+  const solicitudAnteriorIdActualRef = useRef<number | null>(null)
 
-  const buscarInscripcionMutation = useMutation({ mutationFn: fetchInscripcion })
+  const buscarSolicitudMutation = useMutation({ mutationFn: fetchSolicitud })
 
   const [formacionesEditables, setFormacionesEditables] = useState<FormacionComplementariaEditable[]>([])
   const formacionesOriginalRef = useRef<FormacionComplementariaEditable[]>([])
@@ -344,7 +330,7 @@ export function useInscripcionForm() {
 
   function elegirSolicitud(id: number) {
     setSolicitudIdActual(id)
-    buscarInscripcionMutation.mutate(id)
+    buscarSolicitudMutation.mutate(id)
   }
 
   function buscarPorIdInput() {
@@ -353,20 +339,22 @@ export function useInscripcionForm() {
     elegirSolicitud(id)
   }
 
-  // Una vez que llega la solicitud elegida y los catalogos ya estan cargados, se arma el
-  // "baseline": los mismos 11 campos pero resueltos a partir del DTO (que trae texto, no
-  // ids).
+  // "actualizar": una vez que llega la solicitud elegida y los catalogos ya estan
+  // cargados, se arma el "baseline": los mismos 11 campos pero resueltos a partir del DTO
+  // (que trae texto, no ids).
   //
   // formacionesEditables arranca con las formaciones que ya existen (vienen embebidas en
-  // el mismo GET /inscripciones/{id}): el PUT manda la lista COMPLETA que debe quedar, y si
+  // el mismo GET /solicitudes/{id}): el PUT manda la lista COMPLETA que debe quedar, y si
   // arrancara vacia el backend las borraria.
   useEffect(() => {
     if (accion !== "actualizar") return
-    if (!buscarInscripcionMutation.isSuccess || !catalogosListos) return
+    if (!buscarSolicitudMutation.isSuccess || !catalogosListos) return
     if (baselineIdRef.current === solicitudIdActual) return
     baselineIdRef.current = solicitudIdActual
 
-    const dto = buscarInscripcionMutation.data.inscripcion
+    const dto = buscarSolicitudMutation.data.solicitud
+    etapaIdActualRef.current = catalogosQuery.data?.etapas.find((e) => e.nombre === dto.etapa)?.id ?? null
+    solicitudAnteriorIdActualRef.current = dto.solicitudAnteriorId
     const nuevoBaseline: CamposFormulario = {
       estadoId: String(estadosQuery.data!.find((e) => e.estado === dto.estado)?.id ?? ""),
       sistemaId: String(sistemasQuery.data!.find((s) => s.nombre === dto.sistema)?.id ?? ""),
@@ -380,7 +368,7 @@ export function useInscripcionForm() {
       fechaPlanteada: aInputDatetime(dto.fechaInscripcionPlanteada),
       fechaReal: aInputDatetime(dto.fechaInscripcionReal),
     }
-    const formacionesExistentes = buscarInscripcionMutation.data.formacionesComplementarias.map((f) => ({
+    const formacionesExistentes = buscarSolicitudMutation.data.formacionesComplementarias.map((f) => ({
       id: f.id,
       descripcion: f.descripcion,
     }))
@@ -397,7 +385,7 @@ export function useInscripcionForm() {
     desbloquearHasta(1)
     api?.scrollTo(1)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accion, buscarInscripcionMutation.isSuccess, buscarInscripcionMutation.data, catalogosListos, solicitudIdActual])
+  }, [accion, buscarSolicitudMutation.isSuccess, buscarSolicitudMutation.data, catalogosListos, solicitudIdActual])
 
   const huboCambios = baseline !== null && JSON.stringify(campos) !== JSON.stringify(baseline)
   const huboCambiosFormaciones =
@@ -407,16 +395,15 @@ export function useInscripcionForm() {
   // UNA sola peticion HTTP tambien para editar: mismo shape compuesto que
   // crearSolicitudConFormaciones() -- formacionesComplementarias es la lista
   // COMPLETA que debe quedar, el backend sincroniza solo (borra lo que falte,
-  // actualiza lo que tenga id, crea lo que no) -- ver InscripcionServiceImpl.
-  // actualizar(). Sigue contra /inscripciones (legacy): esta rama no toca
-  // SOL_N_INSCRIPCION para nada.
-  const actualizarInscripcionMutation = useMutation({
-    mutationFn: (dto: InscripcionRequestDTO) => {
+  // actualiza lo que tenga id, crea lo que no) -- ver SolNInscripcionServiceImpl.
+  // actualizar().
+  const actualizarSolicitudMutation = useMutation({
+    mutationFn: (dto: SolicitudRequestDTO) => {
       const formacionesComplementarias: FormacionComplementariaRequestDTO[] = formacionesEditables.map((el) => ({
         id: el.id,
         descripcion: el.descripcion,
       }))
-      return actualizarInscripcion(solicitudIdActual!, { inscripcion: dto, formacionesComplementarias })
+      return actualizarSolicitud(solicitudIdActual!, { solicitud: dto, formacionesComplementarias })
     },
   })
 
@@ -425,7 +412,8 @@ export function useInscripcionForm() {
   async function guardarCambios() {
     if (!hayAlgoQueGuardar || !formularioCompleto || solicitudIdActual === null) return
     try {
-      const actualizada = await actualizarInscripcionMutation.mutateAsync(camposADto(campos))
+      const dto = armarSolicitudRequestDto(campos, etapaIdActualRef.current ?? 0, solicitudAnteriorIdActualRef.current)
+      const actualizada = await actualizarSolicitudMutation.mutateAsync(dto)
       // "campos" y "formacionesEditables" son exactamente lo que se acaba de
       // guardar -- sin este reset, "baseline"/"formacionesOriginalRef" quedan
       // con el valor viejo para siempre (el useEffect de arriba no vuelve a
@@ -435,10 +423,10 @@ export function useInscripcionForm() {
       const sincronizadas = actualizada.formacionesComplementarias.map((f) => ({ id: f.id, descripcion: f.descripcion }))
       formacionesOriginalRef.current = sincronizadas
       setFormacionesEditables(sincronizadas)
-      queryClient.invalidateQueries({ queryKey: ["inscripciones"] })
+      queryClient.invalidateQueries({ queryKey: ["solicitudes"] })
       setGuardadoConfirmado(true)
     } catch {
-      // el error ya queda disponible en actualizarInscripcionMutation.error
+      // el error ya queda disponible en actualizarSolicitudMutation.error
     }
   }
 
@@ -446,13 +434,15 @@ export function useInscripcionForm() {
     setSolicitudIdActual(null)
     setBaseline(null)
     baselineIdRef.current = null
+    etapaIdActualRef.current = null
+    solicitudAnteriorIdActualRef.current = null
     form.reset()
     setListaIdInput("")
     setFormacionesEditables([])
     formacionesOriginalRef.current = []
     setGuardadoConfirmado(false)
-    buscarInscripcionMutation.reset()
-    actualizarInscripcionMutation.reset()
+    buscarSolicitudMutation.reset()
+    actualizarSolicitudMutation.reset()
     maxStepRef.current = 0
     setMaxStep(0)
     api?.scrollTo(0)
@@ -468,10 +458,13 @@ export function useInscripcionForm() {
     setBaseline(null)
     setSolicitudIdActual(null)
     baselineIdRef.current = null
+    etapaIdActualRef.current = null
+    solicitudAnteriorIdActualRef.current = null
     setListaIdInput("")
-    buscarInscripcionMutation.reset()
+    buscarSolicitudMutation.reset()
     crearSolicitudMutation.reset()
-    actualizarInscripcionMutation.reset()
+    actualizarSolicitudMutation.reset()
+    consultarMutation.reset()
     setFormacionesNuevas([])
     setFormacionesEditables([])
     formacionesOriginalRef.current = []
@@ -480,6 +473,8 @@ export function useInscripcionForm() {
     setFiltroSistemaId("")
     setFiltroAmbienteId("")
     setDetalleAbiertoId(null)
+    setConsultaTieneSecundaria(false)
+    setConsultaTieneUniversidad(false)
     resetearCadena()
   }
 
@@ -721,6 +716,150 @@ export function useInscripcionForm() {
     cadenaMutation.reset()
   }
 
+  // --- Consultar (solo lectura): "igual que crear" pero recorriendo una cadena que YA
+  // existe en SOL_N_INSCRIPCION, en vez de construirla. Usa el MISMO selector que
+  // "lista"/"actualizar" (listaIdInput/elegirSolicitud/buscarSolicitudMutation, ver arriba)
+  // -- la unica diferencia es que hace con la solicitud elegida (ver el useEffect mas
+  // abajo). Reusa EXACTAMENTE los mismos estados de la cadena de "crear"
+  // (form/formInscripcionSecundaria/formInscripcionUniversidad, checklist*/pruebas*/
+  // documento*/aviso*/voBo*) -- nunca hay dos acciones activas al mismo tiempo, asi que no
+  // hay conflicto; FormularioInscripciones.tsx los renderiza con disabled=true cuando
+  // accion === "consultar". ---
+  const [consultaTieneSecundaria, setConsultaTieneSecundaria] = useState(false)
+  const [consultaTieneUniversidad, setConsultaTieneUniversidad] = useState(false)
+
+  function aplicarNivelConsultado(
+    dto: SolicitudConPanelesDTO,
+    formNivel: typeof form,
+    setChecklist: (items: ChecklistItemEditable[]) => void,
+    setPruebas: (items: PruebaItemEditable[]) => void,
+    setDocumento: (d: DocumentoEditable) => void,
+    setAviso: (a: AvisoVersionEditable) => void,
+    setVoBo: (v: VoBoDTO | null) => void,
+  ) {
+    const s = dto.solicitud
+    const camposNivel: CamposFormulario = {
+      estadoId: String(estadosQuery.data?.find((e) => e.estado === s.estado)?.id ?? ""),
+      sistemaId: String(sistemasQuery.data?.find((x) => x.nombre === s.sistema)?.id ?? ""),
+      jefeCarreraId: String(responsablesQuery.data?.find((r) => r.nombreLargo === s.jefeCarrera)?.id ?? ""),
+      maestroId: String(responsablesQuery.data?.find((r) => r.nombreLargo === s.maestro)?.id ?? ""),
+      carreraId: String(responsablesQuery.data?.find((r) => r.nombreLargo === s.carrera)?.id ?? ""),
+      ambienteId: String(ambientesQuery.data?.find((a) => a.nombre === s.ambiente)?.id ?? ""),
+      proyecto: s.proyecto,
+      version: s.version,
+      descripcion: s.descripcion ?? "",
+      fechaPlanteada: aInputDatetime(s.fechaInscripcionPlanteada),
+      fechaReal: aInputDatetime(s.fechaInscripcionReal),
+    }
+    formNivel.reset(camposNivel, { keepDefaultValues: true })
+
+    setChecklist(
+      dto.checklist.map((c) => ({
+        id: c.id,
+        estadoId: String(estadosQuery.data?.find((e) => e.estado === c.estado)?.id ?? ""),
+        responsableId: String(responsablesQuery.data?.find((r) => r.nombreLargo === c.responsable)?.id ?? ""),
+        seccion: c.seccion,
+        actividad: c.actividad,
+        descripcion: c.descripcion,
+        conexion: c.conexion,
+        comentario: c.comentario ?? "",
+      })),
+    )
+    setPruebas(
+      dto.pruebas.map((p) => ({
+        id: p.id,
+        tipoPruebaId: String(tiposPruebaQuery.data?.find((t) => t.nombre === p.tipoPrueba)?.id ?? ""),
+        estadoId: String(estadosQuery.data?.find((e) => e.estado === p.estado)?.id ?? ""),
+        ruta: p.ruta,
+        alcance: p.alcance,
+        resultado: p.resultado,
+        comentario: p.comentario,
+      })),
+    )
+    setDocumento(dto.documento ? { completo: dto.documento.completo, comentario: dto.documento.comentario } : DOCUMENTO_VACIO)
+    setAviso(dto.avisoVersiones ? { reporte: dto.avisoVersiones.reporte } : AVISO_VERSION_VACIO)
+    setVoBo(dto.voBo)
+  }
+
+  // Recibe la Primaria ya elegida por el selector compartido y, si existen, carga
+  // Secundaria/Universidad encadenadas (via solicitudAnteriorId) -- no hay endpoint de
+  // "hijos de X", asi que se resuelve filtrando la lista completa de /solicitudes.
+  async function cargarConsulta(primaria: SolicitudConPanelesDTO) {
+    if (primaria.solicitud.etapa !== "Primaria") {
+      throw new Error(
+        `La solicitud #${primaria.solicitud.id} es de etapa ${primaria.solicitud.etapa}, no Primaria -- elegí la solicitud de Primaria para consultar toda la cadena.`,
+      )
+    }
+    aplicarNivelConsultado(primaria, form, setChecklistPrimaria, setPruebasPrimaria, setDocumentoPrimaria, setAvisoPrimaria, setVoBoPrimaria)
+
+    const lista = await fetchSolicitudes()
+    const secundariaResumen = lista.find((s) => s.solicitudAnteriorId === primaria.solicitud.id) ?? null
+    setConsultaTieneSecundaria(secundariaResumen !== null)
+    if (secundariaResumen === null) return
+
+    const secundaria = await fetchSolicitud(secundariaResumen.id)
+    aplicarNivelConsultado(
+      secundaria,
+      formInscripcionSecundaria,
+      setChecklistSecundaria,
+      setPruebasSecundaria,
+      setDocumentoSecundaria,
+      setAvisoSecundaria,
+      setVoBoSecundaria,
+    )
+
+    const universidadResumen = lista.find((s) => s.solicitudAnteriorId === secundaria.solicitud.id) ?? null
+    setConsultaTieneUniversidad(universidadResumen !== null)
+    if (universidadResumen === null) return
+
+    const universidad = await fetchSolicitud(universidadResumen.id)
+    aplicarNivelConsultado(
+      universidad,
+      formInscripcionUniversidad,
+      setChecklistUniversidad,
+      setPruebasUniversidad,
+      setDocumentoUniversidad,
+      setAvisoUniversidad,
+      setVoBoUniversidad,
+    )
+  }
+
+  const consultarMutation = useMutation({
+    mutationFn: cargarConsulta,
+    onSuccess: () => {
+      desbloquearHasta(12)
+      api?.scrollTo(1)
+    },
+  })
+
+  // "consultar": dispara la carga de la cadena apenas el selector compartido trae la
+  // solicitud elegida -- mismo disparador que el baseline de "actualizar" (arriba), solo
+  // que hace otra cosa con el resultado.
+  useEffect(() => {
+    if (accion !== "consultar") return
+    if (!buscarSolicitudMutation.isSuccess || !catalogosListos) return
+    if (baselineIdRef.current === solicitudIdActual) return
+    baselineIdRef.current = solicitudIdActual
+    setConsultaTieneSecundaria(false)
+    setConsultaTieneUniversidad(false)
+    consultarMutation.mutate(buscarSolicitudMutation.data)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accion, buscarSolicitudMutation.isSuccess, buscarSolicitudMutation.data, catalogosListos, solicitudIdActual])
+
+  function consultarOtra() {
+    setSolicitudIdActual(null)
+    baselineIdRef.current = null
+    setListaIdInput("")
+    buscarSolicitudMutation.reset()
+    consultarMutation.reset()
+    setConsultaTieneSecundaria(false)
+    setConsultaTieneUniversidad(false)
+    maxStepRef.current = 0
+    setMaxStep(0)
+    api?.scrollTo(0)
+    resetearCadena()
+  }
+
   // Resumen de "todo lo llenado hasta ahora" en la cadena -- segun maxStep (el paso mas
   // lejano ya desbloqueado), no "current": si el usuario vuelve a un paso anterior, lo ya
   // llenado mas adelante sigue apareciendo aca. Solo "crear" la tiene (ver comentario en
@@ -804,7 +943,6 @@ export function useInscripcionForm() {
 
     form,
     campos,
-    camposADto,
     camposAVistaPrevia,
     catalogoCompleto,
     responsablesCompletos,
@@ -818,7 +956,7 @@ export function useInscripcionForm() {
     tiposPruebaQuery,
     catalogosListos,
 
-    useInscripciones,
+    useSolicitudes,
     filtroEstadoId,
     setFiltroEstadoId,
     filtroSistemaId,
@@ -881,7 +1019,7 @@ export function useInscripcionForm() {
     setListaIdInput,
     buscarPorIdInput,
     elegirSolicitud,
-    buscarInscripcionMutation,
+    buscarSolicitudMutation,
     solicitudIdActual,
     baseline,
 
@@ -893,10 +1031,15 @@ export function useInscripcionForm() {
     huboCambios,
     huboCambiosFormaciones,
     hayAlgoQueGuardar,
-    actualizarInscripcionMutation,
+    actualizarSolicitudMutation,
     guardarCambios,
     guardadoConfirmado,
     actualizarOtra,
+
+    consultarMutation,
+    consultaTieneSecundaria,
+    consultaTieneUniversidad,
+    consultarOtra,
   }
 }
 

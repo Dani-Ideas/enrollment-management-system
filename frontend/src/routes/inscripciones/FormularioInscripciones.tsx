@@ -91,7 +91,7 @@ export function FormularioInscripciones() {
     responsablesQuery,
     ambientesQuery,
     tiposPruebaQuery,
-    useInscripciones,
+    useSolicitudes,
     filtroEstadoId,
     setFiltroEstadoId,
     filtroSistemaId,
@@ -148,20 +148,24 @@ export function FormularioInscripciones() {
     setListaIdInput,
     buscarPorIdInput,
     elegirSolicitud,
-    buscarInscripcionMutation,
+    buscarSolicitudMutation,
     baseline,
     formacionesEditables,
     agregarFormacionComplementariaEditable,
     cambiarFormacionComplementariaEditable,
     quitarFormacionComplementariaEditable,
     hayAlgoQueGuardar,
-    actualizarInscripcionMutation,
+    actualizarSolicitudMutation,
     guardarCambios,
     guardadoConfirmado,
     actualizarOtra,
+    consultarMutation,
+    consultaTieneSecundaria,
+    consultaTieneUniversidad,
+    consultarOtra,
   } = wizard
 
-  const inscripcionesQuery = useInscripciones()
+  const solicitudesQuery = useSolicitudes()
 
   // El Resumen de la cadena (panel "Uno") SOLO existe en escritorio -- ni tablet ni celular:
   // ahi se arma como ResizablePanelGroup (el usuario arrastra el ancho a gusto). Por debajo
@@ -254,7 +258,7 @@ export function FormularioInscripciones() {
             <CarouselItem className="overflow-y-auto">
               {accion === "lista" && (
                 <div className="space-y-3">
-                  <h3 className="text-sm font-medium">Solicitudes existentes</h3>
+                  <h3 className="text-sm font-medium">Inscripciones</h3>
 
                   {/* Un solo modo a la vez -- CampoSelect decide si se ve "por número" o
                       "por categoría" (toggle interno), nunca los dos juntos. */}
@@ -263,9 +267,9 @@ export function FormularioInscripciones() {
                     valor={listaIdInput}
                     onCambiarValor={setListaIdInput}
                     onBuscar={buscarPorIdInput}
-                    buscando={buscarInscripcionMutation.isPending}
-                    hayError={buscarInscripcionMutation.isError}
-                    resultado={buscarInscripcionMutation.data}
+                    buscando={buscarSolicitudMutation.isPending}
+                    hayError={buscarSolicitudMutation.isError}
+                    resultado={buscarSolicitudMutation.data}
                     filtros={{
                       filtroEstadoId,
                       onCambiarFiltroEstadoId: setFiltroEstadoId,
@@ -276,37 +280,55 @@ export function FormularioInscripciones() {
                       estadosQuery,
                       sistemasQuery,
                       ambientesQuery,
-                      cargando: inscripcionesQuery.isLoading,
-                      error: inscripcionesQuery.error as Error | null,
-                      hayResultados: (inscripcionesQuery.data?.length ?? 0) > 0,
+                      cargando: solicitudesQuery.isLoading,
+                      error: solicitudesQuery.error as Error | null,
+                      hayResultados: (solicitudesQuery.data?.length ?? 0) > 0,
                     }}
                   />
                   <CampoVistaDetalle
                     modo="detalle"
-                    inscripciones={inscripcionesQuery.data ?? []}
+                    inscripciones={solicitudesQuery.data ?? []}
                     detalleAbiertoId={detalleAbiertoId}
                     onAlternarDetalle={alternarDetalle}
                   />
                 </div>
               )}
 
-              {accion === "actualizar" && (
+              {/* Selector compartido por "actualizar" y "consultar" -- misma lista, mismo
+                  CampoSelect/CampoVistaDetalle (ver useSolicitudes en useInscripcionForm);
+                  lo que se hace DESPUES de elegir una fila es lo que distingue a cada accion
+                  (editar campos vs. recorrer la cadena de solo lectura). */}
+              {(accion === "actualizar" || accion === "consultar") && (
                 <div className="space-y-4">
+                  {accion === "consultar" && (
+                    <p className="text-xs text-muted-foreground">
+                      Elegí la solicitud de Primaria -- si tiene Secundaria y/o Universidad
+                      encadenadas, se muestran también (de solo lectura).
+                    </p>
+                  )}
                   <CampoSelect
                     idPrefix="pago-tf"
                     valor={listaIdInput}
                     onCambiarValor={setListaIdInput}
                     onBuscar={buscarPorIdInput}
-                    buscando={buscarInscripcionMutation.isPending}
-                    hayError={buscarInscripcionMutation.isError}
+                    buscando={buscarSolicitudMutation.isPending}
+                    hayError={buscarSolicitudMutation.isError}
                   />
 
                   <CampoVistaDetalle
                     modo="seleccionar"
-                    inscripciones={inscripcionesQuery.data ?? []}
-                    cargando={inscripcionesQuery.isLoading}
+                    inscripciones={solicitudesQuery.data ?? []}
+                    cargando={solicitudesQuery.isLoading}
                     onSeleccionar={elegirSolicitud}
                   />
+
+                  {accion === "consultar" && consultarMutation.isError && (
+                    <Alert variant="destructive">
+                      <TriangleAlertIcon />
+                      <AlertTitle>No se pudo cargar la cadena</AlertTitle>
+                      <AlertDescription>{(consultarMutation.error as Error).message}</AlertDescription>
+                    </Alert>
+                  )}
                 </div>
               )}
 
@@ -422,7 +444,7 @@ export function FormularioInscripciones() {
                         datosProyectoCompletos={datosProyectoCompletos}
                         etiquetaAccion="Guardar cambios"
                         onAccion={guardarCambios}
-                        deshabilitarAccion={!hayAlgoQueGuardar || actualizarInscripcionMutation.isPending}
+                        deshabilitarAccion={!hayAlgoQueGuardar || actualizarSolicitudMutation.isPending}
                       />
                       {!hayAlgoQueGuardar && (
                         <p className="text-xs text-muted-foreground">
@@ -441,17 +463,43 @@ export function FormularioInscripciones() {
                           </Button>
                         </>
                       )}
-                      {actualizarInscripcionMutation.isError && (
+                      {actualizarSolicitudMutation.isError && (
                         <Alert variant="destructive">
                           <TriangleAlertIcon />
                           <AlertTitle>No se pudo guardar el cambio</AlertTitle>
                           <AlertDescription>
-                            {(actualizarInscripcionMutation.error as Error).message}
+                            {(actualizarSolicitudMutation.error as Error).message}
                           </AlertDescription>
                         </Alert>
                       )}
                     </>
                   )}
+                </div>
+              )}
+
+              {accion === "consultar" && consultarMutation.isSuccess && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Primaria -- datos de la inscripción</h3>
+                  <CampoCatalogo
+                    form={form}
+                    idPrefix="consultar-p"
+                    estadosQuery={estadosQuery}
+                    sistemasQuery={sistemasQuery}
+                    ambientesQuery={ambientesQuery}
+                    mostrarPlaceholder={false}
+                    disabled
+                  />
+                  <CampoResponsables
+                    form={form}
+                    idPrefix="consultar-p"
+                    responsablesQuery={responsablesQuery}
+                    mostrarPlaceholder={false}
+                    disabled
+                  />
+                  <CampoDatosProyecto form={form} idPrefix="consultar-p" mostrarEjemplos={false} disabled />
+                  <Button onClick={() => continuarCadena(2)} className="w-fit">
+                    Siguiente
+                  </Button>
                 </div>
               )}
             </CarouselItem>
@@ -488,6 +536,16 @@ export function FormularioInscripciones() {
                   </Button>
                 </div>
               )}
+
+              {accion === "consultar" && consultarMutation.isSuccess && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Confirmación: primaria</h3>
+                  <DetalleInscripcion inscripcion={camposAVistaPrevia(campos)} />
+                  <Button onClick={() => continuarCadena(3)} className="w-fit">
+                    Siguiente
+                  </Button>
+                </div>
+              )}
             </CarouselItem>
 
             {/* --- Paso 3: Confirmación (primaria) --- */}
@@ -504,6 +562,35 @@ export function FormularioInscripciones() {
                     onEnviar={enviarCadena}
                     onContinuar={continuarCadena}
                   />
+                </div>
+              )}
+
+              {accion === "consultar" && consultarMutation.isSuccess && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Primaria -- checklist, pruebas y documentación</h3>
+                  <ChecklistEditor
+                    items={checklistPrimaria}
+                    onAgregar={checklistPrimariaAcciones.agregar}
+                    onCambiar={checklistPrimariaAcciones.cambiar}
+                    onQuitar={checklistPrimariaAcciones.quitar}
+                    estadosQuery={estadosQuery}
+                    responsablesQuery={responsablesQuery}
+                    disabled
+                  />
+                  <PruebasEditor
+                    items={pruebasPrimaria}
+                    onAgregar={pruebasPrimariaAcciones.agregar}
+                    onCambiar={pruebasPrimariaAcciones.cambiar}
+                    onQuitar={pruebasPrimariaAcciones.quitar}
+                    estadosQuery={estadosQuery}
+                    tiposPruebaQuery={tiposPruebaQuery}
+                    disabled
+                  />
+                  <DocumentoPanel idPrefix="consultar-dp" valor={documentoPrimaria} onCambiar={setDocumentoPrimaria} disabled />
+                  <AvisoVersionesPanel idPrefix="consultar-dp" valor={avisoPrimaria} onCambiar={setAvisoPrimaria} disabled />
+                  <Button onClick={() => continuarCadena(4)} className="w-fit">
+                    Siguiente
+                  </Button>
                 </div>
               )}
             </CarouselItem>
@@ -535,6 +622,27 @@ export function FormularioInscripciones() {
                   </Button>
                 </div>
               )}
+
+              {accion === "consultar" && consultarMutation.isSuccess && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Confirmación: primaria</h3>
+                  <ResumenVoBo voBo={voBoPrimaria} />
+                  {consultaTieneSecundaria ? (
+                    <Button onClick={() => continuarCadena(5)} className="w-fit">
+                      Ver secundaria
+                    </Button>
+                  ) : (
+                    <>
+                      <p className="text-sm text-muted-foreground">
+                        Esta solicitud no tiene una secundaria encadenada.
+                      </p>
+                      <Button variant="outline" onClick={consultarOtra} className="w-fit">
+                        Consultar otra solicitud
+                      </Button>
+                    </>
+                  )}
+                </div>
+              )}
             </CarouselItem>
 
             {/* --- Paso 5: Confirmación (inscripción secundaria) --- */}
@@ -551,6 +659,32 @@ export function FormularioInscripciones() {
                     onEnviar={enviarCadena}
                     onContinuar={continuarCadena}
                   />
+                </div>
+              )}
+
+              {accion === "consultar" && consultaTieneSecundaria && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Secundaria -- datos de la inscripción</h3>
+                  <CampoCatalogo
+                    form={formInscripcionSecundaria}
+                    idPrefix="consultar-s"
+                    estadosQuery={estadosQuery}
+                    sistemasQuery={sistemasQuery}
+                    ambientesQuery={ambientesQuery}
+                    mostrarPlaceholder={false}
+                    disabled
+                  />
+                  <CampoResponsables
+                    form={formInscripcionSecundaria}
+                    idPrefix="consultar-s"
+                    responsablesQuery={responsablesQuery}
+                    mostrarPlaceholder={false}
+                    disabled
+                  />
+                  <CampoDatosProyecto form={formInscripcionSecundaria} idPrefix="consultar-s" mostrarEjemplos={false} disabled />
+                  <Button onClick={() => continuarCadena(6)} className="w-fit">
+                    Siguiente
+                  </Button>
                 </div>
               )}
             </CarouselItem>
@@ -583,6 +717,16 @@ export function FormularioInscripciones() {
                   </Button>
                 </div>
               )}
+
+              {accion === "consultar" && consultaTieneSecundaria && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Confirmación: inscripción de secundaria</h3>
+                  <DetalleInscripcion inscripcion={camposAVistaPrevia(camposInscripcionSecundaria)} />
+                  <Button onClick={() => continuarCadena(7)} className="w-fit">
+                    Siguiente
+                  </Button>
+                </div>
+              )}
             </CarouselItem>
 
             {/* --- Paso 7: Confirmación (secundaria) --- */}
@@ -599,6 +743,35 @@ export function FormularioInscripciones() {
                     onEnviar={enviarCadena}
                     onContinuar={continuarCadena}
                   />
+                </div>
+              )}
+
+              {accion === "consultar" && consultaTieneSecundaria && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Secundaria -- checklist, pruebas y documentación</h3>
+                  <ChecklistEditor
+                    items={checklistSecundaria}
+                    onAgregar={checklistSecundariaAcciones.agregar}
+                    onCambiar={checklistSecundariaAcciones.cambiar}
+                    onQuitar={checklistSecundariaAcciones.quitar}
+                    estadosQuery={estadosQuery}
+                    responsablesQuery={responsablesQuery}
+                    disabled
+                  />
+                  <PruebasEditor
+                    items={pruebasSecundaria}
+                    onAgregar={pruebasSecundariaAcciones.agregar}
+                    onCambiar={pruebasSecundariaAcciones.cambiar}
+                    onQuitar={pruebasSecundariaAcciones.quitar}
+                    estadosQuery={estadosQuery}
+                    tiposPruebaQuery={tiposPruebaQuery}
+                    disabled
+                  />
+                  <DocumentoPanel idPrefix="consultar-ds" valor={documentoSecundaria} onCambiar={setDocumentoSecundaria} disabled />
+                  <AvisoVersionesPanel idPrefix="consultar-ds" valor={avisoSecundaria} onCambiar={setAvisoSecundaria} disabled />
+                  <Button onClick={() => continuarCadena(8)} className="w-fit">
+                    Siguiente
+                  </Button>
                 </div>
               )}
             </CarouselItem>
@@ -630,6 +803,27 @@ export function FormularioInscripciones() {
                   </Button>
                 </div>
               )}
+
+              {accion === "consultar" && consultaTieneSecundaria && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Confirmación: secundaria</h3>
+                  <ResumenVoBo voBo={voBoSecundaria} />
+                  {consultaTieneUniversidad ? (
+                    <Button onClick={() => continuarCadena(9)} className="w-fit">
+                      Ver universidad
+                    </Button>
+                  ) : (
+                    <>
+                      <p className="text-sm text-muted-foreground">
+                        Esta solicitud no tiene una universidad encadenada.
+                      </p>
+                      <Button variant="outline" onClick={consultarOtra} className="w-fit">
+                        Consultar otra solicitud
+                      </Button>
+                    </>
+                  )}
+                </div>
+              )}
             </CarouselItem>
 
             {/* --- Paso 9: Confirmación (inscripción universidad) --- */}
@@ -646,6 +840,32 @@ export function FormularioInscripciones() {
                     onEnviar={enviarCadena}
                     onContinuar={continuarCadena}
                   />
+                </div>
+              )}
+
+              {accion === "consultar" && consultaTieneUniversidad && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Universidad -- datos de la inscripción</h3>
+                  <CampoCatalogo
+                    form={formInscripcionUniversidad}
+                    idPrefix="consultar-u"
+                    estadosQuery={estadosQuery}
+                    sistemasQuery={sistemasQuery}
+                    ambientesQuery={ambientesQuery}
+                    mostrarPlaceholder={false}
+                    disabled
+                  />
+                  <CampoResponsables
+                    form={formInscripcionUniversidad}
+                    idPrefix="consultar-u"
+                    responsablesQuery={responsablesQuery}
+                    mostrarPlaceholder={false}
+                    disabled
+                  />
+                  <CampoDatosProyecto form={formInscripcionUniversidad} idPrefix="consultar-u" mostrarEjemplos={false} disabled />
+                  <Button onClick={() => continuarCadena(10)} className="w-fit">
+                    Siguiente
+                  </Button>
                 </div>
               )}
             </CarouselItem>
@@ -678,11 +898,22 @@ export function FormularioInscripciones() {
                   </Button>
                 </div>
               )}
+
+              {accion === "consultar" && consultaTieneUniversidad && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Confirmación: inscripción de universidad</h3>
+                  <DetalleInscripcion inscripcion={camposAVistaPrevia(camposInscripcionUniversidad)} />
+                  <Button onClick={() => continuarCadena(11)} className="w-fit">
+                    Siguiente
+                  </Button>
+                </div>
+              )}
             </CarouselItem>
 
-            {/* --- Paso 11: Confirmación final -- unico lugar que muestra el resultado de
-                "Finalizar y enviar", sin importar desde que Confirmacion se haya disparado
-                (ver cadenaMutation.onSuccess en useInscripcionForm). --- */}
+            {/* --- Paso 11: Confirmación final (crear) -- unico lugar que muestra el resultado
+                de "Finalizar y enviar", sin importar desde que Confirmacion se haya disparado
+                (ver cadenaMutation.onSuccess en useInscripcionForm). Paso 11 de "consultar" es
+                el checklist de universidad (un paso corrido respecto de "crear"). --- */}
             <CarouselItem className="overflow-y-auto">
               {accion === "crear" && (
                 <div className="space-y-4">
@@ -703,6 +934,49 @@ export function FormularioInscripciones() {
                       <BotonesCadena hastaPaso={10} mutation={cadenaMutation} onEnviar={enviarCadena} />
                     </>
                   )}
+                </div>
+              )}
+
+              {accion === "consultar" && consultaTieneUniversidad && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Universidad -- checklist, pruebas y documentación</h3>
+                  <ChecklistEditor
+                    items={checklistUniversidad}
+                    onAgregar={checklistUniversidadAcciones.agregar}
+                    onCambiar={checklistUniversidadAcciones.cambiar}
+                    onQuitar={checklistUniversidadAcciones.quitar}
+                    estadosQuery={estadosQuery}
+                    responsablesQuery={responsablesQuery}
+                    disabled
+                  />
+                  <PruebasEditor
+                    items={pruebasUniversidad}
+                    onAgregar={pruebasUniversidadAcciones.agregar}
+                    onCambiar={pruebasUniversidadAcciones.cambiar}
+                    onQuitar={pruebasUniversidadAcciones.quitar}
+                    estadosQuery={estadosQuery}
+                    tiposPruebaQuery={tiposPruebaQuery}
+                    disabled
+                  />
+                  <DocumentoPanel idPrefix="consultar-du" valor={documentoUniversidad} onCambiar={setDocumentoUniversidad} disabled />
+                  <AvisoVersionesPanel idPrefix="consultar-du" valor={avisoUniversidad} onCambiar={setAvisoUniversidad} disabled />
+                  <Button onClick={() => continuarCadena(12)} className="w-fit">
+                    Siguiente
+                  </Button>
+                </div>
+              )}
+            </CarouselItem>
+
+            {/* --- Paso 12: Confirmación final (SOLO "consultar" -- "crear" no usa este slide,
+                queda en blanco para esa accion). --- */}
+            <CarouselItem className="overflow-y-auto">
+              {accion === "consultar" && consultaTieneUniversidad && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Confirmación: universidad</h3>
+                  <ResumenVoBo voBo={voBoUniversidad} />
+                  <Button variant="outline" onClick={consultarOtra} className="w-fit">
+                    Consultar otra solicitud
+                  </Button>
                 </div>
               )}
             </CarouselItem>

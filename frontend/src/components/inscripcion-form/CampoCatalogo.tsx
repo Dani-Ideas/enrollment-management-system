@@ -19,6 +19,7 @@ export function CampoCatalogo({
   sistemasQuery,
   ambientesQuery,
   mostrarPlaceholder = true,
+  disabled = false,
 }: {
   form: InscripcionFormApi["form"]
   idPrefix: string
@@ -26,6 +27,7 @@ export function CampoCatalogo({
   sistemasQuery: Catalogo
   ambientesQuery: Catalogo
   mostrarPlaceholder?: boolean
+  disabled?: boolean
 }) {
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -38,6 +40,7 @@ export function CampoCatalogo({
               value={field.state.value}
               onChange={(e) => field.handleChange(e.target.value)}
               onBlur={field.handleBlur}
+              disabled={disabled}
             >
               {mostrarPlaceholder && (
                 <option value="">{estadosQuery.isLoading ? "Cargando…" : "Seleccioná un estado…"}</option>
@@ -60,6 +63,7 @@ export function CampoCatalogo({
               value={field.state.value}
               onChange={(e) => field.handleChange(e.target.value)}
               onBlur={field.handleBlur}
+              disabled={disabled}
             >
               {mostrarPlaceholder && (
                 <option value="">{sistemasQuery.isLoading ? "Cargando…" : "Seleccioná un sistema…"}</option>
@@ -82,6 +86,7 @@ export function CampoCatalogo({
               value={field.state.value}
               onChange={(e) => field.handleChange(e.target.value)}
               onBlur={field.handleBlur}
+              disabled={disabled}
             >
               {mostrarPlaceholder && (
                 <option value="">{ambientesQuery.isLoading ? "Cargando…" : "Seleccioná un ambiente…"}</option>

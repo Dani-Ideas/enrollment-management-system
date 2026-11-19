@@ -8,10 +8,12 @@ export function DocumentoPanel({
   idPrefix,
   valor,
   onCambiar,
+  disabled = false,
 }: {
   idPrefix: string
   valor: DocumentoEditable
   onCambiar: (nuevo: DocumentoEditable) => void
+  disabled?: boolean
 }) {
   const idCompleto = `${idPrefix}-doc-completo`
   return (
@@ -21,6 +23,7 @@ export function DocumentoPanel({
           id={idCompleto}
           checked={valor.completo}
           onCheckedChange={(v) => onCambiar({ ...valor, completo: v === true })}
+          disabled={disabled}
         />
         <FieldLabel htmlFor={idCompleto}>Documentación completa</FieldLabel>
       </Field>
@@ -30,6 +33,7 @@ export function DocumentoPanel({
           id={`${idPrefix}-doc-comentario`}
           value={valor.comentario}
           onChange={(e) => onCambiar({ ...valor, comentario: e.target.value })}
+          disabled={disabled}
         />
       </Field>
     </div>
