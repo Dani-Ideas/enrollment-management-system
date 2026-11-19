@@ -1,4 +1,4 @@
-import { useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import type { CSSProperties } from "react"
 import { Spinner } from "@/components/ui/spinner"
 
@@ -73,6 +73,23 @@ export function ChevronStepper({
   const limite = maxStep ?? current
   const botonesRef = useRef<(HTMLButtonElement | null)[]>([])
 
+  // Cuando "limite" sube (un paso nuevo se desbloquea), ese boton pulsa -- crece y vuelve a
+  // su tamaño original -- para que se note el desbloqueo. limiteAnteriorRef arranca en el
+  // valor inicial de "limite" a proposito: asi el primer render (nada se desbloqueo todavia,
+  // solo se montó el componente) nunca dispara el pulso.
+  const limiteAnteriorRef = useRef(limite)
+  const [pasoRecienDesbloqueado, setPasoRecienDesbloqueado] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (limite > limiteAnteriorRef.current) {
+      setPasoRecienDesbloqueado(limite)
+      const id = setTimeout(() => setPasoRecienDesbloqueado(null), 550)
+      limiteAnteriorRef.current = limite
+      return () => clearTimeout(id)
+    }
+    limiteAnteriorRef.current = limite
+  }, [limite])
+
   // Variables CSS, no clases de Tailwind -- por eso se pueden configurar de verdad en
   // runtime (un valor que solo existe como prop en tiempo de ejecucion jamas generaria CSS
   // si lo armaramos como clase de Tailwind).
@@ -103,6 +120,14 @@ export function ChevronStepper({
 
   return (
     <div style={vars} className={cn("relative -m-1 overflow-x-auto p-1", className)}>
+      {/* Keyframe del pulso de desbloqueo -- inline (no un .css aparte) para que este
+          archivo siga siendo copiable solo, sin depender de nada mas del proyecto. */}
+      <style>{`
+        @keyframes chevron-stepper-desbloqueo {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.18); }
+        }
+      `}</style>
       <div role="tablist" aria-label="Pasos" className="flex min-w-max">
         {steps.map((titulo, indice) => {
           const bloqueado = bloqueadoGlobalmente || indice > limite
@@ -134,6 +159,10 @@ export function ChevronStepper({
                   // Chevron: flecha de 16px al final, muesca de 16px al inicio, solapando
                   // el anterior 14px.
                   "relative isolate bg-background after:absolute after:inset-0 after:-z-10 after:rounded-[inherit] -ms-3.5 rounded-none",
+                  // Pulso de desbloqueo: crece y vuelve a su tamaño original -- z-20 mientras
+                  // dura para que no quede tapado por el chevron siguiente al agrandarse.
+                  indice === pasoRecienDesbloqueado &&
+                    "z-20 [animation:chevron-stepper-desbloqueo_550ms_ease-in-out]",
                   "[--arrow:--spacing(4)] [--notch:--spacing(4)]",
                   "group-first/step:ms-0 group-first/step:rounded-s-[calc(var(--radius-sm)-2px)] group-first/step:[--notch:0px]",
                   "group-last/step:rounded-e-[calc(var(--radius-sm)-2px)] group-last/step:[--arrow:0px]",

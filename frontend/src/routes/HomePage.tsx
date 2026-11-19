@@ -1,4 +1,4 @@
-import { EyeIcon, FileTextIcon, ListIcon, LogOutIcon, PencilIcon, PlusIcon } from "lucide-react"
+import { FileTextIcon, ListIcon, LogOutIcon, PencilIcon, PlusIcon } from "lucide-react"
 import { DrillMenu } from "../components/ui/DrillMenu"
 
 export function HomePage() {
@@ -21,7 +21,7 @@ export function HomePage() {
               submenu: [
                 {
                   to: "/formulario-pago",
-                  search: { accion: "lista" },
+                  search: { accion: "consultar" },
                   label: "Inscripciones",
                   icon: ListIcon,
                 },
@@ -36,12 +36,6 @@ export function HomePage() {
                   search: { accion: "actualizar" },
                   label: "Actualizar una solicitud existente",
                   icon: PencilIcon,
-                },
-                {
-                  to: "/formulario-pago",
-                  search: { accion: "consultar" },
-                  label: "Consultar la cadena de una solicitud",
-                  icon: EyeIcon,
                 },
               ],
             },
