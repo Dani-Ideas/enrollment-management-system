@@ -31,12 +31,10 @@ public interface InscripcionMapper extends RequestResponseMapper<InscripcionEty,
     @Mapping(target = "maestro", source = "maestro.nombreLargo")
     @Mapping(target = "carrera", source = "carrera.nombreLargo")
     @Mapping(target = "ambiente", source = "ambiente.nombre")
-    @Mapping(target = "diplomaPrimariaId", source = "diplomaPrimaria.id")
     InscripcionDto toDto(InscripcionEty inscripcion);
 
     @Override
     @Mapping(target = "formacionesComplementarias", ignore = true)
-    @Mapping(target = "diplomaPrimaria", ignore = true)
     InscripcionEty toEntity(InscripcionRequestDto dto);
 
     @InheritConfiguration(name = "toEntity")

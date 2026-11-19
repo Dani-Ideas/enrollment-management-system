@@ -1,5 +1,7 @@
 package org.example.estaticos.service;
 
+import org.example.estaticos.dto.CatEtapaInscripcionDto;
+import org.example.estaticos.dto.CatTipoPruebaDto;
 import org.example.estaticos.dto.MiniFormAmbDto;
 import org.example.estaticos.dto.MiniFormEstDto;
 import org.example.estaticos.dto.MiniFormRespDto;
@@ -28,6 +30,10 @@ public interface CatalogoInscripcionCache {
     List<MiniFormRespDto> listarResponsables();
 
     List<MiniFormAmbDto> listarAmbientes();
+
+    List<CatEtapaInscripcionDto> listarEtapas();
+
+    List<CatTipoPruebaDto> listarTiposPrueba();
 
     // "Tablas genericas": los 4 catalogos de arriba en un solo bundle -- ver
     // TablasInscripcionDto/CatalogosInscripcionController.

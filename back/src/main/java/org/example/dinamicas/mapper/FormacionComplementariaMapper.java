@@ -23,5 +23,6 @@ public interface FormacionComplementariaMapper extends RequestResponseMapper<For
     @Override
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "inscripcion", ignore = true)
+    @Mapping(target = "solicitud", ignore = true)
     FormacionComplementariaEty toEntity(FormacionComplementariaRequestDto dto);
 }

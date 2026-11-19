@@ -15,6 +15,8 @@ public record TablasInscripcionDto(
         List<MiniFormEstDto> estados,
         List<MiniFormSisDto> sistemas,
         List<MiniFormRespDto> responsables,
-        List<MiniFormAmbDto> ambientes
+        List<MiniFormAmbDto> ambientes,
+        List<CatEtapaInscripcionDto> etapas,
+        List<CatTipoPruebaDto> tiposPrueba
 ) implements Serializable {
 }
