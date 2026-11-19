@@ -2,22 +2,24 @@ import axios, { type AxiosRequestConfig } from "axios";
 import { queryOptions } from "@tanstack/react-query";
 import type {
   AmbienteDTO,
-  CadenaDiplomasDTO,
-  CadenaDiplomasRequestDTO,
-  DiplomaPrimariaDTO,
-  DiplomaPrimariaRequestDTO,
+  AvisoVersionDTO,
+  AvisoVersionRequestDTO,
+  ChecklistItemDTO,
+  ChecklistItemRequestDTO,
+  DocumentoDTO,
+  DocumentoRequestDTO,
   EstadoDTO,
   InscripcionConFormacionComplementariaDTO,
   InscripcionConFormacionComplementariaRequestDTO,
   InscripcionDTO,
-  InscripcionSecundariaConDiplomaDTO,
-  InscripcionSecundariaConDiplomaRequestDTO,
-  InscripcionSecundariaDTO,
-  InscripcionUniversidadConDiplomaDTO,
-  InscripcionUniversidadConDiplomaRequestDTO,
-  InscripcionUniversidadDTO,
+  PruebaDTO,
+  PruebaRequestDTO,
   ResponsableDTO,
   SistemaDTO,
+  SolicitudConFormacionesDTO,
+  SolicitudConFormacionesRequestDTO,
+  SolicitudConPanelesDTO,
+  SolicitudDTO,
   TablasInscripcionDTO,
 } from "./types";
 
@@ -42,12 +44,10 @@ const RUTAS = {
   responsables: "/responsables",
   ambientes: "/ambientes",
   catalogosInscripcion: "/catalogos-inscripcion",
+  // "inscripciones" queda solo para leer/editar lo creado antes del modelo de
+  // solicitudes de abajo -- las altas nuevas de cualquier nivel usan "solicitudes".
   inscripciones: "/inscripciones",
-  // Cadena Primaria/Secundaria/Universidad: "inscripciones" (arriba) es ahora Primaria;
-  // estos 3 paths son el resto de la cadena (ver ApplicationConfig.Endpoints).
-  diplomasPrimaria: "/diplomas-primaria",
-  inscripcionesSecundaria: "/inscripciones-secundaria",
-  inscripcionesUniversidad: "/inscripciones-universidad",
+  solicitudes: "/solicitudes",
   endpoints: "/endpoints",
 } as const;
 
@@ -198,101 +198,99 @@ export function actualizarInscripcion(
   });
 }
 
-// --- Cadena Primaria/Secundaria/Universidad ---
+// --- Solicitudes (Primaria/Secundaria/Universidad unificadas) ---
 //
-// DiplomaPrimariaDTO es standalone (CRUD propio, sin wrapper) -- InscripcionEty (arriba) no
-// se tocó. InscripcionSecundaria/Universidad SI son compuestas (inscripcion + diploma en una
-// sola peticion), igual patron que crearInscripcion()/actualizarInscripcion(), salvo que aca
-// el diploma nunca es una lista ni es opcional.
+// Reemplaza al viejo modelo de firmas booleanas por nivel. "etapa" (dentro de
+// SolicitudRequestDTO) distingue el nivel; "solicitudAnterior" encadena contra el id REAL
+// de la solicitud previa (ya no un id de linaje compartido) -- el backend responde 409 si
+// la cadena no es valida o si el nivel anterior no tiene su VoBo completo.
 
-export function fetchDiplomasPrimaria(): Promise<DiplomaPrimariaDTO[]> {
-  return request<DiplomaPrimariaDTO[]>(RUTAS.diplomasPrimaria);
+export function fetchSolicitudes(): Promise<SolicitudDTO[]> {
+  return request<SolicitudDTO[]>(RUTAS.solicitudes);
 }
 
-export function fetchDiplomaPrimaria(id: number): Promise<DiplomaPrimariaDTO> {
-  return request<DiplomaPrimariaDTO>(`${RUTAS.diplomasPrimaria}/${id}`);
+// Trae la solicitud + todos sus paneles (checklist/pruebas/documento/avisoVersiones/voBo +
+// formaciones complementarias) en una sola llamada -- reemplaza a los viejos
+// fetchInscripcionSecundaria/fetchInscripcionUniversidad/fetchDiplomaPrimaria por separado.
+export function fetchSolicitud(id: number): Promise<SolicitudConPanelesDTO> {
+  return request<SolicitudConPanelesDTO>(`${RUTAS.solicitudes}/${id}`);
 }
 
-export function crearDiplomaPrimaria(dto: DiplomaPrimariaRequestDTO): Promise<DiplomaPrimariaDTO> {
-  return request<DiplomaPrimariaDTO>(RUTAS.diplomasPrimaria, { method: "POST", data: dto });
+export function crearSolicitud(dto: SolicitudConFormacionesRequestDTO): Promise<SolicitudConFormacionesDTO> {
+  return request<SolicitudConFormacionesDTO>(RUTAS.solicitudes, { method: "POST", data: dto });
 }
 
-export function actualizarDiplomaPrimaria(id: number, dto: DiplomaPrimariaRequestDTO): Promise<DiplomaPrimariaDTO> {
-  return request<DiplomaPrimariaDTO>(`${RUTAS.diplomasPrimaria}/${id}`, { method: "PUT", data: dto });
-}
-
-export function fetchInscripcionesSecundaria(): Promise<InscripcionSecundariaDTO[]> {
-  return request<InscripcionSecundariaDTO[]>(RUTAS.inscripcionesSecundaria);
-}
-
-// Trae la InscripcionSecundaria + su diploma de secundaria juntos -- igual motivo que
-// fetchInscripcion(): el PUT manda el diploma completo que debe quedar.
-export function fetchInscripcionSecundaria(id: number): Promise<InscripcionSecundariaConDiplomaDTO> {
-  return request<InscripcionSecundariaConDiplomaDTO>(`${RUTAS.inscripcionesSecundaria}/${id}`);
-}
-
-export function crearInscripcionSecundaria(
-  dto: InscripcionSecundariaConDiplomaRequestDTO,
-): Promise<InscripcionSecundariaConDiplomaDTO> {
-  return request<InscripcionSecundariaConDiplomaDTO>(RUTAS.inscripcionesSecundaria, { method: "POST", data: dto });
-}
-
-export function actualizarInscripcionSecundaria(
+export function actualizarSolicitud(
   id: number,
-  dto: InscripcionSecundariaConDiplomaRequestDTO,
-): Promise<InscripcionSecundariaConDiplomaDTO> {
-  return request<InscripcionSecundariaConDiplomaDTO>(`${RUTAS.inscripcionesSecundaria}/${id}`, {
+  dto: SolicitudConFormacionesRequestDTO,
+): Promise<SolicitudConFormacionesDTO> {
+  return request<SolicitudConFormacionesDTO>(`${RUTAS.solicitudes}/${id}`, { method: "PUT", data: dto });
+}
+
+// --- Checklist/pruebas/documento/aviso de versiones de una solicitud ---
+//
+// No van en RUTAS (ese objeto es de paths fijos, estos llevan el id de la solicitud) -- el
+// chequeo de endpoints activos de arriba (DEV) por eso no puede validarlos, es un falso
+// positivo inofensivo si alguna vez aparece en consola.
+
+export function fetchChecklist(solicitudId: number): Promise<ChecklistItemDTO[]> {
+  return request<ChecklistItemDTO[]>(`${RUTAS.solicitudes}/${solicitudId}/checklist`);
+}
+
+export function crearChecklistItem(solicitudId: number, dto: ChecklistItemRequestDTO): Promise<ChecklistItemDTO> {
+  return request<ChecklistItemDTO>(`${RUTAS.solicitudes}/${solicitudId}/checklist`, { method: "POST", data: dto });
+}
+
+export function actualizarChecklistItem(
+  solicitudId: number,
+  itemId: number,
+  dto: ChecklistItemRequestDTO,
+): Promise<ChecklistItemDTO> {
+  return request<ChecklistItemDTO>(`${RUTAS.solicitudes}/${solicitudId}/checklist/${itemId}`, {
     method: "PUT",
     data: dto,
   });
 }
 
-export function fetchInscripcionesUniversidad(): Promise<InscripcionUniversidadDTO[]> {
-  return request<InscripcionUniversidadDTO[]>(RUTAS.inscripcionesUniversidad);
+export function eliminarChecklistItem(solicitudId: number, itemId: number): Promise<void> {
+  return request<void>(`${RUTAS.solicitudes}/${solicitudId}/checklist/${itemId}`, { method: "DELETE" });
 }
 
-export function fetchInscripcionUniversidad(id: number): Promise<InscripcionUniversidadConDiplomaDTO> {
-  return request<InscripcionUniversidadConDiplomaDTO>(`${RUTAS.inscripcionesUniversidad}/${id}`);
+export function fetchPruebas(solicitudId: number): Promise<PruebaDTO[]> {
+  return request<PruebaDTO[]>(`${RUTAS.solicitudes}/${solicitudId}/pruebas`);
 }
 
-export function crearInscripcionUniversidad(
-  dto: InscripcionUniversidadConDiplomaRequestDTO,
-): Promise<InscripcionUniversidadConDiplomaDTO> {
-  return request<InscripcionUniversidadConDiplomaDTO>(RUTAS.inscripcionesUniversidad, { method: "POST", data: dto });
+export function crearPruebaItem(solicitudId: number, dto: PruebaRequestDTO): Promise<PruebaDTO> {
+  return request<PruebaDTO>(`${RUTAS.solicitudes}/${solicitudId}/pruebas`, { method: "POST", data: dto });
 }
 
-export function actualizarInscripcionUniversidad(
-  id: number,
-  dto: InscripcionUniversidadConDiplomaRequestDTO,
-): Promise<InscripcionUniversidadConDiplomaDTO> {
-  return request<InscripcionUniversidadConDiplomaDTO>(`${RUTAS.inscripcionesUniversidad}/${id}`, {
-    method: "PUT",
-    data: dto,
-  });
+export function actualizarPruebaItem(
+  solicitudId: number,
+  itemId: number,
+  dto: PruebaRequestDTO,
+): Promise<PruebaDTO> {
+  return request<PruebaDTO>(`${RUTAS.solicitudes}/${solicitudId}/pruebas/${itemId}`, { method: "PUT", data: dto });
 }
 
-// Continua la cadena a partir de una Inscripcion (Primaria) que ya existe, en UNA sola
-// peticion -- espejo de ApplicationConfig.Endpoints.CADENA_DIPLOMAS ("/inscripciones/{id}/
-// cadena-diplomas"). No va en RUTAS (ese objeto es de paths fijos, este lleva un id) -- el
-// chequeo de endpoints activos de arriba (DEV) por eso no puede validar este path, es un
-// falso positivo inofensivo si alguna vez aparece en consola.
-export function crearCadenaDiplomas(
-  inscripcionId: number,
-  dto: CadenaDiplomasRequestDTO,
-): Promise<CadenaDiplomasDTO> {
-  return request<CadenaDiplomasDTO>(`/inscripciones/${inscripcionId}/cadena-diplomas`, {
-    method: "POST",
-    data: dto,
-  });
+export function eliminarPruebaItem(solicitudId: number, itemId: number): Promise<void> {
+  return request<void>(`${RUTAS.solicitudes}/${solicitudId}/pruebas/${itemId}`, { method: "DELETE" });
 }
 
-// Variante "upsert" de crearCadenaDiplomas() -- usada por "actualizar", que puede estar
-// retomando una cadena a medio llenar: actualiza cada nivel que ya existe, crea el que no.
-export function actualizarCadenaDiplomas(
-  inscripcionId: number,
-  dto: CadenaDiplomasRequestDTO,
-): Promise<CadenaDiplomasDTO> {
-  return request<CadenaDiplomasDTO>(`/inscripciones/${inscripcionId}/cadena-diplomas`, {
+// 1:1 -- GET + PUT-upsert, sin POST/DELETE separados (mismo criterio que el backend).
+export function fetchDocumento(solicitudId: number): Promise<DocumentoDTO | null> {
+  return request<DocumentoDTO | null>(`${RUTAS.solicitudes}/${solicitudId}/documento`);
+}
+
+export function guardarDocumento(solicitudId: number, dto: DocumentoRequestDTO): Promise<DocumentoDTO> {
+  return request<DocumentoDTO>(`${RUTAS.solicitudes}/${solicitudId}/documento`, { method: "PUT", data: dto });
+}
+
+export function fetchAvisoVersiones(solicitudId: number): Promise<AvisoVersionDTO | null> {
+  return request<AvisoVersionDTO | null>(`${RUTAS.solicitudes}/${solicitudId}/aviso-versiones`);
+}
+
+export function guardarAvisoVersiones(solicitudId: number, dto: AvisoVersionRequestDTO): Promise<AvisoVersionDTO> {
+  return request<AvisoVersionDTO>(`${RUTAS.solicitudes}/${solicitudId}/aviso-versiones`, {
     method: "PUT",
     data: dto,
   });

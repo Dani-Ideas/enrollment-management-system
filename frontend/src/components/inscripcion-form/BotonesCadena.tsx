@@ -19,7 +19,7 @@ export function BotonesCadena({
   hastaPaso: number
   siguientePaso?: number
   etiquetaSiguiente?: string
-  mutation: InscripcionFormApi["cadenaDiplomasMutation"]
+  mutation: InscripcionFormApi["cadenaMutation"]
   onEnviar: (hastaPaso: number) => void
   onContinuar?: (paso: number) => void
 }) {

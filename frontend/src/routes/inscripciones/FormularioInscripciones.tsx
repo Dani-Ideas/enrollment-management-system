@@ -3,22 +3,22 @@ import type { PanelImperativeHandle } from "react-resizable-panels"
 import { Link } from "@tanstack/react-router"
 import { formularioPagoRoute } from "@/router"
 import {
+  AvisoVersionesPanel,
   BotonesCadena,
   CampoCatalogo,
   CamposInscripcionCompletos,
   CampoDatosProyecto,
-  CampoFirmas,
   CampoResponsables,
   CampoSelect,
   CampoVistaDetalle,
+  ChecklistEditor,
   DetalleInscripcion,
+  DocumentoPanel,
   PasosNavegacion,
+  PruebasEditor,
   ResumenCadena,
-  ResumenFirmas,
+  ResumenVoBo,
   useInscripcionForm,
-  FIRMAS_DIPLOMA_PRIMARIA,
-  FIRMAS_DIPLOMA_SECUNDARIA,
-  FIRMAS_DIPLOMA_UNIVERSIDAD,
 } from "@/components/inscripcion-form"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
@@ -90,6 +90,7 @@ export function FormularioInscripciones() {
     sistemasQuery,
     responsablesQuery,
     ambientesQuery,
+    tiposPruebaQuery,
     useInscripciones,
     filtroEstadoId,
     setFiltroEstadoId,
@@ -103,33 +104,51 @@ export function FormularioInscripciones() {
     agregarFormacionNueva,
     cambiarFormacionNueva,
     quitarFormacionNueva,
-    crearInscripcionMutation,
-    crearInscripcionConFormaciones,
+    crearSolicitudMutation,
+    crearSolicitudConFormaciones,
     crearOtra,
-    diplomaPrimariaFirmas,
-    cambiarFirmaDiplomaPrimaria,
+    checklistPrimaria,
+    checklistPrimariaAcciones,
+    pruebasPrimaria,
+    pruebasPrimariaAcciones,
+    documentoPrimaria,
+    setDocumentoPrimaria,
+    avisoPrimaria,
+    setAvisoPrimaria,
+    voBoPrimaria,
     formInscripcionSecundaria,
     camposInscripcionSecundaria,
     inscripcionSecundariaCompleta,
-    diplomaSecundariaFirmas,
-    cambiarFirmaDiplomaSecundaria,
+    checklistSecundaria,
+    checklistSecundariaAcciones,
+    pruebasSecundaria,
+    pruebasSecundariaAcciones,
+    documentoSecundaria,
+    setDocumentoSecundaria,
+    avisoSecundaria,
+    setAvisoSecundaria,
+    voBoSecundaria,
     formInscripcionUniversidad,
     camposInscripcionUniversidad,
     inscripcionUniversidadCompleta,
-    diplomaUniversidadFirmas,
-    cambiarFirmaDiplomaUniversidad,
-    cadenaDiplomasMutation,
+    checklistUniversidad,
+    checklistUniversidadAcciones,
+    pruebasUniversidad,
+    pruebasUniversidadAcciones,
+    documentoUniversidad,
+    setDocumentoUniversidad,
+    avisoUniversidad,
+    setAvisoUniversidad,
+    voBoUniversidad,
+    cadenaMutation,
     enviarCadena,
     continuarCadena,
-    actualizarCadenaMutation,
-    guardarCadena,
     seccionesResumen,
     listaIdInput,
     setListaIdInput,
     buscarPorIdInput,
     elegirSolicitud,
     buscarInscripcionMutation,
-    solicitudIdActual,
     baseline,
     formacionesEditables,
     agregarFormacionComplementariaEditable,
@@ -221,8 +240,8 @@ export function FormularioInscripciones() {
       current={current}
       maxStep={maxStep}
       onIrAPaso={irAPaso}
-      pasoEnCurso={cadenaDiplomasMutation.isPending ? current : null}
-      bloqueadoGlobalmente={cadenaDiplomasMutation.isPending}
+      pasoEnCurso={cadenaMutation.isPending ? current : null}
+      bloqueadoGlobalmente={cadenaMutation.isPending}
     />
   )
 
@@ -320,31 +339,32 @@ export function FormularioInscripciones() {
             <CarouselItem className="overflow-y-auto">
               {accion === "crear" && (
                 <div className="space-y-4">
-                  {crearInscripcionMutation.isSuccess ? (
+                  {crearSolicitudMutation.isSuccess ? (
                     <>
                       <Alert>
                         <CheckCircle2Icon />
-                        <AlertTitle>Solicitud #{crearInscripcionMutation.data.inscripcion.id} creada</AlertTitle>
+                        <AlertTitle>Solicitud #{crearSolicitudMutation.data.solicitud.id} creada</AlertTitle>
                       </Alert>
-                      <DetalleInscripcion inscripcion={crearInscripcionMutation.data.inscripcion} />
+                      <DetalleInscripcion inscripcion={crearSolicitudMutation.data.solicitud} />
 
-                      {crearInscripcionMutation.data.formacionesComplementarias.length > 0 && (
+                      {crearSolicitudMutation.data.formacionesComplementarias.length > 0 && (
                         <Alert>
                           <CheckCircle2Icon />
                           <AlertTitle>
-                            {crearInscripcionMutation.data.formacionesComplementarias.length} formación
-                            {crearInscripcionMutation.data.formacionesComplementarias.length === 1 ? "" : "es"} complementaria
-                            {crearInscripcionMutation.data.formacionesComplementarias.length === 1 ? "" : "s"} creada
-                            {crearInscripcionMutation.data.formacionesComplementarias.length === 1 ? "" : "s"}
+                            {crearSolicitudMutation.data.formacionesComplementarias.length} formación
+                            {crearSolicitudMutation.data.formacionesComplementarias.length === 1 ? "" : "es"} complementaria
+                            {crearSolicitudMutation.data.formacionesComplementarias.length === 1 ? "" : "s"} creada
+                            {crearSolicitudMutation.data.formacionesComplementarias.length === 1 ? "" : "s"}
                           </AlertTitle>
                         </Alert>
                       )}
 
-                      {/* La cadena (diploma de primaria en adelante) es OPCIONAL -- el
-                          usuario puede seguir ahora o irse y crear otra solicitud. */}
+                      {/* La cadena (checklist/pruebas/documentación en adelante) es
+                          OPCIONAL -- el usuario puede seguir ahora o irse y crear otra
+                          solicitud. */}
                       <div className="flex flex-wrap gap-2">
                         <Button variant="outline" onClick={() => continuarCadena(2)} className="w-fit">
-                          Continuar con el diploma de primaria
+                          Continuar con checklist, pruebas y documentación
                         </Button>
                         <Button onClick={crearOtra} className="w-fit">
                           Crear otra solicitud
@@ -357,17 +377,17 @@ export function FormularioInscripciones() {
                       <DetalleInscripcion inscripcion={camposAVistaPrevia(campos)} />
 
                       <Button
-                        onClick={crearInscripcionConFormaciones}
-                        disabled={!formularioCompleto || crearInscripcionMutation.isPending}
+                        onClick={crearSolicitudConFormaciones}
+                        disabled={!formularioCompleto || crearSolicitudMutation.isPending}
                         className="w-fit"
                       >
                         Finalizar y crear
                       </Button>
-                      {crearInscripcionMutation.isError && (
+                      {crearSolicitudMutation.isError && (
                         <Alert variant="destructive">
                           <TriangleAlertIcon />
                           <AlertTitle>No se pudo crear la solicitud</AlertTitle>
-                          <AlertDescription>{(crearInscripcionMutation.error as Error).message}</AlertDescription>
+                          <AlertDescription>{(crearSolicitudMutation.error as Error).message}</AlertDescription>
                         </Alert>
                       )}
                     </>
@@ -410,6 +430,17 @@ export function FormularioInscripciones() {
                           alguna formación complementaria para poder guardar.
                         </p>
                       )}
+                      {guardadoConfirmado && !hayAlgoQueGuardar && (
+                        <>
+                          <Alert>
+                            <CheckCircle2Icon />
+                            <AlertTitle>Cambios guardados</AlertTitle>
+                          </Alert>
+                          <Button variant="outline" onClick={actualizarOtra} className="w-fit">
+                            Actualizar otra solicitud
+                          </Button>
+                        </>
+                      )}
                       {actualizarInscripcionMutation.isError && (
                         <Alert variant="destructive">
                           <TriangleAlertIcon />
@@ -425,43 +456,33 @@ export function FormularioInscripciones() {
               )}
             </CarouselItem>
 
-            {/* --- Paso 2: Datos del diploma primaria --- */}
+            {/* --- Paso 2: Checklist/pruebas/documentación/aviso de versiones (primaria) --- */}
             <CarouselItem className="overflow-y-auto">
-              {accion === "actualizar" && (
-                <div className="space-y-4">
-                  <h3 className="text-sm font-medium">Diploma de primaria</h3>
-                  {guardadoConfirmado && (
-                    <p className="text-xs text-muted-foreground">Los datos base ya se guardaron.</p>
-                  )}
-                  <p className="text-xs text-muted-foreground">
-                    Opcional: marcá las firmas que ya tengas. El resto de la cadena recién
-                    se guarda en la Confirmación final.
-                  </p>
-                  <CampoFirmas
-                    idPrefix="actualizar-dp"
-                    items={FIRMAS_DIPLOMA_PRIMARIA}
-                    valores={diplomaPrimariaFirmas}
-                    onCambiar={cambiarFirmaDiplomaPrimaria}
-                  />
-                  <Button onClick={() => continuarCadena(3)} className="w-fit">
-                    Siguiente
-                  </Button>
-                </div>
-              )}
-
               {accion === "crear" && (
                 <div className="space-y-4">
-                  <h3 className="text-sm font-medium">Diploma de primaria</h3>
+                  <h3 className="text-sm font-medium">Primaria -- checklist, pruebas y documentación</h3>
                   <p className="text-xs text-muted-foreground">
-                    Opcional: marcá las firmas que ya tengas. Podés enviarlo incompleto y
-                    completarlo después, o seguir con el resto de la cadena.
+                    Todo es opcional en este paso: podés enviarlo incompleto y completarlo
+                    después, o seguir con el resto de la cadena.
                   </p>
-                  <CampoFirmas
-                    idPrefix="cadena-dp"
-                    items={FIRMAS_DIPLOMA_PRIMARIA}
-                    valores={diplomaPrimariaFirmas}
-                    onCambiar={cambiarFirmaDiplomaPrimaria}
+                  <ChecklistEditor
+                    items={checklistPrimaria}
+                    onAgregar={checklistPrimariaAcciones.agregar}
+                    onCambiar={checklistPrimariaAcciones.cambiar}
+                    onQuitar={checklistPrimariaAcciones.quitar}
+                    estadosQuery={estadosQuery}
+                    responsablesQuery={responsablesQuery}
                   />
+                  <PruebasEditor
+                    items={pruebasPrimaria}
+                    onAgregar={pruebasPrimariaAcciones.agregar}
+                    onCambiar={pruebasPrimariaAcciones.cambiar}
+                    onQuitar={pruebasPrimariaAcciones.quitar}
+                    estadosQuery={estadosQuery}
+                    tiposPruebaQuery={tiposPruebaQuery}
+                  />
+                  <DocumentoPanel idPrefix="cadena-dp" valor={documentoPrimaria} onCambiar={setDocumentoPrimaria} />
+                  <AvisoVersionesPanel idPrefix="cadena-dp" valor={avisoPrimaria} onCambiar={setAvisoPrimaria} />
                   <Button onClick={() => continuarCadena(3)} className="w-fit">
                     Siguiente
                   </Button>
@@ -469,46 +490,20 @@ export function FormularioInscripciones() {
               )}
             </CarouselItem>
 
-            {/* --- Paso 3: Confirmación (diploma primaria) --- */}
+            {/* --- Paso 3: Confirmación (primaria) --- */}
             <CarouselItem className="overflow-y-auto">
               {accion === "crear" && (
                 <div className="space-y-4">
-                  <h3 className="text-sm font-medium">Confirmación: diploma de primaria</h3>
-                  <ResumenFirmas items={FIRMAS_DIPLOMA_PRIMARIA} valores={diplomaPrimariaFirmas} />
+                  <h3 className="text-sm font-medium">Confirmación: primaria</h3>
+                  <ResumenVoBo voBo={voBoPrimaria} />
                   <BotonesCadena
                     hastaPaso={2}
                     siguientePaso={4}
                     etiquetaSiguiente="Continuar con secundaria"
-                    mutation={cadenaDiplomasMutation}
+                    mutation={cadenaMutation}
                     onEnviar={enviarCadena}
                     onContinuar={continuarCadena}
                   />
-                </div>
-              )}
-
-              {accion === "actualizar" && (
-                <div className="space-y-4">
-                  <h3 className="text-sm font-medium">Inscripción de secundaria</h3>
-                  <CampoCatalogo
-                    form={formInscripcionSecundaria}
-                    idPrefix="actualizar-is"
-                    estadosQuery={estadosQuery}
-                    sistemasQuery={sistemasQuery}
-                    ambientesQuery={ambientesQuery}
-                  />
-                  <CampoResponsables
-                    form={formInscripcionSecundaria}
-                    idPrefix="actualizar-is"
-                    responsablesQuery={responsablesQuery}
-                  />
-                  <CampoDatosProyecto form={formInscripcionSecundaria} idPrefix="actualizar-is" />
-                  <Button
-                    onClick={() => continuarCadena(4)}
-                    disabled={!inscripcionSecundariaCompleta}
-                    className="w-fit"
-                  >
-                    Siguiente
-                  </Button>
                 </div>
               )}
             </CarouselItem>
@@ -540,21 +535,6 @@ export function FormularioInscripciones() {
                   </Button>
                 </div>
               )}
-
-              {accion === "actualizar" && (
-                <div className="space-y-4">
-                  <h3 className="text-sm font-medium">Diploma de secundaria</h3>
-                  <CampoFirmas
-                    idPrefix="actualizar-ds"
-                    items={FIRMAS_DIPLOMA_SECUNDARIA}
-                    valores={diplomaSecundariaFirmas}
-                    onCambiar={cambiarFirmaDiplomaSecundaria}
-                  />
-                  <Button onClick={() => continuarCadena(5)} className="w-fit">
-                    Siguiente
-                  </Button>
-                </div>
-              )}
             </CarouselItem>
 
             {/* --- Paso 5: Confirmación (inscripción secundaria) --- */}
@@ -566,67 +546,38 @@ export function FormularioInscripciones() {
                   <BotonesCadena
                     hastaPaso={4}
                     siguientePaso={6}
-                    etiquetaSiguiente="Continuar con diploma de secundaria"
-                    mutation={cadenaDiplomasMutation}
+                    etiquetaSiguiente="Continuar con checklist de secundaria"
+                    mutation={cadenaMutation}
                     onEnviar={enviarCadena}
                     onContinuar={continuarCadena}
                   />
                 </div>
               )}
+            </CarouselItem>
 
-              {accion === "actualizar" && (
+            {/* --- Paso 6: Checklist/pruebas/documentación/aviso de versiones (secundaria) --- */}
+            <CarouselItem className="overflow-y-auto">
+              {accion === "crear" && (
                 <div className="space-y-4">
-                  <h3 className="text-sm font-medium">Inscripción de universidad</h3>
-                  <CampoCatalogo
-                    form={formInscripcionUniversidad}
-                    idPrefix="actualizar-iu"
+                  <h3 className="text-sm font-medium">Secundaria -- checklist, pruebas y documentación</h3>
+                  <ChecklistEditor
+                    items={checklistSecundaria}
+                    onAgregar={checklistSecundariaAcciones.agregar}
+                    onCambiar={checklistSecundariaAcciones.cambiar}
+                    onQuitar={checklistSecundariaAcciones.quitar}
                     estadosQuery={estadosQuery}
-                    sistemasQuery={sistemasQuery}
-                    ambientesQuery={ambientesQuery}
-                  />
-                  <CampoResponsables
-                    form={formInscripcionUniversidad}
-                    idPrefix="actualizar-iu"
                     responsablesQuery={responsablesQuery}
                   />
-                  <CampoDatosProyecto form={formInscripcionUniversidad} idPrefix="actualizar-iu" />
-                  <Button
-                    onClick={() => continuarCadena(6)}
-                    disabled={!inscripcionUniversidadCompleta}
-                    className="w-fit"
-                  >
-                    Siguiente
-                  </Button>
-                </div>
-              )}
-            </CarouselItem>
-
-            {/* --- Paso 6: Datos del diploma secundaria --- */}
-            <CarouselItem className="overflow-y-auto">
-              {accion === "crear" && (
-                <div className="space-y-4">
-                  <h3 className="text-sm font-medium">Diploma de secundaria</h3>
-                  <CampoFirmas
-                    idPrefix="cadena-ds"
-                    items={FIRMAS_DIPLOMA_SECUNDARIA}
-                    valores={diplomaSecundariaFirmas}
-                    onCambiar={cambiarFirmaDiplomaSecundaria}
+                  <PruebasEditor
+                    items={pruebasSecundaria}
+                    onAgregar={pruebasSecundariaAcciones.agregar}
+                    onCambiar={pruebasSecundariaAcciones.cambiar}
+                    onQuitar={pruebasSecundariaAcciones.quitar}
+                    estadosQuery={estadosQuery}
+                    tiposPruebaQuery={tiposPruebaQuery}
                   />
-                  <Button onClick={() => continuarCadena(7)} className="w-fit">
-                    Siguiente
-                  </Button>
-                </div>
-              )}
-
-              {accion === "actualizar" && (
-                <div className="space-y-4">
-                  <h3 className="text-sm font-medium">Diploma de universidad</h3>
-                  <CampoFirmas
-                    idPrefix="actualizar-du"
-                    items={FIRMAS_DIPLOMA_UNIVERSIDAD}
-                    valores={diplomaUniversidadFirmas}
-                    onCambiar={cambiarFirmaDiplomaUniversidad}
-                  />
+                  <DocumentoPanel idPrefix="cadena-ds" valor={documentoSecundaria} onCambiar={setDocumentoSecundaria} />
+                  <AvisoVersionesPanel idPrefix="cadena-ds" valor={avisoSecundaria} onCambiar={setAvisoSecundaria} />
                   <Button onClick={() => continuarCadena(7)} className="w-fit">
                     Siguiente
                   </Button>
@@ -634,104 +585,20 @@ export function FormularioInscripciones() {
               )}
             </CarouselItem>
 
-            {/* --- Paso 7: Confirmación (diploma secundaria) en "crear" / Confirmación final
-                en "actualizar" -- unico lugar que envia el PUT de la cadena (upsert), sin
-                importar que niveles tengan datos de verdad (ver construirCadenaDtoActualizar
-                en useInscripcionForm). --- */}
+            {/* --- Paso 7: Confirmación (secundaria) --- */}
             <CarouselItem className="overflow-y-auto">
               {accion === "crear" && (
                 <div className="space-y-4">
-                  <h3 className="text-sm font-medium">Confirmación: diploma de secundaria</h3>
-                  <ResumenFirmas items={FIRMAS_DIPLOMA_SECUNDARIA} valores={diplomaSecundariaFirmas} />
+                  <h3 className="text-sm font-medium">Confirmación: secundaria</h3>
+                  <ResumenVoBo voBo={voBoSecundaria} />
                   <BotonesCadena
                     hastaPaso={6}
                     siguientePaso={8}
                     etiquetaSiguiente="Continuar con universidad"
-                    mutation={cadenaDiplomasMutation}
+                    mutation={cadenaMutation}
                     onEnviar={enviarCadena}
                     onContinuar={continuarCadena}
                   />
-                </div>
-              )}
-
-              {accion === "actualizar" && (
-                <div className="space-y-4">
-                  {actualizarCadenaMutation.isSuccess ? (
-                    <>
-                      <Alert>
-                        <CheckCircle2Icon />
-                        <AlertTitle>Solicitud #{solicitudIdActual} actualizada</AlertTitle>
-                      </Alert>
-                      <ul className="space-y-1 text-sm">
-                        {actualizarCadenaMutation.data.diplomaPrimaria && (
-                          <li>
-                            Diploma de primaria #{actualizarCadenaMutation.data.diplomaPrimaria.id} --{" "}
-                            {actualizarCadenaMutation.data.diplomaPrimaria.emitido ? "emitido" : "pendiente de firmas"}
-                          </li>
-                        )}
-                        {actualizarCadenaMutation.data.inscripcionSecundaria && (
-                          <li>Inscripción de secundaria guardada.</li>
-                        )}
-                        {actualizarCadenaMutation.data.diplomaSecundaria && (
-                          <li>
-                            Diploma de secundaria #{actualizarCadenaMutation.data.diplomaSecundaria.id} --{" "}
-                            {actualizarCadenaMutation.data.diplomaSecundaria.emitido ? "emitido" : "pendiente de firmas"}
-                          </li>
-                        )}
-                        {actualizarCadenaMutation.data.inscripcionUniversidad && (
-                          <li>Inscripción de universidad guardada.</li>
-                        )}
-                        {actualizarCadenaMutation.data.diplomaUniversidad && (
-                          <li>
-                            Diploma de universidad #{actualizarCadenaMutation.data.diplomaUniversidad.id} --{" "}
-                            {actualizarCadenaMutation.data.diplomaUniversidad.emitido ? "emitido" : "pendiente de firmas"}
-                          </li>
-                        )}
-                      </ul>
-                      <Button onClick={actualizarOtra} className="w-fit">
-                        Actualizar otra solicitud
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <h3 className="text-sm font-medium">Confirmación</h3>
-                      <p className="text-xs text-muted-foreground">
-                        Se guarda todo lo llenado en los pasos anteriores (lo que ya existía
-                        se actualiza, lo nuevo se crea) en una sola petición.
-                      </p>
-                      <div className="space-y-3 text-sm">
-                        <div>
-                          <p className="font-medium">Diploma de primaria</p>
-                          <ResumenFirmas items={FIRMAS_DIPLOMA_PRIMARIA} valores={diplomaPrimariaFirmas} />
-                        </div>
-                        <div>
-                          <p className="font-medium">Diploma de secundaria</p>
-                          <ResumenFirmas items={FIRMAS_DIPLOMA_SECUNDARIA} valores={diplomaSecundariaFirmas} />
-                        </div>
-                        <div>
-                          <p className="font-medium">Diploma de universidad</p>
-                          <ResumenFirmas items={FIRMAS_DIPLOMA_UNIVERSIDAD} valores={diplomaUniversidadFirmas} />
-                        </div>
-                      </div>
-                      <Button
-                        onClick={guardarCadena}
-                        disabled={actualizarCadenaMutation.isPending}
-                        className="w-fit"
-                      >
-                        {actualizarCadenaMutation.isPending && <Spinner />}
-                        Guardar
-                      </Button>
-                      {actualizarCadenaMutation.isError && (
-                        <Alert variant="destructive">
-                          <TriangleAlertIcon />
-                          <AlertTitle>No se pudo guardar la cadena</AlertTitle>
-                          <AlertDescription>
-                            {(actualizarCadenaMutation.error as Error).message}
-                          </AlertDescription>
-                        </Alert>
-                      )}
-                    </>
-                  )}
                 </div>
               )}
             </CarouselItem>
@@ -774,8 +641,8 @@ export function FormularioInscripciones() {
                   <BotonesCadena
                     hastaPaso={8}
                     siguientePaso={10}
-                    etiquetaSiguiente="Continuar con diploma de universidad"
-                    mutation={cadenaDiplomasMutation}
+                    etiquetaSiguiente="Continuar con checklist de universidad"
+                    mutation={cadenaMutation}
                     onEnviar={enviarCadena}
                     onContinuar={continuarCadena}
                   />
@@ -783,17 +650,29 @@ export function FormularioInscripciones() {
               )}
             </CarouselItem>
 
-            {/* --- Paso 10: Datos del diploma universidad --- */}
+            {/* --- Paso 10: Checklist/pruebas/documentación/aviso de versiones (universidad) --- */}
             <CarouselItem className="overflow-y-auto">
               {accion === "crear" && (
                 <div className="space-y-4">
-                  <h3 className="text-sm font-medium">Diploma de universidad</h3>
-                  <CampoFirmas
-                    idPrefix="cadena-du"
-                    items={FIRMAS_DIPLOMA_UNIVERSIDAD}
-                    valores={diplomaUniversidadFirmas}
-                    onCambiar={cambiarFirmaDiplomaUniversidad}
+                  <h3 className="text-sm font-medium">Universidad -- checklist, pruebas y documentación</h3>
+                  <ChecklistEditor
+                    items={checklistUniversidad}
+                    onAgregar={checklistUniversidadAcciones.agregar}
+                    onCambiar={checklistUniversidadAcciones.cambiar}
+                    onQuitar={checklistUniversidadAcciones.quitar}
+                    estadosQuery={estadosQuery}
+                    responsablesQuery={responsablesQuery}
                   />
+                  <PruebasEditor
+                    items={pruebasUniversidad}
+                    onAgregar={pruebasUniversidadAcciones.agregar}
+                    onCambiar={pruebasUniversidadAcciones.cambiar}
+                    onQuitar={pruebasUniversidadAcciones.quitar}
+                    estadosQuery={estadosQuery}
+                    tiposPruebaQuery={tiposPruebaQuery}
+                  />
+                  <DocumentoPanel idPrefix="cadena-du" valor={documentoUniversidad} onCambiar={setDocumentoUniversidad} />
+                  <AvisoVersionesPanel idPrefix="cadena-du" valor={avisoUniversidad} onCambiar={setAvisoUniversidad} />
                   <Button onClick={() => continuarCadena(11)} className="w-fit">
                     Siguiente
                   </Button>
@@ -803,47 +682,25 @@ export function FormularioInscripciones() {
 
             {/* --- Paso 11: Confirmación final -- unico lugar que muestra el resultado de
                 "Finalizar y enviar", sin importar desde que Confirmacion se haya disparado
-                (ver cadenaDiplomasMutation.onSuccess en useInscripcionForm). --- */}
+                (ver cadenaMutation.onSuccess en useInscripcionForm). --- */}
             <CarouselItem className="overflow-y-auto">
               {accion === "crear" && (
                 <div className="space-y-4">
-                  {cadenaDiplomasMutation.isSuccess ? (
+                  {cadenaMutation.isSuccess ? (
                     <>
                       <Alert>
                         <CheckCircle2Icon />
                         <AlertTitle>Cadena enviada</AlertTitle>
                       </Alert>
-                      <ul className="space-y-1 text-sm">
-                        {cadenaDiplomasMutation.data.diplomaPrimaria && (
-                          <li>
-                            Diploma de primaria #{cadenaDiplomasMutation.data.diplomaPrimaria.id} --{" "}
-                            {cadenaDiplomasMutation.data.diplomaPrimaria.emitido ? "emitido" : "pendiente de firmas"}
-                          </li>
-                        )}
-                        {cadenaDiplomasMutation.data.inscripcionSecundaria && <li>Inscripción de secundaria creada.</li>}
-                        {cadenaDiplomasMutation.data.diplomaSecundaria && (
-                          <li>
-                            Diploma de secundaria #{cadenaDiplomasMutation.data.diplomaSecundaria.id} --{" "}
-                            {cadenaDiplomasMutation.data.diplomaSecundaria.emitido ? "emitido" : "pendiente de firmas"}
-                          </li>
-                        )}
-                        {cadenaDiplomasMutation.data.inscripcionUniversidad && <li>Inscripción de universidad creada.</li>}
-                        {cadenaDiplomasMutation.data.diplomaUniversidad && (
-                          <li>
-                            Diploma de universidad #{cadenaDiplomasMutation.data.diplomaUniversidad.id} --{" "}
-                            {cadenaDiplomasMutation.data.diplomaUniversidad.emitido ? "emitido" : "pendiente de firmas"}
-                          </li>
-                        )}
-                      </ul>
                       <Button onClick={crearOtra} className="w-fit">
                         Crear otra solicitud
                       </Button>
                     </>
                   ) : (
                     <>
-                      <h3 className="text-sm font-medium">Confirmación: diploma de universidad</h3>
-                      <ResumenFirmas items={FIRMAS_DIPLOMA_UNIVERSIDAD} valores={diplomaUniversidadFirmas} />
-                      <BotonesCadena hastaPaso={10} mutation={cadenaDiplomasMutation} onEnviar={enviarCadena} />
+                      <h3 className="text-sm font-medium">Confirmación: universidad</h3>
+                      <ResumenVoBo voBo={voBoUniversidad} />
+                      <BotonesCadena hastaPaso={10} mutation={cadenaMutation} onEnviar={enviarCadena} />
                     </>
                   )}
                 </div>
