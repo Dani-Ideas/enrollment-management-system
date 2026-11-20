@@ -9,17 +9,20 @@ import {
   crearChecklistItem,
   crearPruebaItem,
   crearSolicitud,
+  enviarNotificacionConfirmacion,
   fetchSolicitud,
   fetchSolicitudes,
   guardarAvisoVersiones,
   guardarDocumento,
 } from "@/api/client"
+import { toast } from "@/components/ui/toast"
 import type {
   ChecklistItemRequestDTO,
   FormacionComplementariaRequestDTO,
   InscripcionDTO,
   PruebaRequestDTO,
   SolicitudConPanelesDTO,
+  SolicitudDTO,
   SolicitudRequestDTO,
   VoBoDTO,
 } from "@/api/types"
@@ -201,6 +204,27 @@ export function useInscripcionForm() {
     return catalogosQuery.data?.etapas.find((e) => e.orden === orden)?.id ?? 0
   }
 
+  // Inversa de armarSolicitudRequestDto: un SolicitudDTO (texto, lo que trae el back) a
+  // CamposFormulario (ids sueltos, lo que necesita el <select>) -- resuelve nombre -> id
+  // contra los mismos catalogos de siempre. Unica fuente de esta resolucion: la usan
+  // aplicarNivelConsultado (consultar/actualizar) y clonarDesde (crear, ver mas abajo) --
+  // antes estaba duplicada inline en la primera.
+  function dtoACampos(s: SolicitudDTO): CamposFormulario {
+    return {
+      estadoId: String(estadosQuery.data?.find((e) => e.estado === s.estado)?.id ?? ""),
+      sistemaId: String(sistemasQuery.data?.find((x) => x.nombre === s.sistema)?.id ?? ""),
+      jefeCarreraId: String(responsablesQuery.data?.find((r) => r.nombreLargo === s.jefeCarrera)?.id ?? ""),
+      maestroId: String(responsablesQuery.data?.find((r) => r.nombreLargo === s.maestro)?.id ?? ""),
+      carreraId: String(responsablesQuery.data?.find((r) => r.nombreLargo === s.carrera)?.id ?? ""),
+      ambienteId: String(ambientesQuery.data?.find((a) => a.nombre === s.ambiente)?.id ?? ""),
+      proyecto: s.proyecto,
+      version: s.version,
+      descripcion: s.descripcion ?? "",
+      fechaPlanteada: aInputDatetime(s.fechaInscripcionPlanteada),
+      fechaReal: aInputDatetime(s.fechaInscripcionReal),
+    }
+  }
+
   // Resuelve "campos" (ids sueltos, lo que hay en el formulario TODAVIA sin mandar) a la
   // MISMA forma que InscripcionDTO (aplanado a texto) -- asi la vista previa de "crear"
   // (paso de revision, antes de que la solicitud exista de verdad) puede reusar
@@ -246,10 +270,13 @@ export function useInscripcionForm() {
     return useQuery({
       queryKey: ["solicitudes"],
       queryFn: fetchSolicitudes,
-      enabled: accion === "lista" || accion === "actualizar" || accion === "consultar",
+      // "crear" solo la habilita mientras el picker de "clonar desde" esta abierto -- el
+      // resto del tiempo no hay nada que seleccionar, no tiene sentido pedirla.
+      enabled:
+        accion === "lista" || accion === "actualizar" || accion === "consultar" || (accion === "crear" && clonarAbierto),
       staleTime: 10 * 1000,
       select: (data) => {
-        if (accion !== "lista" && accion !== "actualizar") return data
+        if (accion !== "lista" && accion !== "actualizar" && accion !== "crear") return data
         const estadoNombre =
           filtroEstadoId === "" ? null : estadosQuery.data?.find((e) => String(e.id) === filtroEstadoId)?.estado
         const sistemaNombre =
@@ -260,7 +287,10 @@ export function useInscripcionForm() {
           (i) =>
             (estadoNombre === null || i.estado === estadoNombre) &&
             (sistemaNombre === null || i.sistema === sistemaNombre) &&
-            (ambienteNombre === null || i.ambiente === ambienteNombre),
+            (ambienteNombre === null || i.ambiente === ambienteNombre) &&
+            // "crear a partir de" solo clona de otra Primaria -- restriccion fija, no un
+            // filtro mas que el usuario vea/toque.
+            (accion !== "crear" || i.etapa === "Primaria"),
         )
       },
     })
@@ -313,10 +343,34 @@ export function useInscripcionForm() {
     form.reset()
     crearSolicitudMutation.reset()
     setFormacionesNuevas([])
+    setClonarAbierto(false)
+    clonarMutation.reset()
     maxStepRef.current = 0
     setMaxStep(0)
     api?.scrollTo(0)
     resetearCadena()
+  }
+
+  // --- "Crear a partir de una solicitud existente" (Primaria) -- patron Prototype: solo
+  // lee un DTO que ya existe (GET /solicitudes/{id}, el mismo que usan lista/actualizar/
+  // consultar) y lo usa para pre-llenar "form" ANTES de que la nueva solicitud exista --
+  // la base de datos nunca se entera, no hay clon ahi, es puro front. Mutacion propia
+  // (no buscarSolicitudMutation): esa esta cableada a los efectos de "actualizar"/
+  // "consultar", mezclarla aca acoplaria algo que no tiene nada que ver. ---
+  const [clonarAbierto, setClonarAbierto] = useState(false)
+  const clonarMutation = useMutation({
+    mutationFn: fetchSolicitud,
+    onSuccess: (dto) => {
+      // Las fechas quedan vacias a proposito -- casi siempre son distintas para la
+      // solicitud nueva. formacionesNuevas no se toca: las formaciones del prototipo son
+      // de OTRA solicitud, no se copian.
+      form.reset({ ...dtoACampos(dto.solicitud), fechaPlanteada: "", fechaReal: "" }, { keepDefaultValues: true })
+      setClonarAbierto(false)
+    },
+  })
+
+  function clonarDesde(id: number) {
+    clonarMutation.mutate(id)
   }
 
   // --- Selector compartido por "lista"/"actualizar"/"consultar" -- las 3 acciones eligen
@@ -446,6 +500,8 @@ export function useInscripcionForm() {
     setListaIdInput("")
     buscarSolicitudMutation.reset()
     crearSolicitudMutation.reset()
+    setClonarAbierto(false)
+    clonarMutation.reset()
     actualizarSolicitudMutation.reset()
     actualizarCargaMutation.reset()
     actualizarSecundariaMutation.reset()
@@ -732,20 +788,7 @@ export function useInscripcionForm() {
     // pasa, no tiene nocion de "baseline" porque todo es de solo lectura.
     setBaseline?: (c: CamposFormulario) => void,
   ) {
-    const s = dto.solicitud
-    const camposNivel: CamposFormulario = {
-      estadoId: String(estadosQuery.data?.find((e) => e.estado === s.estado)?.id ?? ""),
-      sistemaId: String(sistemasQuery.data?.find((x) => x.nombre === s.sistema)?.id ?? ""),
-      jefeCarreraId: String(responsablesQuery.data?.find((r) => r.nombreLargo === s.jefeCarrera)?.id ?? ""),
-      maestroId: String(responsablesQuery.data?.find((r) => r.nombreLargo === s.maestro)?.id ?? ""),
-      carreraId: String(responsablesQuery.data?.find((r) => r.nombreLargo === s.carrera)?.id ?? ""),
-      ambienteId: String(ambientesQuery.data?.find((a) => a.nombre === s.ambiente)?.id ?? ""),
-      proyecto: s.proyecto,
-      version: s.version,
-      descripcion: s.descripcion ?? "",
-      fechaPlanteada: aInputDatetime(s.fechaInscripcionPlanteada),
-      fechaReal: aInputDatetime(s.fechaInscripcionReal),
-    }
+    const camposNivel = dtoACampos(dto.solicitud)
     formNivel.reset(camposNivel, { keepDefaultValues: true })
 
     setChecklist(
@@ -1029,6 +1072,46 @@ export function useInscripcionForm() {
     },
   })
 
+  // Correo de aviso al confirmar un nivel -- boton opcional en cada Confirmacion de "crear"
+  // y "actualizar" (nunca en "consultar", ver FormularioInscripciones.tsx). Una mutacion
+  // por nivel, reusada por las DOS acciones (nunca activas a la vez): "primaria" es la
+  // unica con dos fuentes de id posibles porque "crear" la tiene en
+  // crearSolicitudMutation.data y "actualizar" en solicitudIdActual; secundaria/
+  // universidad usan el mismo id en ambas acciones por igual.
+  function avisarResultadoCorreo(promesa: Promise<void>) {
+    return promesa
+      .then(() => {
+        toast.add({ type: "success", title: "Correo enviado" })
+      })
+      .catch((error: unknown) => {
+        toast.add({
+          type: "error",
+          title: "No se pudo enviar el correo",
+          description: error instanceof Error ? error.message : undefined,
+        })
+        throw error
+      })
+  }
+  const notificarPrimariaMutation = useMutation({
+    mutationFn: () => {
+      const id = solicitudIdActual ?? crearSolicitudMutation.data?.solicitud.id
+      if (id === null || id === undefined) return Promise.reject(new Error("Todavía no hay una solicitud de primaria"))
+      return avisarResultadoCorreo(enviarNotificacionConfirmacion(id))
+    },
+  })
+  const notificarSecundariaMutation = useMutation({
+    mutationFn: () => {
+      if (solicitudSecundariaId === null) return Promise.reject(new Error("Todavía no hay una solicitud de secundaria"))
+      return avisarResultadoCorreo(enviarNotificacionConfirmacion(solicitudSecundariaId))
+    },
+  })
+  const notificarUniversidadMutation = useMutation({
+    mutationFn: () => {
+      if (solicitudUniversidadId === null) return Promise.reject(new Error("Todavía no hay una solicitud de universidad"))
+      return avisarResultadoCorreo(enviarNotificacionConfirmacion(solicitudUniversidadId))
+    },
+  })
+
   // Resumen de "todo lo llenado hasta ahora" en la cadena -- cada seccion aparece cuando ese
   // nivel/panel REALMENTE tiene datos guardados (voBo/solicitudXId), no segun que paso este
   // desbloqueado: desde que crearSolicitudMutation desbloquea toda la cadena de un saque,
@@ -1146,6 +1229,10 @@ export function useInscripcionForm() {
     crearSolicitudMutation,
     crearSolicitudConFormaciones,
     crearOtra,
+    clonarAbierto,
+    setClonarAbierto,
+    clonarMutation,
+    clonarDesde,
 
     checklistPrimaria,
     checklistPrimariaAcciones,
@@ -1222,6 +1309,10 @@ export function useInscripcionForm() {
     guardarPanelesPrimariaMutation,
     guardarPanelesSecundariaMutation,
     guardarPanelesUniversidadMutation,
+
+    notificarPrimariaMutation,
+    notificarSecundariaMutation,
+    notificarUniversidadMutation,
 
     consultarMutation,
     consultaTieneSecundaria,

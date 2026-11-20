@@ -30,6 +30,7 @@ import { useMediaQuery } from "@/hooks/useMediaQuery"
 import {
   ArrowLeftIcon,
   CheckCircle2Icon,
+  MailIcon,
   PanelLeftCloseIcon,
   PanelLeftOpenIcon,
   RotateCcwIcon,
@@ -63,6 +64,18 @@ function TransformacionPaso({
       style={{ top: rect.top, left: rect.left, width: rect.width, height: rect.height }}
       onTransitionEnd={onTerminar}
     />
+  )
+}
+
+// Boton "Enviar correo" opcional de cada Confirmacion (crear/actualizar, nunca consultar) --
+// un solo lugar para no repetir 12 veces el mismo <Button>; el exito/error ya se avisa por
+// toast (ver avisarResultadoCorreo en useInscripcionForm), aca no hace falta alert aparte.
+function BotonEnviarCorreo({ mutation }: { mutation: { mutate: () => void; isPending: boolean } }) {
+  return (
+    <Button variant="outline" size="sm" onClick={() => mutation.mutate()} disabled={mutation.isPending}>
+      <MailIcon />
+      Enviar correo
+    </Button>
   )
 }
 
@@ -107,6 +120,10 @@ export function FormularioInscripciones() {
     crearSolicitudMutation,
     crearSolicitudConFormaciones,
     crearOtra,
+    clonarAbierto,
+    setClonarAbierto,
+    clonarMutation,
+    clonarDesde,
     checklistPrimaria,
     checklistPrimariaAcciones,
     pruebasPrimaria,
@@ -169,6 +186,9 @@ export function FormularioInscripciones() {
     guardarPanelesPrimariaMutation,
     guardarPanelesSecundariaMutation,
     guardarPanelesUniversidadMutation,
+    notificarPrimariaMutation,
+    notificarSecundariaMutation,
+    notificarUniversidadMutation,
     consultarMutation,
     consultaTieneSecundaria,
     consultaTieneUniversidad,
@@ -358,27 +378,75 @@ export function FormularioInscripciones() {
               )}
 
               {accion === "crear" && (
-                <CamposInscripcionCompletos
-                  form={form}
-                  idPrefix="pago-tf"
-                  estadosQuery={estadosQuery}
-                  sistemasQuery={sistemasQuery}
-                  responsablesQuery={responsablesQuery}
-                  ambientesQuery={ambientesQuery}
-                  formaciones={formacionesNuevas}
-                  onAgregarFormacion={agregarFormacionNueva}
-                  onCambiarFormacion={cambiarFormacionNueva}
-                  onQuitarFormacion={quitarFormacionNueva}
-                  descripcionAyudaFormaciones="Opcional -- se crean automáticamente después de la solicitud, ya con su id real como referencia."
-                  catalogoCompleto={catalogoCompleto}
-                  responsablesCompletos={responsablesCompletos}
-                  datosProyectoCompletos={datosProyectoCompletos}
-                  etiquetaAccion="Siguiente"
-                  onAccion={() => {
-                    desbloquearHasta(1)
-                    api?.scrollTo(1)
-                  }}
-                />
+                <div className="space-y-4">
+                  {/* "Prototype" -- clona los campos de otra Primaria ya existente a este
+                      formulario ANTES de crear nada; la base de datos no se entera, es
+                      puro front (ver clonarDesde en useInscripcionForm). */}
+                  {clonarAbierto ? (
+                    <div className="space-y-3 rounded-lg border border-dashed border-input p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <h4 className="text-sm font-medium">Elegí la solicitud a clonar</h4>
+                        <Button variant="outline" size="sm" onClick={() => setClonarAbierto(false)}>
+                          Cancelar
+                        </Button>
+                      </div>
+                      <CampoSelect
+                        idPrefix="pago-tf-clonar"
+                        valor={listaIdInput}
+                        onCambiarValor={setListaIdInput}
+                        onBuscar={buscarPorIdInput}
+                        buscando={clonarMutation.isPending}
+                        hayError={clonarMutation.isError}
+                        filtros={{
+                          filtroEstadoId,
+                          onCambiarFiltroEstadoId: setFiltroEstadoId,
+                          filtroSistemaId,
+                          onCambiarFiltroSistemaId: setFiltroSistemaId,
+                          filtroAmbienteId,
+                          onCambiarFiltroAmbienteId: setFiltroAmbienteId,
+                          estadosQuery,
+                          sistemasQuery,
+                          ambientesQuery,
+                          cargando: solicitudesQuery.isLoading,
+                          error: solicitudesQuery.error as Error | null,
+                          hayResultados: (solicitudesQuery.data?.length ?? 0) > 0,
+                        }}
+                      />
+                      <CampoVistaDetalle
+                        modo="seleccionar"
+                        inscripciones={solicitudesQuery.data ?? []}
+                        cargando={solicitudesQuery.isLoading}
+                        onSeleccionar={clonarDesde}
+                      />
+                    </div>
+                  ) : (
+                    <Button variant="outline" onClick={() => setClonarAbierto(true)} className="w-fit">
+                      Crear a partir de una solicitud existente
+                    </Button>
+                  )}
+
+                  <CamposInscripcionCompletos
+                    form={form}
+                    idPrefix="pago-tf"
+                    estadosQuery={estadosQuery}
+                    sistemasQuery={sistemasQuery}
+                    responsablesQuery={responsablesQuery}
+                    ambientesQuery={ambientesQuery}
+                    formaciones={formacionesNuevas}
+                    onAgregarFormacion={agregarFormacionNueva}
+                    onCambiarFormacion={cambiarFormacionNueva}
+                    onQuitarFormacion={quitarFormacionNueva}
+                    descripcionAyudaFormaciones="Opcional -- se crean automáticamente después de la solicitud, ya con su id real como referencia."
+                    catalogoCompleto={catalogoCompleto}
+                    responsablesCompletos={responsablesCompletos}
+                    datosProyectoCompletos={datosProyectoCompletos}
+                    etiquetaAccion="Siguiente"
+                    onAccion={() => {
+                      desbloquearHasta(1)
+                      api?.scrollTo(1)
+                    }}
+                  />
+                </div>
               )}
             </CarouselItem>
 
@@ -416,6 +484,7 @@ export function FormularioInscripciones() {
                         <Button onClick={crearOtra} className="w-fit">
                           Crear otra solicitud
                         </Button>
+                        <BotonEnviarCorreo mutation={notificarPrimariaMutation} />
                       </div>
                     </>
                   ) : (
@@ -565,9 +634,12 @@ export function FormularioInscripciones() {
                 <div className="space-y-4">
                   <h3 className="text-sm font-medium">Confirmación: primaria</h3>
                   <DetalleInscripcion inscripcion={camposAVistaPrevia(campos)} />
-                  <Button onClick={() => continuarCadena(3)} className="w-fit">
-                    Siguiente
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button onClick={() => continuarCadena(3)} className="w-fit">
+                      Siguiente
+                    </Button>
+                    {accion === "actualizar" && <BotonEnviarCorreo mutation={notificarPrimariaMutation} />}
+                  </div>
                 </div>
               )}
             </CarouselItem>
@@ -586,6 +658,7 @@ export function FormularioInscripciones() {
                     onEnviar={enviarCadena}
                     onContinuar={continuarCadena}
                   />
+                  <BotonEnviarCorreo mutation={notificarPrimariaMutation} />
                 </div>
               )}
 
@@ -701,6 +774,7 @@ export function FormularioInscripciones() {
                 <div className="space-y-4">
                   <h3 className="text-sm font-medium">Confirmación: primaria</h3>
                   <ResumenVoBo voBo={voBoPrimaria} />
+                  {accion === "actualizar" && <BotonEnviarCorreo mutation={notificarPrimariaMutation} />}
                   {consultaTieneSecundaria ? (
                     <Button onClick={() => continuarCadena(5)} className="w-fit">
                       Ver secundaria
@@ -737,6 +811,7 @@ export function FormularioInscripciones() {
                     onEnviar={enviarCadena}
                     onContinuar={continuarCadena}
                   />
+                  <BotonEnviarCorreo mutation={notificarSecundariaMutation} />
                 </div>
               )}
 
@@ -847,9 +922,12 @@ export function FormularioInscripciones() {
                 <div className="space-y-4">
                   <h3 className="text-sm font-medium">Confirmación: inscripción de secundaria</h3>
                   <DetalleInscripcion inscripcion={camposAVistaPrevia(camposInscripcionSecundaria)} />
-                  <Button onClick={() => continuarCadena(7)} className="w-fit">
-                    Siguiente
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button onClick={() => continuarCadena(7)} className="w-fit">
+                      Siguiente
+                    </Button>
+                    {accion === "actualizar" && <BotonEnviarCorreo mutation={notificarSecundariaMutation} />}
+                  </div>
                 </div>
               )}
             </CarouselItem>
@@ -868,6 +946,7 @@ export function FormularioInscripciones() {
                     onEnviar={enviarCadena}
                     onContinuar={continuarCadena}
                   />
+                  <BotonEnviarCorreo mutation={notificarSecundariaMutation} />
                 </div>
               )}
 
@@ -983,6 +1062,7 @@ export function FormularioInscripciones() {
                 <div className="space-y-4">
                   <h3 className="text-sm font-medium">Confirmación: secundaria</h3>
                   <ResumenVoBo voBo={voBoSecundaria} />
+                  {accion === "actualizar" && <BotonEnviarCorreo mutation={notificarSecundariaMutation} />}
                   {consultaTieneUniversidad ? (
                     <Button onClick={() => continuarCadena(9)} className="w-fit">
                       Ver universidad
@@ -1019,6 +1099,7 @@ export function FormularioInscripciones() {
                     onEnviar={enviarCadena}
                     onContinuar={continuarCadena}
                   />
+                  <BotonEnviarCorreo mutation={notificarUniversidadMutation} />
                 </div>
               )}
 
@@ -1129,9 +1210,12 @@ export function FormularioInscripciones() {
                 <div className="space-y-4">
                   <h3 className="text-sm font-medium">Confirmación: inscripción de universidad</h3>
                   <DetalleInscripcion inscripcion={camposAVistaPrevia(camposInscripcionUniversidad)} />
-                  <Button onClick={() => continuarCadena(11)} className="w-fit">
-                    Siguiente
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button onClick={() => continuarCadena(11)} className="w-fit">
+                      Siguiente
+                    </Button>
+                    {accion === "actualizar" && <BotonEnviarCorreo mutation={notificarUniversidadMutation} />}
+                  </div>
                 </div>
               )}
             </CarouselItem>
@@ -1158,6 +1242,7 @@ export function FormularioInscripciones() {
                       <h3 className="text-sm font-medium">Confirmación: universidad</h3>
                       <ResumenVoBo voBo={voBoUniversidad} />
                       <BotonesCadena hastaPaso={10} mutation={cadenaMutation} onEnviar={enviarCadena} />
+                      <BotonEnviarCorreo mutation={notificarUniversidadMutation} />
                     </>
                   )}
                 </div>
@@ -1250,6 +1335,7 @@ export function FormularioInscripciones() {
                 <div className="space-y-4">
                   <h3 className="text-sm font-medium">Confirmación: universidad</h3>
                   <ResumenVoBo voBo={voBoUniversidad} />
+                  {accion === "actualizar" && <BotonEnviarCorreo mutation={notificarUniversidadMutation} />}
                   <Button
                     variant="outline"
                     onClick={accion === "consultar" ? consultarOtra : actualizarOtra}
