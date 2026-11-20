@@ -289,7 +289,12 @@ export function useInscripcionForm() {
     mutationFn: crearSolicitud,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["solicitudes"] })
-      desbloquearHasta(1)
+      // El bloqueo del stepper (maxStep) solo tiene sentido ANTES de que la Primaria
+      // exista -- no hay nada que mostrar/editar en el resto de la cadena todavia. Una vez
+      // creada, se desbloquea TODO el resto de un saque (ya no paso a paso via
+      // continuarCadena/enviarCadena): el usuario navega libremente, el backend sigue
+      // validando el orden real al "Finalizar y enviar" (409 si corresponde).
+      desbloquearHasta(11)
       api?.scrollTo(1)
     },
   })
@@ -1024,11 +1029,11 @@ export function useInscripcionForm() {
     },
   })
 
-  // Resumen de "todo lo llenado hasta ahora" en la cadena -- segun maxStep (el paso mas
-  // lejano ya desbloqueado), no "current": si el usuario vuelve a un paso anterior, lo ya
-  // llenado mas adelante sigue apareciendo aca. Solo "crear" la tiene (ver comentario en
-  // types.ts sobre "actualizar"). ResumenCadena decide por si mismo si se renderiza (no en
-  // mobile); aca solo se junta el contenido.
+  // Resumen de "todo lo llenado hasta ahora" en la cadena -- cada seccion aparece cuando ese
+  // nivel/panel REALMENTE tiene datos guardados (voBo/solicitudXId), no segun que paso este
+  // desbloqueado: desde que crearSolicitudMutation desbloquea toda la cadena de un saque,
+  // "maxStep" ya no sirve para esto (ver su onSuccess). Solo "crear" la tiene. ResumenCadena
+  // decide por si mismo si se renderiza (no en mobile); aca solo se junta el contenido.
   const seccionesResumen: SeccionResumen[] = []
   if (accion === "crear") {
     if (crearSolicitudMutation.isSuccess) {
@@ -1042,17 +1047,21 @@ export function useInscripcionForm() {
         ],
       })
     }
-    if (maxStep >= 3) {
+    // Ya no se puede usar "maxStep >= X" para decidir que secciones mostrar -- desde que
+    // crearSolicitudMutation desbloquea TODA la cadena de un saque (ver su onSuccess),
+    // maxStep deja de significar "hasta donde se avanzo realmente". En su lugar, cada
+    // seccion se gatilla por si ese nivel/panel REALMENTE tiene datos guardados.
+    if (voBoPrimaria !== null) {
       seccionesResumen.push({
         titulo: "Checklist/pruebas/documentación (primaria)",
         filas: [
-          { etiqueta: "Checklist", valor: voBoPrimaria?.checklist ? "Completo" : "Pendiente" },
-          { etiqueta: "Pruebas", valor: voBoPrimaria?.pruebas ? "Completo" : "Pendiente" },
-          { etiqueta: "Documentación", valor: voBoPrimaria?.documentacion ? "Completo" : "Pendiente" },
+          { etiqueta: "Checklist", valor: voBoPrimaria.checklist ? "Completo" : "Pendiente" },
+          { etiqueta: "Pruebas", valor: voBoPrimaria.pruebas ? "Completo" : "Pendiente" },
+          { etiqueta: "Documentación", valor: voBoPrimaria.documentacion ? "Completo" : "Pendiente" },
         ],
       })
     }
-    if (maxStep >= 5) {
+    if (solicitudSecundariaId !== null) {
       seccionesResumen.push({
         titulo: "Inscripción secundaria",
         filas: [
@@ -1061,17 +1070,17 @@ export function useInscripcionForm() {
         ],
       })
     }
-    if (maxStep >= 7) {
+    if (voBoSecundaria !== null) {
       seccionesResumen.push({
         titulo: "Checklist/pruebas/documentación (secundaria)",
         filas: [
-          { etiqueta: "Checklist", valor: voBoSecundaria?.checklist ? "Completo" : "Pendiente" },
-          { etiqueta: "Pruebas", valor: voBoSecundaria?.pruebas ? "Completo" : "Pendiente" },
-          { etiqueta: "Documentación", valor: voBoSecundaria?.documentacion ? "Completo" : "Pendiente" },
+          { etiqueta: "Checklist", valor: voBoSecundaria.checklist ? "Completo" : "Pendiente" },
+          { etiqueta: "Pruebas", valor: voBoSecundaria.pruebas ? "Completo" : "Pendiente" },
+          { etiqueta: "Documentación", valor: voBoSecundaria.documentacion ? "Completo" : "Pendiente" },
         ],
       })
     }
-    if (maxStep >= 9) {
+    if (solicitudUniversidadId !== null) {
       seccionesResumen.push({
         titulo: "Inscripción universidad",
         filas: [
@@ -1080,13 +1089,13 @@ export function useInscripcionForm() {
         ],
       })
     }
-    if (maxStep >= 11) {
+    if (voBoUniversidad !== null) {
       seccionesResumen.push({
         titulo: "Checklist/pruebas/documentación (universidad)",
         filas: [
-          { etiqueta: "Checklist", valor: voBoUniversidad?.checklist ? "Completo" : "Pendiente" },
-          { etiqueta: "Pruebas", valor: voBoUniversidad?.pruebas ? "Completo" : "Pendiente" },
-          { etiqueta: "Documentación", valor: voBoUniversidad?.documentacion ? "Completo" : "Pendiente" },
+          { etiqueta: "Checklist", valor: voBoUniversidad.checklist ? "Completo" : "Pendiente" },
+          { etiqueta: "Pruebas", valor: voBoUniversidad.pruebas ? "Completo" : "Pendiente" },
+          { etiqueta: "Documentación", valor: voBoUniversidad.documentacion ? "Completo" : "Pendiente" },
         ],
       })
     }
