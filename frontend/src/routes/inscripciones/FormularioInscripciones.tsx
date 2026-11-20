@@ -30,7 +30,6 @@ import { useMediaQuery } from "@/hooks/useMediaQuery"
 import {
   ArrowLeftIcon,
   CheckCircle2Icon,
-  MailIcon,
   PanelLeftCloseIcon,
   PanelLeftOpenIcon,
   RotateCcwIcon,
@@ -64,18 +63,6 @@ function TransformacionPaso({
       style={{ top: rect.top, left: rect.left, width: rect.width, height: rect.height }}
       onTransitionEnd={onTerminar}
     />
-  )
-}
-
-// Boton "Enviar correo" opcional de cada Confirmacion (crear/actualizar, nunca consultar) --
-// un solo lugar para no repetir 12 veces el mismo <Button>; el exito/error ya se avisa por
-// toast (ver avisarResultadoCorreo en useInscripcionForm), aca no hace falta alert aparte.
-function BotonEnviarCorreo({ mutation }: { mutation: { mutate: () => void; isPending: boolean } }) {
-  return (
-    <Button variant="outline" size="sm" onClick={() => mutation.mutate()} disabled={mutation.isPending}>
-      <MailIcon />
-      Enviar correo
-    </Button>
   )
 }
 
@@ -186,9 +173,6 @@ export function FormularioInscripciones() {
     guardarPanelesPrimariaMutation,
     guardarPanelesSecundariaMutation,
     guardarPanelesUniversidadMutation,
-    notificarPrimariaMutation,
-    notificarSecundariaMutation,
-    notificarUniversidadMutation,
     consultarMutation,
     consultaTieneSecundaria,
     consultaTieneUniversidad,
@@ -484,7 +468,6 @@ export function FormularioInscripciones() {
                         <Button onClick={crearOtra} className="w-fit">
                           Crear otra solicitud
                         </Button>
-                        <BotonEnviarCorreo mutation={notificarPrimariaMutation} />
                       </div>
                     </>
                   ) : (
@@ -634,12 +617,9 @@ export function FormularioInscripciones() {
                 <div className="space-y-4">
                   <h3 className="text-sm font-medium">Confirmación: primaria</h3>
                   <DetalleInscripcion inscripcion={camposAVistaPrevia(campos)} />
-                  <div className="flex flex-wrap gap-2">
-                    <Button onClick={() => continuarCadena(3)} className="w-fit">
-                      Siguiente
-                    </Button>
-                    {accion === "actualizar" && <BotonEnviarCorreo mutation={notificarPrimariaMutation} />}
-                  </div>
+                  <Button onClick={() => continuarCadena(3)} className="w-fit">
+                    Siguiente
+                  </Button>
                 </div>
               )}
             </CarouselItem>
@@ -658,7 +638,6 @@ export function FormularioInscripciones() {
                     onEnviar={enviarCadena}
                     onContinuar={continuarCadena}
                   />
-                  <BotonEnviarCorreo mutation={notificarPrimariaMutation} />
                 </div>
               )}
 
@@ -774,7 +753,6 @@ export function FormularioInscripciones() {
                 <div className="space-y-4">
                   <h3 className="text-sm font-medium">Confirmación: primaria</h3>
                   <ResumenVoBo voBo={voBoPrimaria} />
-                  {accion === "actualizar" && <BotonEnviarCorreo mutation={notificarPrimariaMutation} />}
                   {consultaTieneSecundaria ? (
                     <Button onClick={() => continuarCadena(5)} className="w-fit">
                       Ver secundaria
@@ -811,7 +789,6 @@ export function FormularioInscripciones() {
                     onEnviar={enviarCadena}
                     onContinuar={continuarCadena}
                   />
-                  <BotonEnviarCorreo mutation={notificarSecundariaMutation} />
                 </div>
               )}
 
@@ -922,12 +899,9 @@ export function FormularioInscripciones() {
                 <div className="space-y-4">
                   <h3 className="text-sm font-medium">Confirmación: inscripción de secundaria</h3>
                   <DetalleInscripcion inscripcion={camposAVistaPrevia(camposInscripcionSecundaria)} />
-                  <div className="flex flex-wrap gap-2">
-                    <Button onClick={() => continuarCadena(7)} className="w-fit">
-                      Siguiente
-                    </Button>
-                    {accion === "actualizar" && <BotonEnviarCorreo mutation={notificarSecundariaMutation} />}
-                  </div>
+                  <Button onClick={() => continuarCadena(7)} className="w-fit">
+                    Siguiente
+                  </Button>
                 </div>
               )}
             </CarouselItem>
@@ -946,7 +920,6 @@ export function FormularioInscripciones() {
                     onEnviar={enviarCadena}
                     onContinuar={continuarCadena}
                   />
-                  <BotonEnviarCorreo mutation={notificarSecundariaMutation} />
                 </div>
               )}
 
@@ -1062,7 +1035,6 @@ export function FormularioInscripciones() {
                 <div className="space-y-4">
                   <h3 className="text-sm font-medium">Confirmación: secundaria</h3>
                   <ResumenVoBo voBo={voBoSecundaria} />
-                  {accion === "actualizar" && <BotonEnviarCorreo mutation={notificarSecundariaMutation} />}
                   {consultaTieneUniversidad ? (
                     <Button onClick={() => continuarCadena(9)} className="w-fit">
                       Ver universidad
@@ -1099,7 +1071,6 @@ export function FormularioInscripciones() {
                     onEnviar={enviarCadena}
                     onContinuar={continuarCadena}
                   />
-                  <BotonEnviarCorreo mutation={notificarUniversidadMutation} />
                 </div>
               )}
 
@@ -1210,12 +1181,9 @@ export function FormularioInscripciones() {
                 <div className="space-y-4">
                   <h3 className="text-sm font-medium">Confirmación: inscripción de universidad</h3>
                   <DetalleInscripcion inscripcion={camposAVistaPrevia(camposInscripcionUniversidad)} />
-                  <div className="flex flex-wrap gap-2">
-                    <Button onClick={() => continuarCadena(11)} className="w-fit">
-                      Siguiente
-                    </Button>
-                    {accion === "actualizar" && <BotonEnviarCorreo mutation={notificarUniversidadMutation} />}
-                  </div>
+                  <Button onClick={() => continuarCadena(11)} className="w-fit">
+                    Siguiente
+                  </Button>
                 </div>
               )}
             </CarouselItem>
@@ -1242,7 +1210,6 @@ export function FormularioInscripciones() {
                       <h3 className="text-sm font-medium">Confirmación: universidad</h3>
                       <ResumenVoBo voBo={voBoUniversidad} />
                       <BotonesCadena hastaPaso={10} mutation={cadenaMutation} onEnviar={enviarCadena} />
-                      <BotonEnviarCorreo mutation={notificarUniversidadMutation} />
                     </>
                   )}
                 </div>
@@ -1335,7 +1302,6 @@ export function FormularioInscripciones() {
                 <div className="space-y-4">
                   <h3 className="text-sm font-medium">Confirmación: universidad</h3>
                   <ResumenVoBo voBo={voBoUniversidad} />
-                  {accion === "actualizar" && <BotonEnviarCorreo mutation={notificarUniversidadMutation} />}
                   <Button
                     variant="outline"
                     onClick={accion === "consultar" ? consultarOtra : actualizarOtra}

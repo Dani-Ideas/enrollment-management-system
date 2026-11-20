@@ -9,13 +9,11 @@ import {
   crearChecklistItem,
   crearPruebaItem,
   crearSolicitud,
-  enviarNotificacionConfirmacion,
   fetchSolicitud,
   fetchSolicitudes,
   guardarAvisoVersiones,
   guardarDocumento,
 } from "@/api/client"
-import { toast } from "@/components/ui/toast"
 import type {
   ChecklistItemRequestDTO,
   FormacionComplementariaRequestDTO,
@@ -1072,46 +1070,6 @@ export function useInscripcionForm() {
     },
   })
 
-  // Correo de aviso al confirmar un nivel -- boton opcional en cada Confirmacion de "crear"
-  // y "actualizar" (nunca en "consultar", ver FormularioInscripciones.tsx). Una mutacion
-  // por nivel, reusada por las DOS acciones (nunca activas a la vez): "primaria" es la
-  // unica con dos fuentes de id posibles porque "crear" la tiene en
-  // crearSolicitudMutation.data y "actualizar" en solicitudIdActual; secundaria/
-  // universidad usan el mismo id en ambas acciones por igual.
-  function avisarResultadoCorreo(promesa: Promise<void>) {
-    return promesa
-      .then(() => {
-        toast.add({ type: "success", title: "Correo enviado" })
-      })
-      .catch((error: unknown) => {
-        toast.add({
-          type: "error",
-          title: "No se pudo enviar el correo",
-          description: error instanceof Error ? error.message : undefined,
-        })
-        throw error
-      })
-  }
-  const notificarPrimariaMutation = useMutation({
-    mutationFn: () => {
-      const id = solicitudIdActual ?? crearSolicitudMutation.data?.solicitud.id
-      if (id === null || id === undefined) return Promise.reject(new Error("Todavía no hay una solicitud de primaria"))
-      return avisarResultadoCorreo(enviarNotificacionConfirmacion(id))
-    },
-  })
-  const notificarSecundariaMutation = useMutation({
-    mutationFn: () => {
-      if (solicitudSecundariaId === null) return Promise.reject(new Error("Todavía no hay una solicitud de secundaria"))
-      return avisarResultadoCorreo(enviarNotificacionConfirmacion(solicitudSecundariaId))
-    },
-  })
-  const notificarUniversidadMutation = useMutation({
-    mutationFn: () => {
-      if (solicitudUniversidadId === null) return Promise.reject(new Error("Todavía no hay una solicitud de universidad"))
-      return avisarResultadoCorreo(enviarNotificacionConfirmacion(solicitudUniversidadId))
-    },
-  })
-
   // Resumen de "todo lo llenado hasta ahora" en la cadena -- cada seccion aparece cuando ese
   // nivel/panel REALMENTE tiene datos guardados (voBo/solicitudXId), no segun que paso este
   // desbloqueado: desde que crearSolicitudMutation desbloquea toda la cadena de un saque,
@@ -1309,10 +1267,6 @@ export function useInscripcionForm() {
     guardarPanelesPrimariaMutation,
     guardarPanelesSecundariaMutation,
     guardarPanelesUniversidadMutation,
-
-    notificarPrimariaMutation,
-    notificarSecundariaMutation,
-    notificarUniversidadMutation,
 
     consultarMutation,
     consultaTieneSecundaria,

@@ -253,10 +253,3 @@ export function guardarAvisoVersiones(solicitudId: number, dto: AvisoVersionRequ
     data: dto,
   });
 }
-
-// Correo de aviso al confirmar un nivel del stepper (crear/actualizar, nunca consultar) --
-// destinatario fijo, lo decide el backend (ver NotificacionCorreoServiceImpl), aca solo se
-// dispara.
-export function enviarNotificacionConfirmacion(solicitudId: number): Promise<void> {
-  return request<void>(`${RUTAS.solicitudes}/${solicitudId}/notificar-confirmacion`, { method: "POST" });
-}

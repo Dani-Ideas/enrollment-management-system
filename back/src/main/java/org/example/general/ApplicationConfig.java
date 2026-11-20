@@ -8,7 +8,6 @@ import org.example.dinamicas.rest.InscripcionChecklistController;
 import org.example.dinamicas.rest.InscripcionPruebaController;
 import org.example.dinamicas.rest.InscripcionDocumentoController;
 import org.example.dinamicas.rest.InscripcionAvisoVersionController;
-import org.example.dinamicas.rest.NotificacionCorreoController;
 import org.example.dinamicas.rest.DireccionController;
 import org.example.dinamicas.rest.PersonaController;
 import org.example.dinamicas.rest.EntregaController;
@@ -58,10 +57,6 @@ public class ApplicationConfig extends ResourceConfig {
         public static final String SOLICITUDES_PRUEBAS = "/solicitudes/{solicitudId}/pruebas";
         public static final String SOLICITUDES_DOCUMENTO = "/solicitudes/{solicitudId}/documento";
         public static final String SOLICITUDES_AVISO_VERSIONES = "/solicitudes/{solicitudId}/aviso-versiones";
-        // Correo de aviso al confirmar un nivel del stepper (crear/actualizar, nunca
-        // consultar) -- destinatario fijo configurado en GlassFish, ver
-        // NotificacionCorreoServiceImpl.
-        public static final String SOLICITUDES_NOTIFICAR = "/solicitudes/{solicitudId}/notificar-confirmacion";
 
         // "Tablas genericas" para el formulario de inscripcion -- no es un recurso por
         // entidad, es un bundle de los catalogos de arriba en una sola respuesta.
@@ -97,7 +92,6 @@ public class ApplicationConfig extends ResourceConfig {
         REGISTRO_ACTIVO.put(Endpoints.SOLICITUDES_PRUEBAS, InscripcionPruebaController.class);
         REGISTRO_ACTIVO.put(Endpoints.SOLICITUDES_DOCUMENTO, InscripcionDocumentoController.class);
         REGISTRO_ACTIVO.put(Endpoints.SOLICITUDES_AVISO_VERSIONES, InscripcionAvisoVersionController.class);
-        REGISTRO_ACTIVO.put(Endpoints.SOLICITUDES_NOTIFICAR, NotificacionCorreoController.class);
         REGISTRO_ACTIVO.put(Endpoints.CATALOGOS_INSCRIPCION, CatalogosInscripcionController.class);
         REGISTRO_ACTIVO.put(Endpoints.CATALOGOS_GEOGRAFICOS, CatalogosGeograficosController.class);
         REGISTRO_ACTIVO.put(Endpoints.PERSONAS, PersonaController.class);
