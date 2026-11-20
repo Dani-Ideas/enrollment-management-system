@@ -34,17 +34,29 @@ const salirSitioRoute = createRoute({
 // submenu de HomePage (ver DrillMenu.tsx) ANTES de navegar, asi FormularioInscripciones
 // puede arrancar directo en el paso 1 de esa accion, sin pasar por el paso 0 (que ya quedo
 // desactivado). "consultar": igual que "crear" pero de solo lectura (ver useInscripcionForm).
+//
+// "ambiente" opcional -- el id (CAT_AMBIENTE_INSCRIPCION) de la sucursal elegida en el
+// submenu de HomePage para "crear"/"actualizar" (varias sucursales comparten el mismo
+// catalogo de ambientes, ver HomePage.tsx): useInscripcionForm.elegirAccion lo usa para
+// precargar el campo "ambiente" (crear) o el filtro del selector compartido (actualizar).
 export type AccionFormularioInscripciones = "lista" | "crear" | "actualizar" | "consultar";
 
 export const formularioPagoRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/formulario-pago",
   component: FormularioInscripciones,
-  validateSearch: (search: Record<string, unknown>): { accion?: AccionFormularioInscripciones } => {
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { accion?: AccionFormularioInscripciones; ambiente?: string } => {
     const accion = search.accion;
-    return accion === "lista" || accion === "crear" || accion === "actualizar" || accion === "consultar"
-      ? { accion }
-      : {};
+    const resultado: { accion?: AccionFormularioInscripciones; ambiente?: string } = {};
+    if (accion === "lista" || accion === "crear" || accion === "actualizar" || accion === "consultar") {
+      resultado.accion = accion;
+    }
+    if (typeof search.ambiente === "string" && search.ambiente !== "") {
+      resultado.ambiente = search.ambiente;
+    }
+    return resultado;
   },
 });
 

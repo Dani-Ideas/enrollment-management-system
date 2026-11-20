@@ -159,6 +159,16 @@ export function FormularioInscripciones() {
     guardarCambios,
     guardadoConfirmado,
     actualizarOtra,
+    actualizarCargaMutation,
+    huboCambiosSecundaria,
+    actualizarSecundariaMutation,
+    guardarCambiosSecundaria,
+    huboCambiosUniversidad,
+    actualizarUniversidadMutation,
+    guardarCambiosUniversidad,
+    guardarPanelesPrimariaMutation,
+    guardarPanelesSecundariaMutation,
+    guardarPanelesUniversidadMutation,
     consultarMutation,
     consultaTieneSecundaria,
     consultaTieneUniversidad,
@@ -166,6 +176,14 @@ export function FormularioInscripciones() {
   } = wizard
 
   const solicitudesQuery = useSolicitudes()
+
+  // "actualizar"/"consultar" comparten la misma cadena completa (ver cargarActualizacion/
+  // cargarConsulta en useInscripcionForm) -- esta bandera es la unica diferencia real entre
+  // ambos al renderizar: si ya esta todo cargado, sin importar cual de las 2 mutaciones lo
+  // hizo.
+  const cadenaLista =
+    (accion === "consultar" && consultarMutation.isSuccess) ||
+    (accion === "actualizar" && actualizarCargaMutation.isSuccess)
 
   // El Resumen de la cadena (panel "Uno") SOLO existe en escritorio -- ni tablet ni celular:
   // ahi se arma como ResizablePanelGroup (el usuario arrastra el ancho a gusto). Por debajo
@@ -189,13 +207,14 @@ export function FormularioInscripciones() {
   // "accion" llega por la URL (?accion=lista|crear|actualizar) -- la elige el submenu de
   // HomePage (ver DrillMenu.tsx) ANTES de navegar aca. No hay paso para elegirla: el paso 0
   // ya es el primero de esa accion. Solo una vez por visita (guarda accion === null).
-  const { accion: accionInicial } = formularioPagoRoute.useSearch()
+  // "ambiente" (opcional) viaja junto -- la sucursal que se elegio en ese mismo submenu.
+  const { accion: accionInicial, ambiente: ambienteInicial } = formularioPagoRoute.useSearch()
   useEffect(() => {
     if (accionInicial && accion === null) {
-      elegirAccion(accionInicial)
+      elegirAccion(accionInicial, ambienteInicial)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accionInicial])
+  }, [accionInicial, ambienteInicial])
 
   // Cada vez que "Siguiente"/"Continuar" agrega una seccion nueva al Resumen, el paso que se
   // acaba de completar se "transforma" en esa fila: mide el Card ANTES de que la fila nueva
@@ -300,12 +319,11 @@ export function FormularioInscripciones() {
                   (editar campos vs. recorrer la cadena de solo lectura). */}
               {(accion === "actualizar" || accion === "consultar") && (
                 <div className="space-y-4">
-                  {accion === "consultar" && (
-                    <p className="text-xs text-muted-foreground">
-                      Elegí la solicitud de Primaria -- si tiene Secundaria y/o Universidad
-                      encadenadas, se muestran también (de solo lectura).
-                    </p>
-                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Elegí cualquier solicitud de la cadena -- se recorre toda la cadena
+                    completa a partir de su Primaria ({accion === "consultar" ? "de solo lectura" : "editable"}
+                    , si tiene Secundaria y/o Universidad encadenadas también se incluyen).
+                  </p>
                   <CampoSelect
                     idPrefix="pago-tf"
                     valor={listaIdInput}
@@ -327,6 +345,13 @@ export function FormularioInscripciones() {
                       <TriangleAlertIcon />
                       <AlertTitle>No se pudo cargar la cadena</AlertTitle>
                       <AlertDescription>{(consultarMutation.error as Error).message}</AlertDescription>
+                    </Alert>
+                  )}
+                  {accion === "actualizar" && actualizarCargaMutation.isError && (
+                    <Alert variant="destructive">
+                      <TriangleAlertIcon />
+                      <AlertTitle>No se pudo cargar la cadena</AlertTitle>
+                      <AlertDescription>{(actualizarCargaMutation.error as Error).message}</AlertDescription>
                     </Alert>
                   )}
                 </div>
@@ -425,6 +450,7 @@ export function FormularioInscripciones() {
                     </div>
                   ) : (
                     <>
+                      <h3 className="text-sm font-medium">Primaria -- datos de la inscripción</h3>
                       <CamposInscripcionCompletos
                         form={form}
                         idPrefix="pago-tf-edit"
@@ -453,15 +479,10 @@ export function FormularioInscripciones() {
                         </p>
                       )}
                       {guardadoConfirmado && !hayAlgoQueGuardar && (
-                        <>
-                          <Alert>
-                            <CheckCircle2Icon />
-                            <AlertTitle>Cambios guardados</AlertTitle>
-                          </Alert>
-                          <Button variant="outline" onClick={actualizarOtra} className="w-fit">
-                            Actualizar otra solicitud
-                          </Button>
-                        </>
+                        <Alert>
+                          <CheckCircle2Icon />
+                          <AlertTitle>Cambios guardados</AlertTitle>
+                        </Alert>
                       )}
                       {actualizarSolicitudMutation.isError && (
                         <Alert variant="destructive">
@@ -472,12 +493,15 @@ export function FormularioInscripciones() {
                           </AlertDescription>
                         </Alert>
                       )}
+                      <Button onClick={() => continuarCadena(2)} className="w-fit">
+                        Siguiente
+                      </Button>
                     </>
                   )}
                 </div>
               )}
 
-              {accion === "consultar" && consultarMutation.isSuccess && (
+              {accion === "consultar" && cadenaLista && (
                 <div className="space-y-4">
                   <h3 className="text-sm font-medium">Primaria -- datos de la inscripción</h3>
                   <CampoCatalogo
@@ -537,7 +561,7 @@ export function FormularioInscripciones() {
                 </div>
               )}
 
-              {accion === "consultar" && consultarMutation.isSuccess && (
+              {(accion === "consultar" || accion === "actualizar") && cadenaLista && (
                 <div className="space-y-4">
                   <h3 className="text-sm font-medium">Confirmación: primaria</h3>
                   <DetalleInscripcion inscripcion={camposAVistaPrevia(campos)} />
@@ -565,7 +589,7 @@ export function FormularioInscripciones() {
                 </div>
               )}
 
-              {accion === "consultar" && consultarMutation.isSuccess && (
+              {accion === "consultar" && cadenaLista && (
                 <div className="space-y-4">
                   <h3 className="text-sm font-medium">Primaria -- checklist, pruebas y documentación</h3>
                   <ChecklistEditor
@@ -591,6 +615,56 @@ export function FormularioInscripciones() {
                   <Button onClick={() => continuarCadena(4)} className="w-fit">
                     Siguiente
                   </Button>
+                </div>
+              )}
+
+              {accion === "actualizar" && cadenaLista && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Primaria -- checklist, pruebas y documentación</h3>
+                  <ChecklistEditor
+                    items={checklistPrimaria}
+                    onAgregar={checklistPrimariaAcciones.agregar}
+                    onCambiar={checklistPrimariaAcciones.cambiar}
+                    onQuitar={checklistPrimariaAcciones.quitar}
+                    estadosQuery={estadosQuery}
+                    responsablesQuery={responsablesQuery}
+                  />
+                  <PruebasEditor
+                    items={pruebasPrimaria}
+                    onAgregar={pruebasPrimariaAcciones.agregar}
+                    onCambiar={pruebasPrimariaAcciones.cambiar}
+                    onQuitar={pruebasPrimariaAcciones.quitar}
+                    estadosQuery={estadosQuery}
+                    tiposPruebaQuery={tiposPruebaQuery}
+                  />
+                  <DocumentoPanel idPrefix="actualizar-dp" valor={documentoPrimaria} onCambiar={setDocumentoPrimaria} />
+                  <AvisoVersionesPanel idPrefix="actualizar-dp" valor={avisoPrimaria} onCambiar={setAvisoPrimaria} />
+                  {guardarPanelesPrimariaMutation.isSuccess && (
+                    <Alert>
+                      <CheckCircle2Icon />
+                      <AlertTitle>Cambios guardados</AlertTitle>
+                    </Alert>
+                  )}
+                  {guardarPanelesPrimariaMutation.isError && (
+                    <Alert variant="destructive">
+                      <TriangleAlertIcon />
+                      <AlertTitle>No se pudo guardar el cambio</AlertTitle>
+                      <AlertDescription>{(guardarPanelesPrimariaMutation.error as Error).message}</AlertDescription>
+                    </Alert>
+                  )}
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => guardarPanelesPrimariaMutation.mutate()}
+                      disabled={guardarPanelesPrimariaMutation.isPending}
+                      className="w-fit"
+                    >
+                      Guardar cambios
+                    </Button>
+                    <Button onClick={() => continuarCadena(4)} className="w-fit">
+                      Siguiente
+                    </Button>
+                  </div>
                 </div>
               )}
             </CarouselItem>
@@ -623,7 +697,7 @@ export function FormularioInscripciones() {
                 </div>
               )}
 
-              {accion === "consultar" && consultarMutation.isSuccess && (
+              {(accion === "consultar" || accion === "actualizar") && cadenaLista && (
                 <div className="space-y-4">
                   <h3 className="text-sm font-medium">Confirmación: primaria</h3>
                   <ResumenVoBo voBo={voBoPrimaria} />
@@ -636,8 +710,12 @@ export function FormularioInscripciones() {
                       <p className="text-sm text-muted-foreground">
                         Esta solicitud no tiene una secundaria encadenada.
                       </p>
-                      <Button variant="outline" onClick={consultarOtra} className="w-fit">
-                        Consultar otra solicitud
+                      <Button
+                        variant="outline"
+                        onClick={accion === "consultar" ? consultarOtra : actualizarOtra}
+                        className="w-fit"
+                      >
+                        {accion === "consultar" ? "Consultar otra solicitud" : "Actualizar otra solicitud"}
                       </Button>
                     </>
                   )}
@@ -687,6 +765,53 @@ export function FormularioInscripciones() {
                   </Button>
                 </div>
               )}
+
+              {accion === "actualizar" && consultaTieneSecundaria && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Secundaria -- datos de la inscripción</h3>
+                  <CampoCatalogo
+                    form={formInscripcionSecundaria}
+                    idPrefix="actualizar-s"
+                    estadosQuery={estadosQuery}
+                    sistemasQuery={sistemasQuery}
+                    ambientesQuery={ambientesQuery}
+                    mostrarPlaceholder={false}
+                  />
+                  <CampoResponsables
+                    form={formInscripcionSecundaria}
+                    idPrefix="actualizar-s"
+                    responsablesQuery={responsablesQuery}
+                    mostrarPlaceholder={false}
+                  />
+                  <CampoDatosProyecto form={formInscripcionSecundaria} idPrefix="actualizar-s" mostrarEjemplos={false} />
+                  {!huboCambiosSecundaria && actualizarSecundariaMutation.isSuccess && (
+                    <Alert>
+                      <CheckCircle2Icon />
+                      <AlertTitle>Cambios guardados</AlertTitle>
+                    </Alert>
+                  )}
+                  {actualizarSecundariaMutation.isError && (
+                    <Alert variant="destructive">
+                      <TriangleAlertIcon />
+                      <AlertTitle>No se pudo guardar el cambio</AlertTitle>
+                      <AlertDescription>{(actualizarSecundariaMutation.error as Error).message}</AlertDescription>
+                    </Alert>
+                  )}
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={guardarCambiosSecundaria}
+                      disabled={!huboCambiosSecundaria || actualizarSecundariaMutation.isPending}
+                      className="w-fit"
+                    >
+                      Guardar cambios
+                    </Button>
+                    <Button onClick={() => continuarCadena(6)} className="w-fit">
+                      Siguiente
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CarouselItem>
 
             {/* --- Paso 6: Checklist/pruebas/documentación/aviso de versiones (secundaria) --- */}
@@ -718,7 +843,7 @@ export function FormularioInscripciones() {
                 </div>
               )}
 
-              {accion === "consultar" && consultaTieneSecundaria && (
+              {(accion === "consultar" || accion === "actualizar") && consultaTieneSecundaria && (
                 <div className="space-y-4">
                   <h3 className="text-sm font-medium">Confirmación: inscripción de secundaria</h3>
                   <DetalleInscripcion inscripcion={camposAVistaPrevia(camposInscripcionSecundaria)} />
@@ -774,6 +899,56 @@ export function FormularioInscripciones() {
                   </Button>
                 </div>
               )}
+
+              {accion === "actualizar" && consultaTieneSecundaria && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Secundaria -- checklist, pruebas y documentación</h3>
+                  <ChecklistEditor
+                    items={checklistSecundaria}
+                    onAgregar={checklistSecundariaAcciones.agregar}
+                    onCambiar={checklistSecundariaAcciones.cambiar}
+                    onQuitar={checklistSecundariaAcciones.quitar}
+                    estadosQuery={estadosQuery}
+                    responsablesQuery={responsablesQuery}
+                  />
+                  <PruebasEditor
+                    items={pruebasSecundaria}
+                    onAgregar={pruebasSecundariaAcciones.agregar}
+                    onCambiar={pruebasSecundariaAcciones.cambiar}
+                    onQuitar={pruebasSecundariaAcciones.quitar}
+                    estadosQuery={estadosQuery}
+                    tiposPruebaQuery={tiposPruebaQuery}
+                  />
+                  <DocumentoPanel idPrefix="actualizar-ds" valor={documentoSecundaria} onCambiar={setDocumentoSecundaria} />
+                  <AvisoVersionesPanel idPrefix="actualizar-ds" valor={avisoSecundaria} onCambiar={setAvisoSecundaria} />
+                  {guardarPanelesSecundariaMutation.isSuccess && (
+                    <Alert>
+                      <CheckCircle2Icon />
+                      <AlertTitle>Cambios guardados</AlertTitle>
+                    </Alert>
+                  )}
+                  {guardarPanelesSecundariaMutation.isError && (
+                    <Alert variant="destructive">
+                      <TriangleAlertIcon />
+                      <AlertTitle>No se pudo guardar el cambio</AlertTitle>
+                      <AlertDescription>{(guardarPanelesSecundariaMutation.error as Error).message}</AlertDescription>
+                    </Alert>
+                  )}
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => guardarPanelesSecundariaMutation.mutate()}
+                      disabled={guardarPanelesSecundariaMutation.isPending}
+                      className="w-fit"
+                    >
+                      Guardar cambios
+                    </Button>
+                    <Button onClick={() => continuarCadena(8)} className="w-fit">
+                      Siguiente
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CarouselItem>
 
             {/* --- Paso 8: Datos de la inscripción universidad --- */}
@@ -804,7 +979,7 @@ export function FormularioInscripciones() {
                 </div>
               )}
 
-              {accion === "consultar" && consultaTieneSecundaria && (
+              {(accion === "consultar" || accion === "actualizar") && consultaTieneSecundaria && (
                 <div className="space-y-4">
                   <h3 className="text-sm font-medium">Confirmación: secundaria</h3>
                   <ResumenVoBo voBo={voBoSecundaria} />
@@ -817,8 +992,12 @@ export function FormularioInscripciones() {
                       <p className="text-sm text-muted-foreground">
                         Esta solicitud no tiene una universidad encadenada.
                       </p>
-                      <Button variant="outline" onClick={consultarOtra} className="w-fit">
-                        Consultar otra solicitud
+                      <Button
+                        variant="outline"
+                        onClick={accion === "consultar" ? consultarOtra : actualizarOtra}
+                        className="w-fit"
+                      >
+                        {accion === "consultar" ? "Consultar otra solicitud" : "Actualizar otra solicitud"}
                       </Button>
                     </>
                   )}
@@ -868,6 +1047,53 @@ export function FormularioInscripciones() {
                   </Button>
                 </div>
               )}
+
+              {accion === "actualizar" && consultaTieneUniversidad && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Universidad -- datos de la inscripción</h3>
+                  <CampoCatalogo
+                    form={formInscripcionUniversidad}
+                    idPrefix="actualizar-u"
+                    estadosQuery={estadosQuery}
+                    sistemasQuery={sistemasQuery}
+                    ambientesQuery={ambientesQuery}
+                    mostrarPlaceholder={false}
+                  />
+                  <CampoResponsables
+                    form={formInscripcionUniversidad}
+                    idPrefix="actualizar-u"
+                    responsablesQuery={responsablesQuery}
+                    mostrarPlaceholder={false}
+                  />
+                  <CampoDatosProyecto form={formInscripcionUniversidad} idPrefix="actualizar-u" mostrarEjemplos={false} />
+                  {!huboCambiosUniversidad && actualizarUniversidadMutation.isSuccess && (
+                    <Alert>
+                      <CheckCircle2Icon />
+                      <AlertTitle>Cambios guardados</AlertTitle>
+                    </Alert>
+                  )}
+                  {actualizarUniversidadMutation.isError && (
+                    <Alert variant="destructive">
+                      <TriangleAlertIcon />
+                      <AlertTitle>No se pudo guardar el cambio</AlertTitle>
+                      <AlertDescription>{(actualizarUniversidadMutation.error as Error).message}</AlertDescription>
+                    </Alert>
+                  )}
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={guardarCambiosUniversidad}
+                      disabled={!huboCambiosUniversidad || actualizarUniversidadMutation.isPending}
+                      className="w-fit"
+                    >
+                      Guardar cambios
+                    </Button>
+                    <Button onClick={() => continuarCadena(10)} className="w-fit">
+                      Siguiente
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CarouselItem>
 
             {/* --- Paso 10: Checklist/pruebas/documentación/aviso de versiones (universidad) --- */}
@@ -899,7 +1125,7 @@ export function FormularioInscripciones() {
                 </div>
               )}
 
-              {accion === "consultar" && consultaTieneUniversidad && (
+              {(accion === "consultar" || accion === "actualizar") && consultaTieneUniversidad && (
                 <div className="space-y-4">
                   <h3 className="text-sm font-medium">Confirmación: inscripción de universidad</h3>
                   <DetalleInscripcion inscripcion={camposAVistaPrevia(camposInscripcionUniversidad)} />
@@ -965,17 +1191,71 @@ export function FormularioInscripciones() {
                   </Button>
                 </div>
               )}
+
+              {accion === "actualizar" && consultaTieneUniversidad && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Universidad -- checklist, pruebas y documentación</h3>
+                  <ChecklistEditor
+                    items={checklistUniversidad}
+                    onAgregar={checklistUniversidadAcciones.agregar}
+                    onCambiar={checklistUniversidadAcciones.cambiar}
+                    onQuitar={checklistUniversidadAcciones.quitar}
+                    estadosQuery={estadosQuery}
+                    responsablesQuery={responsablesQuery}
+                  />
+                  <PruebasEditor
+                    items={pruebasUniversidad}
+                    onAgregar={pruebasUniversidadAcciones.agregar}
+                    onCambiar={pruebasUniversidadAcciones.cambiar}
+                    onQuitar={pruebasUniversidadAcciones.quitar}
+                    estadosQuery={estadosQuery}
+                    tiposPruebaQuery={tiposPruebaQuery}
+                  />
+                  <DocumentoPanel idPrefix="actualizar-du" valor={documentoUniversidad} onCambiar={setDocumentoUniversidad} />
+                  <AvisoVersionesPanel idPrefix="actualizar-du" valor={avisoUniversidad} onCambiar={setAvisoUniversidad} />
+                  {guardarPanelesUniversidadMutation.isSuccess && (
+                    <Alert>
+                      <CheckCircle2Icon />
+                      <AlertTitle>Cambios guardados</AlertTitle>
+                    </Alert>
+                  )}
+                  {guardarPanelesUniversidadMutation.isError && (
+                    <Alert variant="destructive">
+                      <TriangleAlertIcon />
+                      <AlertTitle>No se pudo guardar el cambio</AlertTitle>
+                      <AlertDescription>{(guardarPanelesUniversidadMutation.error as Error).message}</AlertDescription>
+                    </Alert>
+                  )}
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => guardarPanelesUniversidadMutation.mutate()}
+                      disabled={guardarPanelesUniversidadMutation.isPending}
+                      className="w-fit"
+                    >
+                      Guardar cambios
+                    </Button>
+                    <Button onClick={() => continuarCadena(12)} className="w-fit">
+                      Siguiente
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CarouselItem>
 
-            {/* --- Paso 12: Confirmación final (SOLO "consultar" -- "crear" no usa este slide,
-                queda en blanco para esa accion). --- */}
+            {/* --- Paso 12: Confirmación final (SOLO "consultar"/"actualizar" -- "crear" no usa
+                este slide, queda en blanco para esa accion). --- */}
             <CarouselItem className="overflow-y-auto">
-              {accion === "consultar" && consultaTieneUniversidad && (
+              {(accion === "consultar" || accion === "actualizar") && consultaTieneUniversidad && (
                 <div className="space-y-4">
                   <h3 className="text-sm font-medium">Confirmación: universidad</h3>
                   <ResumenVoBo voBo={voBoUniversidad} />
-                  <Button variant="outline" onClick={consultarOtra} className="w-fit">
-                    Consultar otra solicitud
+                  <Button
+                    variant="outline"
+                    onClick={accion === "consultar" ? consultarOtra : actualizarOtra}
+                    className="w-fit"
+                  >
+                    {accion === "consultar" ? "Consultar otra solicitud" : "Actualizar otra solicitud"}
                   </Button>
                 </div>
               )}

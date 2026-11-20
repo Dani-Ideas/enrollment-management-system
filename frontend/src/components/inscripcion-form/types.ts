@@ -54,9 +54,9 @@ export function aInputDatetime(iso: string | null): string {
 
 // PASOS por rama -- sin paso de "elegir accion": la accion llega por la URL
 // (?accion=..., la elige el submenu de HomePage), asi que el paso 0 ya es el primero
-// real de cada rama. El Carousel SIEMPRE tiene 12 CarouselItem (el maximo, "crear" con la
-// cadena completa): mantener la CANTIDAD de slides fija evita que Embla tenga que
-// re-detectar slides nuevos a mitad de sesion.
+// real de cada rama. El Carousel SIEMPRE tiene 13 CarouselItem (el maximo, "actualizar"/
+// "consultar" con su paso 0 de seleccion): mantener la CANTIDAD de slides fija evita que
+// Embla tenga que re-detectar slides nuevos a mitad de sesion.
 //
 // "crear" es dos peticiones HTTP distintas: la solicitud de Primaria (pasos 0-1, POST
 // /solicitudes) y, opcionalmente, el resto de la cadena (pasos 2-11) -- checklist/pruebas/
@@ -67,20 +67,13 @@ export function aInputDatetime(iso: string | null): string {
 // dependencia entre niveles, eso lo hace el back y responde 409 si no corresponde (nivel
 // anterior sin su VoBo completo).
 //
-// "actualizar" SOLO edita solicitudes de Primaria creadas ANTES de este cambio (tabla
-// INSCRIPCION, legacy) -- esas filas no tienen anclaje real en SOL_N_INSCRIPCION, asi que
-// la cadena nueva no se puede continuar desde ahi (limitacion conocida, ver el plan de
-// implementacion). Por eso "actualizar" quedo en 2 pasos nada mas, sin paneles de cadena.
+// "actualizar"/"consultar" comparten EXACTAMENTE los mismos pasos (recorren toda la
+// cadena -- primaria/secundaria/universidad -- con un paso 0 extra para elegir la
+// solicitud, ver cargarActualizacion/cargarConsulta en useInscripcionForm): lo unico que
+// cambia es si los campos quedan editables con botones "Guardar cambios" (actualizar) o
+// deshabilitados de solo lectura (consultar).
 export function etiquetaPaso(accion: Accion | null, indice: number): string {
   if (accion === "lista") return indice === 0 ? "Lista de solicitudes" : ""
-  if (accion === "actualizar") {
-    return (
-      {
-        0: "Elegir solicitud",
-        1: "Datos de la inscripción primaria",
-      }[indice] ?? ""
-    )
-  }
   if (accion === "crear") {
     return (
       {
@@ -99,10 +92,7 @@ export function etiquetaPaso(accion: Accion | null, indice: number): string {
       }[indice] ?? ""
     )
   }
-  // "consultar" -- igual que "crear" pero de solo lectura, con un paso 0 extra para elegir
-  // qué solicitud mirar (por eso va un paso corrida respecto de "crear"). Recorre toda la
-  // cadena automáticamente si existe (ver cargarConsulta en useInscripcionForm).
-  if (accion === "consultar") {
+  if (accion === "actualizar" || accion === "consultar") {
     return (
       {
         0: "Elegir solicitud",
@@ -126,7 +116,7 @@ export function etiquetaPaso(accion: Accion | null, indice: number): string {
 
 export function totalPasos(accion: Accion | null): number {
   if (accion === "lista") return 1
-  if (accion === "actualizar") return 2
+  if (accion === "actualizar") return 13
   if (accion === "crear") return 12
   if (accion === "consultar") return 13
   return 0
