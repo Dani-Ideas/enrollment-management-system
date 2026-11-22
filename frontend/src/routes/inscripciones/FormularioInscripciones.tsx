@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from "react"
-import type { PanelImperativeHandle } from "react-resizable-panels"
+import { useEffect, useState } from "react"
 import { Link } from "@tanstack/react-router"
 import { formularioPagoRoute } from "@/router"
 import {
@@ -26,7 +25,6 @@ import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carouse
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Spinner } from "@/components/ui/spinner"
-import { useMediaQuery } from "@/hooks/useMediaQuery"
 import {
   ArrowLeftIcon,
   CheckCircle2Icon,
@@ -67,11 +65,24 @@ function TransformacionPaso({
 }
 
 export function FormularioInscripciones() {
-  const wizard = useInscripcionForm()
+  // "?accion=...&ambiente=..." -- la ruta ya los valido (ver router.tsx) y el hook los
+  // consume: elige la accion una sola vez y precarga el ambiente (crear) o su filtro
+  // (actualizar). Aca no queda nada mas que pasarlos.
+  const wizard = useInscripcionForm(formularioPagoRoute.useSearch())
   const {
     accion,
-    elegirAccion,
     empezarDeNuevo,
+    // Layout: escritorio vs. columna angosta, el panel colapsable del Resumen, y los 2 refs
+    // + el rect del "fantasma" que anima cada paso completado hacia su fila del Resumen.
+    esEscritorio,
+    resumenPanelRef,
+    resumenColapsado,
+    setResumenColapsado,
+    alternarResumen,
+    cardRef,
+    resumenRef,
+    transformacion,
+    limpiarTransformacion,
     current,
     maxStep,
     irAPaso,
@@ -91,7 +102,7 @@ export function FormularioInscripciones() {
     responsablesQuery,
     ambientesQuery,
     tiposPruebaQuery,
-    useSolicitudes,
+    solicitudesQuery,
     filtroEstadoId,
     setFiltroEstadoId,
     filtroSistemaId,
@@ -177,79 +188,8 @@ export function FormularioInscripciones() {
     consultaTieneSecundaria,
     consultaTieneUniversidad,
     consultarOtra,
+    cadenaLista,
   } = wizard
-
-  const solicitudesQuery = useSolicitudes()
-
-  // "actualizar"/"consultar" comparten la misma cadena completa (ver cargarActualizacion/
-  // cargarConsulta en useInscripcionForm) -- esta bandera es la unica diferencia real entre
-  // ambos al renderizar: si ya esta todo cargado, sin importar cual de las 2 mutaciones lo
-  // hizo.
-  const cadenaLista =
-    (accion === "consultar" && consultarMutation.isSuccess) ||
-    (accion === "actualizar" && actualizarCargaMutation.isSuccess)
-
-  // El Resumen de la cadena (panel "Uno") SOLO existe en escritorio -- ni tablet ni celular:
-  // ahi se arma como ResizablePanelGroup (el usuario arrastra el ancho a gusto). Por debajo
-  // de este corte es una sola columna angosta, sin resumen, el formulario ocupa todo.
-  const esEscritorio = useMediaQuery("(min-width: 1024px)")
-
-  // Boton "minimizar de golpe" / "volver a ampliar" el Resumen -- ademas del arrastre normal
-  // del handle. panelRef expone collapse()/expand()/isCollapsed() de la libreria; onResize
-  // mantiene resumenColapsado sincronizado pase lo que pase.
-  const resumenPanelRef = useRef<PanelImperativeHandle>(null)
-  const [resumenColapsado, setResumenColapsado] = useState(false)
-
-  function alternarResumen() {
-    if (resumenPanelRef.current?.isCollapsed()) {
-      resumenPanelRef.current.expand()
-    } else {
-      resumenPanelRef.current?.collapse()
-    }
-  }
-
-  // "accion" llega por la URL (?accion=lista|crear|actualizar) -- la elige el submenu de
-  // HomePage (ver DrillMenu.tsx) ANTES de navegar aca. No hay paso para elegirla: el paso 0
-  // ya es el primero de esa accion. Solo una vez por visita (guarda accion === null).
-  // "ambiente" (opcional) viaja junto -- la sucursal que se elegio en ese mismo submenu.
-  const { accion: accionInicial, ambiente: ambienteInicial } = formularioPagoRoute.useSearch()
-  useEffect(() => {
-    if (accionInicial && accion === null) {
-      elegirAccion(accionInicial, ambienteInicial)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accionInicial, ambienteInicial])
-
-  // Cada vez que "Siguiente"/"Continuar" agrega una seccion nueva al Resumen, el paso que se
-  // acaba de completar se "transforma" en esa fila: mide el Card ANTES de que la fila nueva
-  // exista, y un frame despues mide la fila real para animar el fantasma de un rect al otro.
-  // No corre en el primer montaje ni si el Resumen no esta montado.
-  const cardRef = useRef<HTMLDivElement>(null)
-  const resumenRef = useRef<HTMLDivElement>(null)
-  const seccionesAnteriorRef = useRef(0)
-  const montadoRef = useRef(false)
-  const [transformacion, setTransformacion] = useState<{ desde: DOMRect; hasta: DOMRect } | null>(null)
-
-  useEffect(() => {
-    if (!montadoRef.current) {
-      montadoRef.current = true
-      seccionesAnteriorRef.current = seccionesResumen.length
-      return
-    }
-    if (seccionesResumen.length > seccionesAnteriorRef.current && cardRef.current) {
-      const desde = cardRef.current.getBoundingClientRect()
-      const cuadro = requestAnimationFrame(() => {
-        const contenido = resumenRef.current?.querySelector('[data-slot="card-content"]')
-        const filaNueva = contenido?.lastElementChild
-        if (filaNueva) {
-          setTransformacion({ desde, hasta: filaNueva.getBoundingClientRect() })
-        }
-      })
-      seccionesAnteriorRef.current = seccionesResumen.length
-      return () => cancelAnimationFrame(cuadro)
-    }
-    seccionesAnteriorRef.current = seccionesResumen.length
-  }, [seccionesResumen.length])
 
   const encabezado = (
     <>
@@ -1391,7 +1331,7 @@ export function FormularioInscripciones() {
         <TransformacionPaso
           desde={transformacion.desde}
           hasta={transformacion.hasta}
-          onTerminar={() => setTransformacion(null)}
+          onTerminar={limpiarTransformacion}
         />
       )}
     </section>

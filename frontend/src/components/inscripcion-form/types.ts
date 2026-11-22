@@ -45,6 +45,12 @@ export const CAMPOS_VACIOS: CamposFormulario = {
   fechaReal: "",
 }
 
+// Corte a partir del cual la pagina se arma como ResizablePanelGroup: Resumen de la cadena
+// (arrastrable/colapsable) + formulario. Por debajo es una sola columna angosta y el Resumen
+// no se monta -- es el mismo 1024px que el breakpoint "lg" de Tailwind, pero aca hace falta
+// como media query de verdad (useMediaQuery) porque cambia el ARBOL, no solo las clases.
+export const CORTE_ESCRITORIO = "(min-width: 1024px)"
+
 // El backend guarda LocalDateTime ("2026-03-01T10:00:00"); el input
 // type="datetime-local" solo entiende hasta el minuto -- truncar alcanza (el
 // backend acepta LocalDateTime sin segundos igual).
