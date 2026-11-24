@@ -60,24 +60,34 @@ export function aInputDatetime(iso: string | null): string {
 
 // PASOS por rama -- sin paso de "elegir accion": la accion llega por la URL
 // (?accion=..., la elige el submenu de HomePage), asi que el paso 0 ya es el primero
-// real de cada rama. El Carousel SIEMPRE tiene 13 CarouselItem (el maximo, "actualizar"/
-// "consultar" con su paso 0 de seleccion): mantener la CANTIDAD de slides fija evita que
-// Embla tenga que re-detectar slides nuevos a mitad de sesion.
+// real de cada rama. El Carousel SIEMPRE tiene 8 CarouselItem (el maximo, el de "crear"):
+// mantener la CANTIDAD de slides fija evita que Embla tenga que re-detectar slides nuevos a
+// mitad de sesion.
 //
-// "crear" es dos peticiones HTTP distintas: la solicitud de Primaria (pasos 0-1, POST
-// /solicitudes) y, opcionalmente, el resto de la cadena (pasos 2-11) -- checklist/pruebas/
+// NO hay un paso de Confirmacion por nivel. Antes cada nivel tenia dos (uno repitiendo los
+// campos que se acababan de llenar y otro con el VoBo), 13 pasos en total: no aportaban nada
+// -- los campos estan en el paso de arriba, el Resumen lateral ya muestra lo guardado, y
+// crear una inscripcion son 2 peticiones HTTP (la Primaria y sus formaciones) y actualizarla
+// una sola; no hay nada "pesado" que avisar antes de mandar (clonar desde otra solicitud
+// suma un GET, pero eso lo pide el usuario explicitamente). Quedan solo dos Confirmaciones
+// en "crear": la del paso 1, que es la que precede al POST de la Primaria, y la del 7, que
+// muestra el resultado de "Finalizar y enviar". El VoBo que devuelve el servidor y los
+// botones de la cadena viven al pie del paso de cada nivel.
+//
+// "crear": la solicitud de Primaria se crea en el paso 1 (POST /solicitudes, con sus
+// formaciones) y el resto de la cadena (pasos 2-6) es opcional -- checklist/pruebas/
 // documento/aviso de primaria -> solicitud de secundaria -> sus paneles -> solicitud de
-// universidad -> sus paneles -- en varias peticiones secuenciales (ya no una sola "cadena",
-// ver enviarCadena en useInscripcionForm) recien cuando el usuario elige "Finalizar y
-// enviar" en CUALQUIER Confirmacion de la cadena (3/5/7/9/11) -- el front no valida la
-// dependencia entre niveles, eso lo hace el back y responde 409 si no corresponde (nivel
-// anterior sin su VoBo completo).
+// universidad -> sus paneles -- en varias peticiones secuenciales (ver enviarCadena en
+// useInscripcionForm) recien cuando el usuario elige "Finalizar y enviar" en CUALQUIERA de
+// esos pasos -- el front no valida la dependencia entre niveles, eso lo hace el back y
+// responde 409 si no corresponde (nivel anterior sin su VoBo completo).
 //
 // "actualizar"/"consultar" comparten EXACTAMENTE los mismos pasos (recorren toda la
 // cadena -- primaria/secundaria/universidad -- con un paso 0 extra para elegir la
 // solicitud, ver cargarActualizacion/cargarConsulta en useInscripcionForm): lo unico que
 // cambia es si los campos quedan editables con botones "Guardar cambios" (actualizar) o
-// deshabilitados de solo lectura (consultar).
+// deshabilitados de solo lectura (consultar). No tienen paso 7: terminan en el 6, donde esta
+// el boton para elegir otra solicitud.
 export function etiquetaPaso(accion: Accion | null, indice: number): string {
   if (accion === "lista") return indice === 0 ? "Lista de solicitudes" : ""
   if (accion === "crear") {
@@ -86,15 +96,11 @@ export function etiquetaPaso(accion: Accion | null, indice: number): string {
         0: "Datos de la inscripción primaria",
         1: "Confirmación",
         2: "Checklist, pruebas y documentación (primaria)",
-        3: "Confirmación",
-        4: "Datos de la inscripción secundaria",
-        5: "Confirmación",
-        6: "Checklist, pruebas y documentación (secundaria)",
+        3: "Datos de la inscripción secundaria",
+        4: "Checklist, pruebas y documentación (secundaria)",
+        5: "Datos de la inscripción universidad",
+        6: "Checklist, pruebas y documentación (universidad)",
         7: "Confirmación",
-        8: "Datos de la inscripción universidad",
-        9: "Confirmación",
-        10: "Checklist, pruebas y documentación (universidad)",
-        11: "Confirmación",
       }[indice] ?? ""
     )
   }
@@ -103,17 +109,11 @@ export function etiquetaPaso(accion: Accion | null, indice: number): string {
       {
         0: "Elegir solicitud",
         1: "Inscripción primaria",
-        2: "Confirmación",
-        3: "Checklist, pruebas y documentación (primaria)",
-        4: "Confirmación",
-        5: "Inscripción secundaria",
-        6: "Confirmación",
-        7: "Checklist, pruebas y documentación (secundaria)",
-        8: "Confirmación",
-        9: "Inscripción universidad",
-        10: "Confirmación",
-        11: "Checklist, pruebas y documentación (universidad)",
-        12: "Confirmación",
+        2: "Checklist, pruebas y documentación (primaria)",
+        3: "Inscripción secundaria",
+        4: "Checklist, pruebas y documentación (secundaria)",
+        5: "Inscripción universidad",
+        6: "Checklist, pruebas y documentación (universidad)",
       }[indice] ?? ""
     )
   }
@@ -122,9 +122,9 @@ export function etiquetaPaso(accion: Accion | null, indice: number): string {
 
 export function totalPasos(accion: Accion | null): number {
   if (accion === "lista") return 1
-  if (accion === "actualizar") return 13
-  if (accion === "crear") return 12
-  if (accion === "consultar") return 13
+  if (accion === "actualizar") return 7
+  if (accion === "crear") return 8
+  if (accion === "consultar") return 7
   return 0
 }
 

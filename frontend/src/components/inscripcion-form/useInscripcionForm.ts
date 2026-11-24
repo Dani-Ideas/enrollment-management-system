@@ -113,18 +113,26 @@ export function useInscripcionForm({
   // --- Mecanica del layout -- el Resumen de la cadena SOLO existe en escritorio (ver
   // CORTE_ESCRITORIO en types.ts): ahi la pagina es un ResizablePanelGroup y el usuario
   // arrastra el ancho a gusto, o lo minimiza/amplia de golpe con el boton. panelRef expone
-  // collapse()/expand()/isCollapsed() de la libreria; "resumenColapsado" es solo para el
-  // icono/title del boton, y onResize (en el JSX) lo mantiene sincronizado pase lo que pase,
-  // tanto si se colapso arrastrando como con el boton. ---
+  // collapse()/expand() de la libreria; "resumenColapsado" es el estado REAL (colapsado o
+  // no), y onResize (en el JSX) lo mantiene sincronizado pase lo que pase, tanto si se
+  // colapso arrastrando como con el boton.
+  //
+  // De ese estado sale tambien la decision de alternarResumen, a proposito: el isCollapsed()
+  // del handle imperativo no es consulta gratis -- por dentro busca el grupo y las
+  // restricciones del panel en el store de la libreria y TIRA EXCEPCION ("Group ... not
+  // found" / "Panel constraints not found for Panel ...") si el panel no esta registrado en
+  // ese momento, que es justo lo que pasa en el commit en que el arbol se re-monta. ---
   const esEscritorio = useMediaQuery(CORTE_ESCRITORIO)
   const resumenPanelRef = useRef<PanelImperativeHandle>(null)
   const [resumenColapsado, setResumenColapsado] = useState(false)
 
   function alternarResumen() {
-    if (resumenPanelRef.current?.isCollapsed()) {
-      resumenPanelRef.current.expand()
+    const panel = resumenPanelRef.current
+    if (panel === null) return
+    if (resumenColapsado) {
+      panel.expand()
     } else {
-      resumenPanelRef.current?.collapse()
+      panel.collapse()
     }
   }
 
@@ -383,7 +391,7 @@ export function useInscripcionForm({
       // creada, se desbloquea TODO el resto de un saque (ya no paso a paso via
       // continuarCadena/enviarCadena): el usuario navega libremente, el backend sigue
       // validando el orden real al "Finalizar y enviar" (409 si corresponde).
-      desbloquearHasta(11)
+      desbloquearHasta(7)
       api?.scrollTo(1)
     },
   })
@@ -745,7 +753,9 @@ export function useInscripcionForm({
   // cada panel de ese nivel) es su propia llamada, en orden -- el backend sigue validando
   // la cadena (409 si el nivel anterior no tiene su VoBo completo), asi que un corte a
   // mitad de camino simplemente deja de avanzar, sin dejar nada corrupto (lo ya guardado
-  // queda guardado). "hastaPaso" tiene el mismo significado que antes (ver etiquetaPaso).
+  // queda guardado). "hastaPaso" es el paso de "crear" desde el que se apreto "Finalizar y
+  // enviar" (2 = paneles de primaria, 3 = crear secundaria, 4 = sus paneles, 5 = crear
+  // universidad, 6 = sus paneles; ver etiquetaPaso) -- cada umbral de abajo es ese paso.
   async function enviarSecuenciaCadena(hastaPaso: number) {
     const primariaId = crearSolicitudMutation.data?.solicitud.id
     if (primariaId === undefined) {
@@ -758,7 +768,7 @@ export function useInscripcionForm({
     }
 
     let secundariaId = solicitudSecundariaId
-    if (hastaPaso >= 4 && secundariaId === null) {
+    if (hastaPaso >= 3 && secundariaId === null) {
       const creada = await crearSolicitud({
         solicitud: armarSolicitudRequestDto(camposInscripcionSecundaria, idEtapa(2), primariaId),
         formacionesComplementarias: [],
@@ -767,13 +777,13 @@ export function useInscripcionForm({
       setSolicitudSecundariaId(secundariaId)
     }
 
-    if (hastaPaso >= 6 && secundariaId !== null) {
+    if (hastaPaso >= 4 && secundariaId !== null) {
       await guardarPanelesNivel(secundariaId, checklistSecundaria, pruebasSecundaria, documentoSecundaria, avisoSecundaria)
       setVoBoSecundaria((await fetchSolicitud(secundariaId)).voBo ?? null)
     }
 
     let universidadId = solicitudUniversidadId
-    if (hastaPaso >= 8 && secundariaId !== null && universidadId === null) {
+    if (hastaPaso >= 5 && secundariaId !== null && universidadId === null) {
       const creada = await crearSolicitud({
         solicitud: armarSolicitudRequestDto(camposInscripcionUniversidad, idEtapa(3), secundariaId),
         formacionesComplementarias: [],
@@ -782,7 +792,7 @@ export function useInscripcionForm({
       setSolicitudUniversidadId(universidadId)
     }
 
-    if (hastaPaso >= 10 && universidadId !== null) {
+    if (hastaPaso >= 6 && universidadId !== null) {
       await guardarPanelesNivel(
         universidadId,
         checklistUniversidad,
@@ -794,20 +804,20 @@ export function useInscripcionForm({
     }
   }
 
-  // onSuccess SIEMPRE salta al paso 11 (la ultima Confirmacion), sin importar desde que
-  // Confirmacion se disparo "Finalizar y enviar" -- asi hay un UNICO lugar que muestra el
-  // resultado final, en vez de duplicar esa vista en cada Confirmacion.
+  // onSuccess SIEMPRE salta al paso 7 (el de la Confirmacion final), sin importar desde que
+  // paso se disparo "Finalizar y enviar" -- asi hay un UNICO lugar que muestra el resultado
+  // final (el paso 7), en vez de duplicar esa vista en cada nivel.
   const cadenaMutation = useMutation({
     mutationFn: enviarSecuenciaCadena,
     onSuccess: () => {
-      desbloquearHasta(11)
-      api?.scrollTo(11)
+      desbloquearHasta(7)
+      api?.scrollTo(7)
     },
   })
 
   // Dispara la secuencia de la cadena, con todo lo llenado hasta "hastaPaso" -- llamado
-  // desde cualquier Confirmacion (pasos 3/5/7/9/11): el usuario puede "Finalizar y enviar"
-  // apenas termina un nivel, sin obligacion de llegar al final.
+  // desde el pie de cualquier paso de la cadena (2 al 6): el usuario puede "Finalizar y
+  // enviar" apenas termina un nivel, sin obligacion de llegar al final.
   function enviarCadena(hastaPaso: number) {
     cadenaMutation.mutate(hastaPaso)
   }
@@ -953,7 +963,7 @@ export function useInscripcionForm({
   const consultarMutation = useMutation({
     mutationFn: cargarConsulta,
     onSuccess: () => {
-      desbloquearHasta(12)
+      desbloquearHasta(6)
       api?.scrollTo(1)
     },
   })
@@ -1065,7 +1075,7 @@ export function useInscripcionForm({
   const actualizarCargaMutation = useMutation({
     mutationFn: cargarActualizacion,
     onSuccess: () => {
-      desbloquearHasta(12)
+      desbloquearHasta(6)
       api?.scrollTo(1)
     },
   })

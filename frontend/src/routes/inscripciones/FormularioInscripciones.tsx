@@ -132,7 +132,6 @@ export function FormularioInscripciones() {
     setAvisoPrimaria,
     voBoPrimaria,
     formInscripcionSecundaria,
-    camposInscripcionSecundaria,
     inscripcionSecundariaCompleta,
     checklistSecundaria,
     checklistSecundariaAcciones,
@@ -144,7 +143,6 @@ export function FormularioInscripciones() {
     setAvisoSecundaria,
     voBoSecundaria,
     formInscripcionUniversidad,
-    camposInscripcionUniversidad,
     inscripcionUniversidadCompleta,
     checklistUniversidad,
     checklistUniversidadAcciones,
@@ -261,6 +259,7 @@ export function FormularioInscripciones() {
                   CampoSelect/CampoVistaDetalle (ver useSolicitudes en useInscripcionForm);
                   lo que se hace DESPUES de elegir una fila es lo que distingue a cada accion
                   (editar campos vs. recorrer la cadena de solo lectura). */}
+
               {(accion === "actualizar" || accion === "consultar") && (
                 <div className="space-y-4">
                   <p className="text-xs text-muted-foreground">
@@ -520,7 +519,9 @@ export function FormularioInscripciones() {
               )}
             </CarouselItem>
 
-            {/* --- Paso 2: Checklist/pruebas/documentación/aviso de versiones (primaria) --- */}
+            {/* --- Paso 2: checklist/pruebas/documentación/aviso de versiones (primaria). Ya no
+                hay un paso de Confirmación aparte por nivel: el VoBo que devuelve el servidor
+                y los botones de la cadena viven en este mismo paso, debajo de los paneles. --- */}
             <CarouselItem className="overflow-y-auto">
               {accion === "crear" && (
                 <div className="space-y-4">
@@ -547,32 +548,12 @@ export function FormularioInscripciones() {
                   />
                   <DocumentoPanel idPrefix="cadena-dp" valor={documentoPrimaria} onCambiar={setDocumentoPrimaria} />
                   <AvisoVersionesPanel idPrefix="cadena-dp" valor={avisoPrimaria} onCambiar={setAvisoPrimaria} />
-                  <Button onClick={() => continuarCadena(3)} className="w-fit">
-                    Siguiente
-                  </Button>
-                </div>
-              )}
-
-              {(accion === "consultar" || accion === "actualizar") && cadenaLista && (
-                <div className="space-y-4">
-                  <h3 className="text-sm font-medium">Confirmación: primaria</h3>
-                  <DetalleInscripcion inscripcion={camposAVistaPrevia(campos)} />
-                  <Button onClick={() => continuarCadena(3)} className="w-fit">
-                    Siguiente
-                  </Button>
-                </div>
-              )}
-            </CarouselItem>
-
-            {/* --- Paso 3: Confirmación (primaria) --- */}
-            <CarouselItem className="overflow-y-auto">
-              {accion === "crear" && (
-                <div className="space-y-4">
-                  <h3 className="text-sm font-medium">Confirmación: primaria</h3>
-                  <ResumenVoBo voBo={voBoPrimaria} />
+                  {/* El VoBo lo calcula el servidor al guardar los paneles: antes de
+                      "Finalizar y enviar" no hay nada que mostrar todavia. */}
+                  {voBoPrimaria !== null && <ResumenVoBo voBo={voBoPrimaria} />}
                   <BotonesCadena
                     hastaPaso={2}
-                    siguientePaso={4}
+                    siguientePaso={3}
                     etiquetaSiguiente="Continuar con secundaria"
                     mutation={cadenaMutation}
                     onEnviar={enviarCadena}
@@ -604,9 +585,6 @@ export function FormularioInscripciones() {
                   />
                   <DocumentoPanel idPrefix="consultar-dp" valor={documentoPrimaria} onCambiar={setDocumentoPrimaria} disabled />
                   <AvisoVersionesPanel idPrefix="consultar-dp" valor={avisoPrimaria} onCambiar={setAvisoPrimaria} disabled />
-                  <Button onClick={() => continuarCadena(4)} className="w-fit">
-                    Siguiente
-                  </Button>
                 </div>
               )}
 
@@ -653,48 +631,15 @@ export function FormularioInscripciones() {
                     >
                       Guardar cambios
                     </Button>
-                    <Button onClick={() => continuarCadena(4)} className="w-fit">
-                      Siguiente
-                    </Button>
                   </div>
-                </div>
-              )}
-            </CarouselItem>
-
-            {/* --- Paso 4: Datos de la inscripción secundaria --- */}
-            <CarouselItem className="overflow-y-auto">
-              {accion === "crear" && (
-                <div className="space-y-4">
-                  <h3 className="text-sm font-medium">Inscripción de secundaria</h3>
-                  <CampoCatalogo
-                    form={formInscripcionSecundaria}
-                    idPrefix="cadena-is"
-                    estadosQuery={estadosQuery}
-                    sistemasQuery={sistemasQuery}
-                    ambientesQuery={ambientesQuery}
-                  />
-                  <CampoResponsables
-                    form={formInscripcionSecundaria}
-                    idPrefix="cadena-is"
-                    responsablesQuery={responsablesQuery}
-                  />
-                  <CampoDatosProyecto form={formInscripcionSecundaria} idPrefix="cadena-is" />
-                  <Button
-                    onClick={() => continuarCadena(5)}
-                    disabled={!inscripcionSecundariaCompleta}
-                    className="w-fit"
-                  >
-                    Siguiente
-                  </Button>
                 </div>
               )}
 
               {(accion === "consultar" || accion === "actualizar") && cadenaLista && (
-                <div className="space-y-4">
-                  <h3 className="text-sm font-medium">Confirmación: primaria</h3>
+                <div className="mt-4 space-y-4">
                   <ResumenVoBo voBo={voBoPrimaria} />
                   {consultaTieneSecundaria ? (
-                    <Button onClick={() => continuarCadena(5)} className="w-fit">
+                    <Button onClick={() => continuarCadena(3)} className="w-fit">
                       Ver secundaria
                     </Button>
                   ) : (
@@ -715,16 +660,29 @@ export function FormularioInscripciones() {
               )}
             </CarouselItem>
 
-            {/* --- Paso 5: Confirmación (inscripción secundaria) --- */}
+            {/* --- Paso 3: datos de la inscripción secundaria --- */}
             <CarouselItem className="overflow-y-auto">
               {accion === "crear" && (
                 <div className="space-y-4">
-                  <h3 className="text-sm font-medium">Confirmación: inscripción de secundaria</h3>
-                  <DetalleInscripcion inscripcion={camposAVistaPrevia(camposInscripcionSecundaria)} />
+                  <h3 className="text-sm font-medium">Inscripción de secundaria</h3>
+                  <CampoCatalogo
+                    form={formInscripcionSecundaria}
+                    idPrefix="cadena-is"
+                    estadosQuery={estadosQuery}
+                    sistemasQuery={sistemasQuery}
+                    ambientesQuery={ambientesQuery}
+                  />
+                  <CampoResponsables
+                    form={formInscripcionSecundaria}
+                    idPrefix="cadena-is"
+                    responsablesQuery={responsablesQuery}
+                  />
+                  <CampoDatosProyecto form={formInscripcionSecundaria} idPrefix="cadena-is" />
                   <BotonesCadena
-                    hastaPaso={4}
-                    siguientePaso={6}
+                    hastaPaso={3}
+                    siguientePaso={4}
                     etiquetaSiguiente="Continuar con checklist de secundaria"
+                    deshabilitado={!inscripcionSecundariaCompleta}
                     mutation={cadenaMutation}
                     onEnviar={enviarCadena}
                     onContinuar={continuarCadena}
@@ -752,7 +710,7 @@ export function FormularioInscripciones() {
                     disabled
                   />
                   <CampoDatosProyecto form={formInscripcionSecundaria} idPrefix="consultar-s" mostrarEjemplos={false} disabled />
-                  <Button onClick={() => continuarCadena(6)} className="w-fit">
+                  <Button onClick={() => continuarCadena(4)} className="w-fit">
                     Siguiente
                   </Button>
                 </div>
@@ -798,7 +756,7 @@ export function FormularioInscripciones() {
                     >
                       Guardar cambios
                     </Button>
-                    <Button onClick={() => continuarCadena(6)} className="w-fit">
+                    <Button onClick={() => continuarCadena(4)} className="w-fit">
                       Siguiente
                     </Button>
                   </div>
@@ -806,7 +764,7 @@ export function FormularioInscripciones() {
               )}
             </CarouselItem>
 
-            {/* --- Paso 6: Checklist/pruebas/documentación/aviso de versiones (secundaria) --- */}
+            {/* --- Paso 4: checklist/pruebas/documentación/aviso de versiones (secundaria) --- */}
             <CarouselItem className="overflow-y-auto">
               {accion === "crear" && (
                 <div className="space-y-4">
@@ -829,32 +787,12 @@ export function FormularioInscripciones() {
                   />
                   <DocumentoPanel idPrefix="cadena-ds" valor={documentoSecundaria} onCambiar={setDocumentoSecundaria} />
                   <AvisoVersionesPanel idPrefix="cadena-ds" valor={avisoSecundaria} onCambiar={setAvisoSecundaria} />
-                  <Button onClick={() => continuarCadena(7)} className="w-fit">
-                    Siguiente
-                  </Button>
-                </div>
-              )}
-
-              {(accion === "consultar" || accion === "actualizar") && consultaTieneSecundaria && (
-                <div className="space-y-4">
-                  <h3 className="text-sm font-medium">Confirmación: inscripción de secundaria</h3>
-                  <DetalleInscripcion inscripcion={camposAVistaPrevia(camposInscripcionSecundaria)} />
-                  <Button onClick={() => continuarCadena(7)} className="w-fit">
-                    Siguiente
-                  </Button>
-                </div>
-              )}
-            </CarouselItem>
-
-            {/* --- Paso 7: Confirmación (secundaria) --- */}
-            <CarouselItem className="overflow-y-auto">
-              {accion === "crear" && (
-                <div className="space-y-4">
-                  <h3 className="text-sm font-medium">Confirmación: secundaria</h3>
-                  <ResumenVoBo voBo={voBoSecundaria} />
+                  {/* El VoBo lo calcula el servidor al guardar los paneles: antes de
+                      "Finalizar y enviar" no hay nada que mostrar todavia. */}
+                  {voBoSecundaria !== null && <ResumenVoBo voBo={voBoSecundaria} />}
                   <BotonesCadena
-                    hastaPaso={6}
-                    siguientePaso={8}
+                    hastaPaso={4}
+                    siguientePaso={5}
                     etiquetaSiguiente="Continuar con universidad"
                     mutation={cadenaMutation}
                     onEnviar={enviarCadena}
@@ -886,9 +824,6 @@ export function FormularioInscripciones() {
                   />
                   <DocumentoPanel idPrefix="consultar-ds" valor={documentoSecundaria} onCambiar={setDocumentoSecundaria} disabled />
                   <AvisoVersionesPanel idPrefix="consultar-ds" valor={avisoSecundaria} onCambiar={setAvisoSecundaria} disabled />
-                  <Button onClick={() => continuarCadena(8)} className="w-fit">
-                    Siguiente
-                  </Button>
                 </div>
               )}
 
@@ -935,48 +870,15 @@ export function FormularioInscripciones() {
                     >
                       Guardar cambios
                     </Button>
-                    <Button onClick={() => continuarCadena(8)} className="w-fit">
-                      Siguiente
-                    </Button>
                   </div>
-                </div>
-              )}
-            </CarouselItem>
-
-            {/* --- Paso 8: Datos de la inscripción universidad --- */}
-            <CarouselItem className="overflow-y-auto">
-              {accion === "crear" && (
-                <div className="space-y-4">
-                  <h3 className="text-sm font-medium">Inscripción de universidad</h3>
-                  <CampoCatalogo
-                    form={formInscripcionUniversidad}
-                    idPrefix="cadena-iu"
-                    estadosQuery={estadosQuery}
-                    sistemasQuery={sistemasQuery}
-                    ambientesQuery={ambientesQuery}
-                  />
-                  <CampoResponsables
-                    form={formInscripcionUniversidad}
-                    idPrefix="cadena-iu"
-                    responsablesQuery={responsablesQuery}
-                  />
-                  <CampoDatosProyecto form={formInscripcionUniversidad} idPrefix="cadena-iu" />
-                  <Button
-                    onClick={() => continuarCadena(9)}
-                    disabled={!inscripcionUniversidadCompleta}
-                    className="w-fit"
-                  >
-                    Siguiente
-                  </Button>
                 </div>
               )}
 
               {(accion === "consultar" || accion === "actualizar") && consultaTieneSecundaria && (
-                <div className="space-y-4">
-                  <h3 className="text-sm font-medium">Confirmación: secundaria</h3>
+                <div className="mt-4 space-y-4">
                   <ResumenVoBo voBo={voBoSecundaria} />
                   {consultaTieneUniversidad ? (
-                    <Button onClick={() => continuarCadena(9)} className="w-fit">
+                    <Button onClick={() => continuarCadena(5)} className="w-fit">
                       Ver universidad
                     </Button>
                   ) : (
@@ -997,16 +899,29 @@ export function FormularioInscripciones() {
               )}
             </CarouselItem>
 
-            {/* --- Paso 9: Confirmación (inscripción universidad) --- */}
+            {/* --- Paso 5: datos de la inscripción universidad --- */}
             <CarouselItem className="overflow-y-auto">
               {accion === "crear" && (
                 <div className="space-y-4">
-                  <h3 className="text-sm font-medium">Confirmación: inscripción de universidad</h3>
-                  <DetalleInscripcion inscripcion={camposAVistaPrevia(camposInscripcionUniversidad)} />
+                  <h3 className="text-sm font-medium">Inscripción de universidad</h3>
+                  <CampoCatalogo
+                    form={formInscripcionUniversidad}
+                    idPrefix="cadena-iu"
+                    estadosQuery={estadosQuery}
+                    sistemasQuery={sistemasQuery}
+                    ambientesQuery={ambientesQuery}
+                  />
+                  <CampoResponsables
+                    form={formInscripcionUniversidad}
+                    idPrefix="cadena-iu"
+                    responsablesQuery={responsablesQuery}
+                  />
+                  <CampoDatosProyecto form={formInscripcionUniversidad} idPrefix="cadena-iu" />
                   <BotonesCadena
-                    hastaPaso={8}
-                    siguientePaso={10}
+                    hastaPaso={5}
+                    siguientePaso={6}
                     etiquetaSiguiente="Continuar con checklist de universidad"
+                    deshabilitado={!inscripcionUniversidadCompleta}
                     mutation={cadenaMutation}
                     onEnviar={enviarCadena}
                     onContinuar={continuarCadena}
@@ -1034,7 +949,7 @@ export function FormularioInscripciones() {
                     disabled
                   />
                   <CampoDatosProyecto form={formInscripcionUniversidad} idPrefix="consultar-u" mostrarEjemplos={false} disabled />
-                  <Button onClick={() => continuarCadena(10)} className="w-fit">
+                  <Button onClick={() => continuarCadena(6)} className="w-fit">
                     Siguiente
                   </Button>
                 </div>
@@ -1080,7 +995,7 @@ export function FormularioInscripciones() {
                     >
                       Guardar cambios
                     </Button>
-                    <Button onClick={() => continuarCadena(10)} className="w-fit">
+                    <Button onClick={() => continuarCadena(6)} className="w-fit">
                       Siguiente
                     </Button>
                   </div>
@@ -1088,7 +1003,7 @@ export function FormularioInscripciones() {
               )}
             </CarouselItem>
 
-            {/* --- Paso 10: Checklist/pruebas/documentación/aviso de versiones (universidad) --- */}
+            {/* --- Paso 6: checklist/pruebas/documentación/aviso de versiones (universidad) --- */}
             <CarouselItem className="overflow-y-auto">
               {accion === "crear" && (
                 <div className="space-y-4">
@@ -1111,47 +1026,14 @@ export function FormularioInscripciones() {
                   />
                   <DocumentoPanel idPrefix="cadena-du" valor={documentoUniversidad} onCambiar={setDocumentoUniversidad} />
                   <AvisoVersionesPanel idPrefix="cadena-du" valor={avisoUniversidad} onCambiar={setAvisoUniversidad} />
-                  <Button onClick={() => continuarCadena(11)} className="w-fit">
-                    Siguiente
-                  </Button>
-                </div>
-              )}
-
-              {(accion === "consultar" || accion === "actualizar") && consultaTieneUniversidad && (
-                <div className="space-y-4">
-                  <h3 className="text-sm font-medium">Confirmación: inscripción de universidad</h3>
-                  <DetalleInscripcion inscripcion={camposAVistaPrevia(camposInscripcionUniversidad)} />
-                  <Button onClick={() => continuarCadena(11)} className="w-fit">
-                    Siguiente
-                  </Button>
-                </div>
-              )}
-            </CarouselItem>
-
-            {/* --- Paso 11: Confirmación final (crear) -- unico lugar que muestra el resultado
-                de "Finalizar y enviar", sin importar desde que Confirmacion se haya disparado
-                (ver cadenaMutation.onSuccess en useInscripcionForm). Paso 11 de "consultar" es
-                el checklist de universidad (un paso corrido respecto de "crear"). --- */}
-            <CarouselItem className="overflow-y-auto">
-              {accion === "crear" && (
-                <div className="space-y-4">
-                  {cadenaMutation.isSuccess ? (
-                    <>
-                      <Alert>
-                        <CheckCircle2Icon />
-                        <AlertTitle>Cadena enviada</AlertTitle>
-                      </Alert>
-                      <Button onClick={crearOtra} className="w-fit">
-                        Crear otra solicitud
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <h3 className="text-sm font-medium">Confirmación: universidad</h3>
-                      <ResumenVoBo voBo={voBoUniversidad} />
-                      <BotonesCadena hastaPaso={10} mutation={cadenaMutation} onEnviar={enviarCadena} />
-                    </>
-                  )}
+                  {/* El VoBo lo calcula el servidor al guardar los paneles: antes de
+                      "Finalizar y enviar" no hay nada que mostrar todavia. */}
+                  {voBoUniversidad !== null && <ResumenVoBo voBo={voBoUniversidad} />}
+                  <BotonesCadena
+                    hastaPaso={6}
+                    mutation={cadenaMutation}
+                    onEnviar={enviarCadena}
+                  />
                 </div>
               )}
 
@@ -1178,9 +1060,6 @@ export function FormularioInscripciones() {
                   />
                   <DocumentoPanel idPrefix="consultar-du" valor={documentoUniversidad} onCambiar={setDocumentoUniversidad} disabled />
                   <AvisoVersionesPanel idPrefix="consultar-du" valor={avisoUniversidad} onCambiar={setAvisoUniversidad} disabled />
-                  <Button onClick={() => continuarCadena(12)} className="w-fit">
-                    Siguiente
-                  </Button>
                 </div>
               )}
 
@@ -1227,20 +1106,12 @@ export function FormularioInscripciones() {
                     >
                       Guardar cambios
                     </Button>
-                    <Button onClick={() => continuarCadena(12)} className="w-fit">
-                      Siguiente
-                    </Button>
                   </div>
                 </div>
               )}
-            </CarouselItem>
 
-            {/* --- Paso 12: Confirmación final (SOLO "consultar"/"actualizar" -- "crear" no usa
-                este slide, queda en blanco para esa accion). --- */}
-            <CarouselItem className="overflow-y-auto">
               {(accion === "consultar" || accion === "actualizar") && consultaTieneUniversidad && (
-                <div className="space-y-4">
-                  <h3 className="text-sm font-medium">Confirmación: universidad</h3>
+                <div className="mt-4 space-y-4">
                   <ResumenVoBo voBo={voBoUniversidad} />
                   <Button
                     variant="outline"
@@ -1249,6 +1120,33 @@ export function FormularioInscripciones() {
                   >
                     {accion === "consultar" ? "Consultar otra solicitud" : "Actualizar otra solicitud"}
                   </Button>
+                </div>
+              )}
+            </CarouselItem>
+
+            {/* --- Paso 7: resultado de "Finalizar y enviar" (SOLO "crear") -- unico lugar que lo
+                muestra, sin importar desde que paso se haya disparado (ver
+                cadenaMutation.onSuccess en useInscripcionForm). "actualizar"/"consultar" no
+                usan este slide: terminan en el paso 6. --- */}
+            <CarouselItem className="overflow-y-auto">
+              {accion === "crear" && (
+                <div className="space-y-4">
+                  {cadenaMutation.isSuccess ? (
+                    <>
+                      <Alert>
+                        <CheckCircle2Icon />
+                        <AlertTitle>Cadena enviada</AlertTitle>
+                      </Alert>
+                      <Button onClick={crearOtra} className="w-fit">
+                        Crear otra solicitud
+                      </Button>
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Todavía no se envió nada de la cadena. «Finalizar y enviar» está en cada
+                      paso (no hace falta llegar hasta acá) y el resultado se muestra en este.
+                    </p>
+                  )}
                 </div>
               )}
             </CarouselItem>
@@ -1284,7 +1182,11 @@ export function FormularioInscripciones() {
               defaultSize="280px"
               minSize="220px"
               maxSize="420px"
-              onResize={() => setResumenColapsado(resumenPanelRef.current?.isCollapsed() ?? false)}
+              // El tamaño llega por parametro -- no se le pregunta al handle imperativo
+              // (isCollapsed() tira excepcion si el panel todavia/ya no esta registrado,
+              // ver alternarResumen en useInscripcionForm). collapsedSize es "0px", asi que
+              // "0 pixeles" ES colapsado.
+              onResize={(tamano) => setResumenColapsado(tamano.inPixels <= 0)}
             >
               <ResumenCadena ref={resumenRef} secciones={seccionesResumen} />
             </ResizablePanel>
