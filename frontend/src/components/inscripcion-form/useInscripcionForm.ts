@@ -31,6 +31,7 @@ import type { SeccionResumen } from "./ResumenCadena"
 import {
   type Accion,
   type AvisoVersionEditable,
+  type NivelCadena,
   type PasoCadena,
   type CamposFormulario,
   type ChecklistItemEditable,
@@ -42,6 +43,7 @@ import {
   CHECKLIST_ITEM_VACIO,
   CORTE_ESCRITORIO,
   DOCUMENTO_VACIO,
+  ETIQUETA_NIVEL,
   pasosDe,
   PRUEBA_ITEM_VACIO,
   aInputDatetime,
@@ -1357,6 +1359,115 @@ export function useInscripcionForm({
     seccionesAnteriorRef.current = seccionesResumen.length
   }, [seccionesResumen.length])
 
+  // Los filtros de la lista de solicitudes, ya armados -- los piden igual el paso "lista" y
+  // el selector de clonado, que antes repetian este mismo objeto literal palabra por palabra.
+  const filtrosSolicitudes = {
+    filtroEstadoId,
+    onCambiarFiltroEstadoId: setFiltroEstadoId,
+    filtroSistemaId,
+    onCambiarFiltroSistemaId: setFiltroSistemaId,
+    filtroAmbienteId,
+    onCambiarFiltroAmbienteId: setFiltroAmbienteId,
+    estadosQuery,
+    sistemasQuery,
+    ambientesQuery,
+    cargando: solicitudesQuery.isLoading,
+    error: solicitudesQuery.error as Error | null,
+    hayResultados: (solicitudesQuery.data?.length ?? 0) > 0,
+  }
+
+  // --- Perfil de cada nivel de la cadena -----------------------------------------------
+  // Los 3 niveles (primaria/secundaria/universidad) se dibujan con las MISMAS dos pantallas
+  // -- "datos" y "paneles", ver PERFIL_PASO en types.ts -- y lo unico que cambia entre ellos
+  // es QUE estado de este hook usan. Esta tabla es ese "que": la pagina ya no vuelve a
+  // nombrar checklistSecundaria ni guardarPanelesUniversidadMutation, le pide a su nivel el
+  // perfil y lo usa. Agregar un nivel nuevo a la cadena es agregar una fila aca.
+  //
+  // "existe": si ese nivel esta realmente cargado/encadenado (en "crear" no aplica, siempre
+  // se puede llenar). "siguienteExiste": si hay un nivel despues al que se pueda ir, que es
+  // lo que decide si el pie del paso ofrece "Siguiente" o la salida.
+  const perfilesNivel = {
+    primaria: {
+      nivel: "primaria" as NivelCadena,
+      etiqueta: ETIQUETA_NIVEL.primaria,
+      form,
+      // Los idPrefix solo tienen que ser unicos dentro del DOM (label/htmlFor): se dejan
+      // explicitos, tal como estaban cuando cada paso era su propio bloque de JSX.
+      idDatos: { crear: "pago-tf", actualizar: "pago-tf-edit", consultar: "consultar-p" },
+      idPaneles: { crear: "cadena-dp", actualizar: "actualizar-dp", consultar: "consultar-dp" },
+      camposCompletos: formularioCompleto,
+      existe: cadenaLista,
+      siguienteExiste: consultaTieneSecundaria,
+      checklist: checklistPrimaria,
+      checklistAcciones: checklistPrimariaAcciones,
+      pruebas: pruebasPrimaria,
+      pruebasAcciones: pruebasPrimariaAcciones,
+      documento: documentoPrimaria,
+      setDocumento: setDocumentoPrimaria,
+      aviso: avisoPrimaria,
+      setAviso: setAvisoPrimaria,
+      voBo: voBoPrimaria,
+      guardarPanelesMutation: guardarPanelesPrimariaMutation,
+      actualizarMutation: actualizarSolicitudMutation,
+      confirmado: guardadoConfirmado,
+      huboCambios: hayAlgoQueGuardar,
+      guardarCambios,
+    },
+    secundaria: {
+      nivel: "secundaria" as NivelCadena,
+      etiqueta: ETIQUETA_NIVEL.secundaria,
+      form: formInscripcionSecundaria,
+      idDatos: { crear: "cadena-is", actualizar: "actualizar-s", consultar: "consultar-s" },
+      idPaneles: { crear: "cadena-ds", actualizar: "actualizar-ds", consultar: "consultar-ds" },
+      camposCompletos: inscripcionSecundariaCompleta,
+      existe: consultaTieneSecundaria,
+      siguienteExiste: consultaTieneUniversidad,
+      checklist: checklistSecundaria,
+      checklistAcciones: checklistSecundariaAcciones,
+      pruebas: pruebasSecundaria,
+      pruebasAcciones: pruebasSecundariaAcciones,
+      documento: documentoSecundaria,
+      setDocumento: setDocumentoSecundaria,
+      aviso: avisoSecundaria,
+      setAviso: setAvisoSecundaria,
+      voBo: voBoSecundaria,
+      guardarPanelesMutation: guardarPanelesSecundariaMutation,
+      actualizarMutation: actualizarSecundariaMutation,
+      confirmado: actualizarSecundariaMutation.isSuccess,
+      huboCambios: huboCambiosSecundaria,
+      guardarCambios: guardarCambiosSecundaria,
+    },
+    universidad: {
+      nivel: "universidad" as NivelCadena,
+      etiqueta: ETIQUETA_NIVEL.universidad,
+      form: formInscripcionUniversidad,
+      idDatos: { crear: "cadena-iu", actualizar: "actualizar-u", consultar: "consultar-u" },
+      idPaneles: { crear: "cadena-du", actualizar: "actualizar-du", consultar: "consultar-du" },
+      camposCompletos: inscripcionUniversidadCompleta,
+      existe: consultaTieneUniversidad,
+      // Universidad es el ultimo nivel: no hay "siguiente" al que ir nunca.
+      siguienteExiste: false,
+      checklist: checklistUniversidad,
+      checklistAcciones: checklistUniversidadAcciones,
+      pruebas: pruebasUniversidad,
+      pruebasAcciones: pruebasUniversidadAcciones,
+      documento: documentoUniversidad,
+      setDocumento: setDocumentoUniversidad,
+      aviso: avisoUniversidad,
+      setAviso: setAvisoUniversidad,
+      voBo: voBoUniversidad,
+      guardarPanelesMutation: guardarPanelesUniversidadMutation,
+      actualizarMutation: actualizarUniversidadMutation,
+      confirmado: actualizarUniversidadMutation.isSuccess,
+      huboCambios: huboCambiosUniversidad,
+      guardarCambios: guardarCambiosUniversidad,
+    },
+  }
+
+  function perfilNivel(nivel: NivelCadena) {
+    return perfilesNivel[nivel]
+  }
+
   function limpiarTransformacion() {
     setTransformacion(null)
   }
@@ -1390,6 +1501,9 @@ export function useInscripcionForm({
     ultimoPaso,
     pasoDe,
     trasPaso,
+    // El "que estado usa" de cada nivel -- ver perfilesNivel.
+    perfilNivel,
+    filtrosSolicitudes,
     desbloquearHasta,
 
     form,

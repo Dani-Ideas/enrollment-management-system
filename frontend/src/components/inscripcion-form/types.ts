@@ -189,6 +189,62 @@ export function etiquetaPaso(accion: Accion | null, indice: number, conPaneles: 
   return ETIQUETAS[accion === "crear" ? "crear" : "actualizar"][paso] ?? ""
 }
 
+// --- El perfil de cada paso ----------------------------------------------------------
+// Un paso no es un trozo de JSX propio: es una COMBINACION de tres cosas -- que tipo de
+// pantalla es, de que nivel de la cadena habla, y en que modo se la mira. Esta tabla es
+// esa combinacion, y es lo unico que la pagina consulta para decidir que dibujar; de ahi
+// que FormularioInscripciones no tenga un bloque por paso sino un switch de 6 casos.
+//
+// Los 3 niveles comparten EXACTAMENTE los mismos dos tipos de pantalla ("datos" y
+// "paneles"): lo unico que cambia entre ellos es que estado usan, y eso lo resuelve
+// perfilNivel() en useInscripcionForm -- el "perfil del parametro" de cada nivel.
+export type NivelCadena = "primaria" | "secundaria" | "universidad"
+
+// Como se mira un paso. "lista" no tiene nivel ni modo propio (es su propia pantalla), asi
+// que cae en "consultar" por descarte: no edita nada.
+export type ModoPaso = "crear" | "actualizar" | "consultar"
+
+export type TipoPaso = "lista" | "elegir" | "datos" | "paneles" | "confirmar-creacion" | "confirmar-cadena"
+
+export const PERFIL_PASO: Record<PasoCadena, { tipo: TipoPaso; nivel: NivelCadena | null }> = {
+  lista: { tipo: "lista", nivel: null },
+  "elegir-solicitud": { tipo: "elegir", nivel: null },
+  "datos-primaria": { tipo: "datos", nivel: "primaria" },
+  "confirmar-creacion": { tipo: "confirmar-creacion", nivel: null },
+  "paneles-primaria": { tipo: "paneles", nivel: "primaria" },
+  "datos-secundaria": { tipo: "datos", nivel: "secundaria" },
+  "paneles-secundaria": { tipo: "paneles", nivel: "secundaria" },
+  "datos-universidad": { tipo: "datos", nivel: "universidad" },
+  "paneles-universidad": { tipo: "paneles", nivel: "universidad" },
+  "confirmar-cadena": { tipo: "confirmar-cadena", nivel: null },
+}
+
+export const ETIQUETA_NIVEL: Record<NivelCadena, string> = {
+  primaria: "Primaria",
+  secundaria: "Secundaria",
+  universidad: "Universidad",
+}
+
+// A que nivel se encadena cada uno -- null = es el ultimo, de ahi no se sigue.
+export const NIVEL_SIGUIENTE: Record<NivelCadena, NivelCadena | null> = {
+  primaria: "secundaria",
+  secundaria: "universidad",
+  universidad: null,
+}
+
+// Los pasos de un nivel, para no volver a concatenar strings sueltos en la pantalla.
+export function pasoDatosDe(nivel: NivelCadena): PasoCadena {
+  return `datos-${nivel}` as PasoCadena
+}
+
+export function pasoPanelesDe(nivel: NivelCadena): PasoCadena {
+  return `paneles-${nivel}` as PasoCadena
+}
+
+export function modoDe(accion: Accion | null): ModoPaso {
+  return accion === "crear" ? "crear" : accion === "actualizar" ? "actualizar" : "consultar"
+}
+
 export function totalPasos(accion: Accion | null, conPaneles: boolean): number {
   return pasosDe(accion, conPaneles).length
 }
