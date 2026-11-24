@@ -27,9 +27,13 @@ export function RootLayout() {
   }, [queryClient]);
 
   return (
-    <div className="pagina">
-      <header className="encabezado">
-        <h1>Sistema de Matrículas</h1>
+    // El marco de pagina ya no es una clase CSS propia (.pagina/.encabezado): son
+    // utilidades sobre los tokens --container-pagina* y --text-titulo-pagina (ver
+    // index.css). Asi cualquier pagina puede pisar un valor desde su JSX -- con la clase
+    // suelta era imposible: estaba fuera de @layer y le ganaba a toda utilidad.
+    <div className="mx-auto max-w-pagina px-6 pt-12 pb-20 md:max-w-pagina-md md:px-8 lg:max-w-pagina-lg lg:px-12">
+      <header className="mb-12 border-b pb-6">
+        <h1 className="text-titulo-pagina mb-1.5 font-semibold tracking-titulo">Sistema de Matrículas</h1>
       </header>
 
       <main>

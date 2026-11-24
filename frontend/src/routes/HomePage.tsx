@@ -35,7 +35,7 @@ export function HomePage() {
 
   return (
     <>
-      <section>
+      <section className="mb-12">
         <DrillMenu
           items={[
             {

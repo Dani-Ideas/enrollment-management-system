@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { Link } from "@tanstack/react-router"
 import { formularioPagoRoute } from "@/router"
 import {
+  ALTO_ENCABEZADO_ESCRITORIO,
   AvisoVersionesPanel,
   BotonesCadena,
   CampoCatalogo,
@@ -13,6 +14,7 @@ import {
   ChecklistEditor,
   DetalleInscripcion,
   DocumentoPanel,
+  PANEL_RESUMEN,
   PasosNavegacion,
   PruebasEditor,
   ResumenCadena,
@@ -214,7 +216,7 @@ export function FormularioInscripciones() {
     <Card ref={cardRef} className="h-full min-w-0">
       <CardContent>
         <Carousel setApi={setApi} opts={{ watchDrag: false }} className="w-full" orientation="vertical">
-          <CarouselContent className="h-[min(70vh,36rem)]">
+          <CarouselContent className="h-(--alto-pasos-wizard)">
             {/* --- Paso 0 --- */}
             <CarouselItem className="overflow-y-auto">
               {accion === "lista" && (
@@ -1169,19 +1171,19 @@ export function FormularioInscripciones() {
   )
 
   return (
-    <section className="w-full">
+    <section className="mb-12 w-full">
       {esEscritorio ? (
         // ResizablePanelGroup fuerza height:100% por INLINE style (pisa cualquier clase que
         // se le ponga a el mismo) -- la altura real hay que darsela al padre, no al grupo.
-        <div className="h-[min(85vh,900px)]">
+        <div className="h-(--alto-wizard-escritorio)">
           <ResizablePanelGroup orientation="horizontal">
             <ResizablePanel
               panelRef={resumenPanelRef}
               collapsible
-              collapsedSize="0px"
-              defaultSize="280px"
-              minSize="220px"
-              maxSize="420px"
+              collapsedSize={PANEL_RESUMEN.colapsado}
+              defaultSize={PANEL_RESUMEN.defecto}
+              minSize={PANEL_RESUMEN.minimo}
+              maxSize={PANEL_RESUMEN.maximo}
               // El tamaño llega por parametro -- no se le pregunta al handle imperativo
               // (isCollapsed() tira excepcion si el panel todavia/ya no esta registrado,
               // ver alternarResumen en useInscripcionForm). collapsedSize es "0px", asi que
@@ -1196,7 +1198,7 @@ export function FormularioInscripciones() {
                   NO se arrastra (handle disabled, sin grip): el encabezado es un titulo, no
                   tiene sentido redimensionarlo. */}
               <ResizablePanelGroup orientation="vertical">
-                <ResizablePanel defaultSize="96px" disabled>
+                <ResizablePanel defaultSize={ALTO_ENCABEZADO_ESCRITORIO} disabled>
                   <div className="flex h-full items-start justify-between gap-2 overflow-y-auto">
                     <div>{encabezado}</div>
                     <Button

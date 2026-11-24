@@ -214,7 +214,7 @@ export function DrillMenu({ items }: Props) {
 
       <div
         ref={contenedorRef}
-        className="flex h-[min(70vh,32rem)] snap-y snap-mandatory flex-col gap-6 overflow-y-auto scroll-smooth"
+        className="flex h-(--alto-menu-drill) snap-y snap-mandatory flex-col gap-6 overflow-y-auto scroll-smooth"
       >
         {/* Espaciador inicial -- sin esto el primer nivel no podria llegar nunca al centro
             del contenedor (no hay nada arriba para "comer" con el scroll). */}

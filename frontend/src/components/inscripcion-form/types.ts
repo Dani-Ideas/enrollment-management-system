@@ -51,6 +51,23 @@ export const CAMPOS_VACIOS: CamposFormulario = {
 // como media query de verdad (useMediaQuery) porque cambia el ARBOL, no solo las clases.
 export const CORTE_ESCRITORIO = "(min-width: 1024px)"
 
+// Medidas del layout de escritorio que NO pueden ser un token CSS: react-resizable-panels
+// las recibe por prop (defaultSize/minSize/maxSize/collapsedSize), no por clase, y no
+// acepta var(). Centralizadas aca igual, al lado del corte, para que el JSX no vuelva a
+// tener numeros sueltos. Las que SI son clases (alturas del wizard, anchos del marco de
+// pagina, tipografia) son tokens en index.css.
+export const PANEL_RESUMEN = {
+  defecto: "280px",
+  minimo: "220px",
+  maximo: "420px",
+  // collapsedSize 0 = el panel desaparece del todo; de esto depende la lectura
+  // "0 pixeles ES colapsado" del onResize (ver FormularioInscripciones).
+  colapsado: "0px",
+} as const
+
+// Alto del panel del encabezado dentro del grupo vertical (no se arrastra).
+export const ALTO_ENCABEZADO_ESCRITORIO = "96px"
+
 // El backend guarda LocalDateTime ("2026-03-01T10:00:00"); el input
 // type="datetime-local" solo entiende hasta el minuto -- truncar alcanza (el
 // backend acepta LocalDateTime sin segundos igual).
