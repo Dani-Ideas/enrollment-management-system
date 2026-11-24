@@ -2,13 +2,21 @@ import axios, { type AxiosRequestConfig } from "axios";
 import { queryOptions } from "@tanstack/react-query";
 import type {
   AmbienteDTO,
+  AvisoVersionDTO,
+  AvisoVersionRequestDTO,
+  ChecklistItemDTO,
+  ChecklistItemRequestDTO,
+  DocumentoDTO,
+  DocumentoRequestDTO,
   EstadoDTO,
-  FormacionComplementariaDTO,
-  InscripcionConFormacionComplementariaDTO,
-  InscripcionConFormacionComplementariaRequestDTO,
-  InscripcionDTO,
+  PruebaDTO,
+  PruebaRequestDTO,
   ResponsableDTO,
   SistemaDTO,
+  SolicitudConFormacionesDTO,
+  SolicitudConFormacionesRequestDTO,
+  SolicitudConPanelesDTO,
+  SolicitudDTO,
   TablasInscripcionDTO,
 } from "./types";
 
@@ -33,7 +41,7 @@ const RUTAS = {
   responsables: "/responsables",
   ambientes: "/ambientes",
   catalogosInscripcion: "/catalogos-inscripcion",
-  inscripciones: "/inscripciones",
+  solicitudes: "/solicitudes",
   endpoints: "/endpoints",
 } as const;
 
@@ -125,11 +133,10 @@ export function fetchAmbientes(): Promise<AmbienteDTO[]> {
   return request<AmbienteDTO[]>(RUTAS.ambientes);
 }
 
-// "Tablas genericas": UNA sola llamada para los 4 catalogos de arriba, en vez de
-// fetchEstados() + fetchSistemas() + fetchResponsables() + fetchAmbientes() por
-// separado. Es la que mas se usa en todo el front: el 100% de los PUT/POST de
-// inscripciones arman su InscripcionRequestDTO resolviendo nombre -> id contra estos
-// mismos catalogos (ver InscripcionWizard.tsx/FormularioPagoPage.tsx).
+// "Tablas genericas": UNA sola llamada para los catalogos de arriba, en vez de uno por
+// separado. Es la que mas se usa en todo el front: el 100% de los PUT/POST de solicitudes
+// arman su SolicitudRequestDTO resolviendo nombre -> id contra estos mismos catalogos (ver
+// useInscripcionForm.ts).
 export function fetchTablasInscripcion(): Promise<TablasInscripcionDTO> {
   return request<TablasInscripcionDTO>(RUTAS.catalogosInscripcion);
 }
@@ -149,39 +156,99 @@ export const CATALOGOS_INSCRIPCION_QUERY = queryOptions({
   staleTime: "static",
 });
 
-// GET /inscripciones ya no acepta filtros por query param (estadoId/sistemaId/ambienteId)
-// -- el backend los sacó, el filtrado que haga falta se hace del lado del cliente sobre
-// la lista completa.
-export function fetchInscripciones(): Promise<InscripcionDTO[]> {
-  return request<InscripcionDTO[]>(RUTAS.inscripciones);
+// --- Solicitudes (Primaria/Secundaria/Universidad unificadas) ---
+//
+// Reemplaza al viejo modelo de firmas booleanas por nivel. "etapa" (dentro de
+// SolicitudRequestDTO) distingue el nivel; "solicitudAnterior" encadena contra el id REAL
+// de la solicitud previa (ya no un id de linaje compartido) -- el backend responde 409 si
+// la cadena no es valida o si el nivel anterior no tiene su VoBo completo.
+
+export function fetchSolicitudes(): Promise<SolicitudDTO[]> {
+  return request<SolicitudDTO[]>(RUTAS.solicitudes);
 }
 
-export function fetchInscripcion(id: number): Promise<InscripcionDTO> {
-  return request<InscripcionDTO>(`${RUTAS.inscripciones}/${id}`);
+// Trae la solicitud + todos sus paneles (checklist/pruebas/documento/avisoVersiones/voBo +
+// formaciones complementarias) en una sola llamada -- reemplaza a los viejos
+// fetchInscripcionSecundaria/fetchInscripcionUniversidad/fetchDiplomaPrimaria por separado.
+export function fetchSolicitud(id: number): Promise<SolicitudConPanelesDTO> {
+  return request<SolicitudConPanelesDTO>(`${RUTAS.solicitudes}/${id}`);
 }
 
-// Las formaciones que ya tiene la inscripcion -- "actualizar" las necesita porque el PUT
-// recibe la lista COMPLETA que debe quedar (lo que falte, el backend lo borra).
-export function fetchFormacionesDeInscripcion(id: number): Promise<FormacionComplementariaDTO[]> {
-  return request<FormacionComplementariaDTO[]>(`${RUTAS.inscripciones}/${id}/formaciones-complementarias`);
+export function crearSolicitud(dto: SolicitudConFormacionesRequestDTO): Promise<SolicitudConFormacionesDTO> {
+  return request<SolicitudConFormacionesDTO>(RUTAS.solicitudes, { method: "POST", data: dto });
 }
 
-// UNA sola peticion HTTP: crea la Inscripcion y sus formaciones complementarias juntas --
-// el backend resuelve el FK internamente (ver InscripcionConFormacionComplementariaRequestDTO).
-export function crearInscripcion(
-  dto: InscripcionConFormacionComplementariaRequestDTO,
-): Promise<InscripcionConFormacionComplementariaDTO> {
-  return request<InscripcionConFormacionComplementariaDTO>(RUTAS.inscripciones, { method: "POST", data: dto });
-}
-
-// UNA sola peticion HTTP tambien para editar: mismo shape compuesto que crearInscripcion()
-// -- formacionesComplementarias es la lista COMPLETA que debe quedar (ver
-// InscripcionConFormacionComplementariaRequestDTO).
-export function actualizarInscripcion(
+export function actualizarSolicitud(
   id: number,
-  dto: InscripcionConFormacionComplementariaRequestDTO,
-): Promise<InscripcionConFormacionComplementariaDTO> {
-  return request<InscripcionConFormacionComplementariaDTO>(`${RUTAS.inscripciones}/${id}`, {
+  dto: SolicitudConFormacionesRequestDTO,
+): Promise<SolicitudConFormacionesDTO> {
+  return request<SolicitudConFormacionesDTO>(`${RUTAS.solicitudes}/${id}`, { method: "PUT", data: dto });
+}
+
+// --- Checklist/pruebas/documento/aviso de versiones de una solicitud ---
+//
+// No van en RUTAS (ese objeto es de paths fijos, estos llevan el id de la solicitud) -- el
+// chequeo de endpoints activos de arriba (DEV) por eso no puede validarlos, es un falso
+// positivo inofensivo si alguna vez aparece en consola.
+
+export function fetchChecklist(solicitudId: number): Promise<ChecklistItemDTO[]> {
+  return request<ChecklistItemDTO[]>(`${RUTAS.solicitudes}/${solicitudId}/checklist`);
+}
+
+export function crearChecklistItem(solicitudId: number, dto: ChecklistItemRequestDTO): Promise<ChecklistItemDTO> {
+  return request<ChecklistItemDTO>(`${RUTAS.solicitudes}/${solicitudId}/checklist`, { method: "POST", data: dto });
+}
+
+export function actualizarChecklistItem(
+  solicitudId: number,
+  itemId: number,
+  dto: ChecklistItemRequestDTO,
+): Promise<ChecklistItemDTO> {
+  return request<ChecklistItemDTO>(`${RUTAS.solicitudes}/${solicitudId}/checklist/${itemId}`, {
+    method: "PUT",
+    data: dto,
+  });
+}
+
+export function eliminarChecklistItem(solicitudId: number, itemId: number): Promise<void> {
+  return request<void>(`${RUTAS.solicitudes}/${solicitudId}/checklist/${itemId}`, { method: "DELETE" });
+}
+
+export function fetchPruebas(solicitudId: number): Promise<PruebaDTO[]> {
+  return request<PruebaDTO[]>(`${RUTAS.solicitudes}/${solicitudId}/pruebas`);
+}
+
+export function crearPruebaItem(solicitudId: number, dto: PruebaRequestDTO): Promise<PruebaDTO> {
+  return request<PruebaDTO>(`${RUTAS.solicitudes}/${solicitudId}/pruebas`, { method: "POST", data: dto });
+}
+
+export function actualizarPruebaItem(
+  solicitudId: number,
+  itemId: number,
+  dto: PruebaRequestDTO,
+): Promise<PruebaDTO> {
+  return request<PruebaDTO>(`${RUTAS.solicitudes}/${solicitudId}/pruebas/${itemId}`, { method: "PUT", data: dto });
+}
+
+export function eliminarPruebaItem(solicitudId: number, itemId: number): Promise<void> {
+  return request<void>(`${RUTAS.solicitudes}/${solicitudId}/pruebas/${itemId}`, { method: "DELETE" });
+}
+
+// 1:1 -- GET + PUT-upsert, sin POST/DELETE separados (mismo criterio que el backend).
+export function fetchDocumento(solicitudId: number): Promise<DocumentoDTO | null> {
+  return request<DocumentoDTO | null>(`${RUTAS.solicitudes}/${solicitudId}/documento`);
+}
+
+export function guardarDocumento(solicitudId: number, dto: DocumentoRequestDTO): Promise<DocumentoDTO> {
+  return request<DocumentoDTO>(`${RUTAS.solicitudes}/${solicitudId}/documento`, { method: "PUT", data: dto });
+}
+
+export function fetchAvisoVersiones(solicitudId: number): Promise<AvisoVersionDTO | null> {
+  return request<AvisoVersionDTO | null>(`${RUTAS.solicitudes}/${solicitudId}/aviso-versiones`);
+}
+
+export function guardarAvisoVersiones(solicitudId: number, dto: AvisoVersionRequestDTO): Promise<AvisoVersionDTO> {
+  return request<AvisoVersionDTO>(`${RUTAS.solicitudes}/${solicitudId}/aviso-versiones`, {
     method: "PUT",
     data: dto,
   });

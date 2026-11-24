@@ -33,8 +33,7 @@ public abstract class EntregaMapper implements RequestResponseMapper<EntregaEty,
 
     public DireccionEty desdeIds(Long personaId, Long coloniaId, Long tipoId) {
         DireccionId id = new DireccionId(personaId, coloniaId, tipoId);
-        return direccionRepository.findById(id)
-                .orElseThrow(() -> new ReferenciaInvalidaException(
-                        "No existe la dirección (persona=" + personaId + ", colonia=" + coloniaId + ", tipo=" + tipoId + ")"));
+        return direccionRepository.findById(id).orElseThrow(
+                        () -> new ReferenciaInvalidaException("No existe la dirección (persona=" + personaId + ", colonia=" + coloniaId + ", tipo=" + tipoId + ")"));
     }
 }

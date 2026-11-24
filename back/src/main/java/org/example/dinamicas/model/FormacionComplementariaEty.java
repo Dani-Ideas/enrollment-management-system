@@ -15,7 +15,9 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
-// 1:N con InscripcionEty por FK (ID_INSCRIPCION).
+// 1:N con InscripcionEty (legacy) o con SolNInscripcionEty (nuevas altas de cualquier nivel) --
+// exactamente una de las dos FK se puebla por fila, decidido por el service que inserta
+// (nunca por el cliente), nunca ambas ni ninguna.
 @Getter
 @Setter
 @Entity
@@ -29,8 +31,12 @@ public class FormacionComplementariaEty {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ID_INSCRIPCION", nullable = false)
+    @JoinColumn(name = "ID_INSCRIPCION", nullable = true)
     private InscripcionEty inscripcion;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ID_SOL_N_INSCRIPCION", nullable = true)
+    private SolNInscripcionEty solicitud;
 
     @NotNull
     @Size(max = 255)

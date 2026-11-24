@@ -16,11 +16,13 @@ export function CampoResponsables({
   idPrefix,
   responsablesQuery,
   mostrarPlaceholder = true,
+  disabled = false,
 }: {
   form: InscripcionFormApi["form"]
   idPrefix: string
   responsablesQuery: CatalogoResponsable
   mostrarPlaceholder?: boolean
+  disabled?: boolean
 }) {
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -33,6 +35,7 @@ export function CampoResponsables({
               value={field.state.value}
               onChange={(e) => field.handleChange(e.target.value)}
               onBlur={field.handleBlur}
+              disabled={disabled}
             >
               {mostrarPlaceholder && (
                 <option value="">{responsablesQuery.isLoading ? "Cargando…" : "Seleccioná…"}</option>
@@ -55,6 +58,7 @@ export function CampoResponsables({
               value={field.state.value}
               onChange={(e) => field.handleChange(e.target.value)}
               onBlur={field.handleBlur}
+              disabled={disabled}
             >
               {mostrarPlaceholder && (
                 <option value="">{responsablesQuery.isLoading ? "Cargando…" : "Seleccioná…"}</option>
@@ -77,6 +81,7 @@ export function CampoResponsables({
               value={field.state.value}
               onChange={(e) => field.handleChange(e.target.value)}
               onBlur={field.handleBlur}
+              disabled={disabled}
             >
               {mostrarPlaceholder && (
                 <option value="">{responsablesQuery.isLoading ? "Cargando…" : "Seleccioná…"}</option>

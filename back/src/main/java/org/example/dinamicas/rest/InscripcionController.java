@@ -17,10 +17,8 @@ import jakarta.ws.rs.core.UriInfo;
 import org.example.dinamicas.dto.InscripcionConFormacionComplementariaDto;
 import org.example.dinamicas.dto.InscripcionConFormacionComplementariaRequestDto;
 import org.example.dinamicas.service.InscripcionService;
+import org.example.general.RespuestasRest;
 
-import java.net.URI;
-
-import static org.example.general.ApplicationConfig.Endpoints.FORMACIONES_COMPLEMENTARIAS;
 import static org.example.general.ApplicationConfig.Endpoints.INSCRIPCIONES;
 
 @RequestScoped
@@ -28,10 +26,10 @@ import static org.example.general.ApplicationConfig.Endpoints.INSCRIPCIONES;
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class InscripcionController {
-
+    //Inject region
     @Inject
     private InscripcionService inscripcionService;
-
+    //endregion
     @GET
     public Response listar() {
         return Response.ok(inscripcionService.listar()).build();
@@ -39,24 +37,16 @@ public class InscripcionController {
 
     @GET
     @Path("/{id}")
+    // Trae la Inscripcion + sus formaciones complementarias -- el front las necesita antes
+    // de un PUT (que manda la lista COMPLETA que debe quedar).
     public Response buscar(@PathParam("id") Long id) {
-        return Response.ok(inscripcionService.buscarPorId(id)).build();
-    }
-
-    @GET
-    @Path("/{id}" + FORMACIONES_COMPLEMENTARIAS)
-    public Response listarFormaciones(@PathParam("id") Long id) {
-        return Response.ok(inscripcionService.listarFormaciones(id)).build();
+        return Response.ok(inscripcionService.buscarConFormaciones(id)).build();
     }
 
     @POST
-    // 201 Created + Location hacia la inscripcion nueva (RFC 9110 §15.3.2).
     public Response crear(@Valid InscripcionConFormacionComplementariaRequestDto dto, @Context UriInfo uriInfo) {
         InscripcionConFormacionComplementariaDto creada = inscripcionService.crear(dto);
-        URI ubicacion = uriInfo.getAbsolutePathBuilder()
-                .path(String.valueOf(creada.inscripcion().id()))
-                .build();
-        return Response.created(ubicacion).entity(creada).build();
+        return RespuestasRest.creado(uriInfo, creada.inscripcion().id(), creada);
     }
 
     @PUT

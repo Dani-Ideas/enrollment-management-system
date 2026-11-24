@@ -6,13 +6,6 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --legacy-bg: #fafaf8;
-  --legacy-surface: #ffffff;
-  --legacy-border: #e3e1dc;
-  --legacy-text: #22221f;
-  --legacy-text-muted: #706e68;
-  --legacy-accent: #3d5a80;
-  --legacy-error: #b3402a;
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
     sans-serif;
   --font-mono: "SF Mono", "Cascadia Code", Consolas, monospace;
@@ -84,253 +77,49 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
-* {
-  box-sizing: border-box;
+/* --- Tokens propios de la app -------------------------------------------------------
+   Todo valor que antes estaba escrito a mano dentro de una clase o de un selector suelto
+   (max-width: 860px, h-[min(70vh,36rem)], font-size: 15px...) vive ACA y se consume por
+   nombre. Dos formas, segun si Tailwind v4 tiene un namespace para esa propiedad:
+
+   - Con namespace -> @theme, y Tailwind genera la utilidad: --container-* da max-w y w,
+     --text-* da text (con su --text-*--line-height), --tracking-* da tracking.
+     OJO al escribir estos comentarios: la secuencia "asterisco + barra" CIERRA el
+     comentario donde este. Escrito "max-w-*" + "/w-*" (sin espacio) el comentario
+     terminaba ahi, el resto del texto se parseaba como CSS invalido y se llevaba puesto
+     el bloque :root de abajo: las dos variables de alto no llegaban al bundle, y con
+     height:var(--...) sin definir el wizard entero colapsaba a una franja de 20px.
+   - Sin namespace (las alturas) -> custom property normal en :root, y se usa con la forma
+     corta de variable de Tailwind: h-(--alto-pasos-wizard), que es h-[var(--...)].
+
+   Los tamanios del panel redimensionable NO estan aca: la libreria los recibe por prop
+   (defaultSize="280px"), no por clase, asi que una variable CSS no le sirve -- esos son
+   constantes de TypeScript en components/inscripcion-form/types.ts.
+
+   REGLA: nada de CSS fuera de @layer. Lo que se escribe sin capa le gana a TODAS las
+   utilidades de Tailwind (que viven en la capa "utilities"), sin importar el orden ni la
+   especificidad -- de ahi venian los conflictos: un "section" o un ".pagina" sueltos
+   pisaban cualquier "mb" o "max-w" que se le pusiera al elemento, y la unica salida era
+   pelearlo con !important. Si algo necesita ser CSS y no una clase, va en @layer base
+   (elementos) o @layer components (patrones), nunca al aire. --- */
+:root {
+  /* Alturas de las vistas con scroll propio (viewport con techo en rem/px). */
+  --alto-pasos-wizard: min(70vh, 36rem);
+  --alto-wizard-escritorio: min(85vh, 900px);
 }
 
-body {
-  margin: 0;
-  background: var(--legacy-bg);
-  color: var(--legacy-text);
-  font-family: var(--font-sans);
-  font-size: 15px;
-  line-height: 1.55;
-}
+@theme {
+  /* Sin tokens de ancho de pagina a proposito: el marco (RootLayout) va al 100% del
+     viewport en todos los breakpoints -- el tope de 860/1080/1400px que tenia la vieja
+     clase .pagina ya no existe. */
 
-.pagina {
-  max-width: 860px;
-  margin: 0 auto;
-  padding: 3rem 1.5rem 5rem;
-}
-
-.encabezado {
-  margin-bottom: 3rem;
-  padding-bottom: 1.5rem;
-  border-bottom: 1px solid var(--legacy-border);
-}
-
-.encabezado h1 {
-  margin: 0 0 0.35rem;
-  font-size: 1.75rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
-.subtitulo {
-  margin: 0 0 1rem;
-  color: var(--legacy-text-muted);
-  font-size: 0.9rem;
-}
-
-.nav {
-  display: flex;
-  gap: 1.25rem;
-}
-
-.nav a {
-  color: var(--legacy-text-muted);
-  text-decoration: none;
-  font-size: 0.9rem;
-  padding-bottom: 0.25rem;
-  border-bottom: 2px solid transparent;
-}
-
-.nav a:hover {
-  color: var(--legacy-text);
-}
-
-.nav-activo {
-  color: var(--legacy-text) !important;
-  border-bottom-color: var(--legacy-accent) !important;
-  font-weight: 600;
-}
-
-.botones-inicio {
-  display: flex;
-  gap: 0.75rem;
-}
-
-section {
-  margin-bottom: 3rem;
-}
-
-section h2 {
-  margin: 0 0 1rem;
-  font-size: 1.05rem;
-  font-weight: 600;
-  color: var(--legacy-text);
-}
-
-.tabla {
-  width: 100%;
-  border-collapse: collapse;
-  background: var(--legacy-surface);
-  font-size: 0.9rem;
-}
-
-.tabla thead th {
-  text-align: left;
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--legacy-text-muted);
-  border-bottom: 2px solid var(--legacy-border);
-  padding: 0.6rem 0.75rem;
-}
-
-.tabla tbody td {
-  padding: 0.65rem 0.75rem;
-  border-bottom: 1px solid var(--legacy-border);
-}
-
-.tabla tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.tabla tbody tr:hover td {
-  background: rgba(61, 90, 128, 0.04);
-}
-
-.tabla .num {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
-.tabla-anidada {
-  font-size: 0.85rem;
-}
-
-.detalle-celda {
-  padding: 0.75rem 0.75rem 1rem 2.25rem;
-  background: #f5f4f0;
-}
-
-.expander {
-  border: 1px solid var(--legacy-border);
-  background: var(--legacy-surface);
-  color: var(--legacy-text-muted);
-  width: 1.6rem;
-  height: 1.6rem;
-  border-radius: 4px;
-  font-size: 0.85rem;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.expander:hover {
-  border-color: var(--legacy-accent);
-  color: var(--legacy-accent);
-}
-
-.estado {
-  color: var(--legacy-text-muted);
-  font-size: 0.9rem;
-  padding: 0.5rem 0;
-}
-
-.estado-error {
-  color: var(--legacy-error);
-}
-
-/* Formulario de productos */
-
-.formulario {
-  max-width: 360px;
-  margin-bottom: 1.5rem;
-  padding: 1.25rem;
-  background: var(--legacy-surface);
-  border: 1px solid var(--legacy-border);
-  border-radius: 6px;
-}
-
-.formulario h3 {
-  margin: 0 0 1rem;
-  font-size: 0.95rem;
-  font-weight: 600;
-}
-
-.campo {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  margin-bottom: 0.85rem;
-}
-
-.campo label {
-  font-size: 0.78rem;
-  color: var(--legacy-text-muted);
-}
-
-.campo input {
-  font: inherit;
-  padding: 0.45rem 0.6rem;
-  border: 1px solid var(--legacy-border);
-  border-radius: 4px;
-  background: var(--legacy-bg);
-  color: var(--legacy-text);
-}
-
-.campo input:focus {
-  outline: none;
-  border-color: var(--legacy-accent);
-}
-
-.acciones-formulario {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 1rem;
-}
-
-.acciones-formulario button,
-.boton-nuevo {
-  font: inherit;
-  font-size: 0.85rem;
-  padding: 0.45rem 0.9rem;
-  border-radius: 4px;
-  border: 1px solid var(--legacy-accent);
-  background: var(--legacy-accent);
-  color: #fff;
-  cursor: pointer;
-  display: inline-block;
-  text-decoration: none;
-}
-
-.acciones-formulario button:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-
-.boton-secundario {
-  background: var(--legacy-surface) !important;
-  color: var(--legacy-text) !important;
-  border-color: var(--legacy-border) !important;
-}
-
-.boton-nuevo {
-  margin-bottom: 1.25rem;
-}
-
-/* Acciones dentro de las filas de la tabla */
-
-.acciones-fila {
-  display: flex;
-  gap: 0.75rem;
-}
-
-.boton-link {
-  font: inherit;
-  font-size: 0.8rem;
-  background: none;
-  border: none;
-  padding: 0;
-  color: var(--legacy-accent);
-  cursor: pointer;
-  text-decoration: underline;
-}
-
-.boton-peligro {
-  color: var(--legacy-error);
+  /* Tipografia de la app: el cuerpo (los 15px historicos), el titulo del marco y los
+     titulos de seccion. */
+  --text-cuerpo: 0.9375rem;
+  --text-cuerpo--line-height: 1.55;
+  --text-titulo-pagina: 1.75rem;
+  --text-seccion: 1.05rem;
+  --tracking-titulo: -0.01em;
 }
 
 @theme inline {
@@ -415,7 +204,7 @@ section h2 {
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground text-cuerpo;
   }
   html {
     @apply font-sans;

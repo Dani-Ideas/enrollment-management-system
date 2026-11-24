@@ -13,8 +13,8 @@ export function SalirSitioPage() {
   }
 
   return (
-    <section className="max-w-lg">
-      <h2>Opción 1 · Salir del sitio</h2>
+    <section className="mb-12">
+      <h2 className="text-seccion mb-4 font-semibold">Opción 1 · Salir del sitio</h2>
 
       <Alert variant="destructive" className="mb-4">
         <TriangleAlertIcon />

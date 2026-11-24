@@ -3,6 +3,11 @@ package org.example.general;
 import jakarta.ws.rs.ApplicationPath;
 import org.example.estaticos.rest.*;
 import org.example.dinamicas.rest.InscripcionController;
+import org.example.dinamicas.rest.SolNInscripcionController;
+import org.example.dinamicas.rest.InscripcionChecklistController;
+import org.example.dinamicas.rest.InscripcionPruebaController;
+import org.example.dinamicas.rest.InscripcionDocumentoController;
+import org.example.dinamicas.rest.InscripcionAvisoVersionController;
 import org.example.dinamicas.rest.DireccionController;
 import org.example.dinamicas.rest.PersonaController;
 import org.example.dinamicas.rest.EntregaController;
@@ -38,14 +43,23 @@ public class ApplicationConfig extends ResourceConfig {
         public static final String SISTEMAS = "/sistemas";
         public static final String RESPONSABLES = "/responsables";
         public static final String AMBIENTES = "/ambientes";
+        // INSCRIPCIONES (arriba) queda solo para leer/editar lo creado antes de este cambio
+        // (legacy, "Primaria" de la vieja cadena de diplomas). Para altas nuevas de
+        // CUALQUIER nivel (Primaria/Secundaria/Universidad) se usa SOLICITUDES, que
+        // reemplaza por completo al viejo diseño de columnas booleanas fijas por nivel
+        // (Diploma*Ety/InscripcionSecundaria/UniversidadEty/CadenaDiplomas*).
         public static final String INSCRIPCIONES = "/inscripciones";
 
-        // "Formaciones complementarias" 1:N ligadas a una Inscripcion por FK -- subrecurso
-        // de solo lectura: GET /inscripciones/{id}/formaciones-complementarias.
-        public static final String FORMACIONES_COMPLEMENTARIAS = "/formaciones-complementarias";
+        public static final String ETAPAS_INSCRIPCION = "/etapas-inscripcion";
+        public static final String TIPOS_PRUEBA = "/tipos-prueba";
+        public static final String SOLICITUDES = "/solicitudes";
+        public static final String SOLICITUDES_CHECKLIST = "/solicitudes/{solicitudId}/checklist";
+        public static final String SOLICITUDES_PRUEBAS = "/solicitudes/{solicitudId}/pruebas";
+        public static final String SOLICITUDES_DOCUMENTO = "/solicitudes/{solicitudId}/documento";
+        public static final String SOLICITUDES_AVISO_VERSIONES = "/solicitudes/{solicitudId}/aviso-versiones";
 
         // "Tablas genericas" para el formulario de inscripcion -- no es un recurso por
-        // entidad, es un bundle de los 4 catalogos de arriba en una sola respuesta.
+        // entidad, es un bundle de los catalogos de arriba en una sola respuesta.
         public static final String CATALOGOS_INSCRIPCION = "/catalogos-inscripcion";
 
         // Direcciones: catalogos geograficos (cat) y personas con sus direcciones (dinamica).
@@ -71,6 +85,13 @@ public class ApplicationConfig extends ResourceConfig {
         REGISTRO_ACTIVO.put(Endpoints.RESPONSABLES, MiniFormRespController.class);
         REGISTRO_ACTIVO.put(Endpoints.AMBIENTES, MiniFormAmbController.class);
         REGISTRO_ACTIVO.put(Endpoints.INSCRIPCIONES, InscripcionController.class);
+        REGISTRO_ACTIVO.put(Endpoints.ETAPAS_INSCRIPCION, CatEtapaInscripcionController.class);
+        REGISTRO_ACTIVO.put(Endpoints.TIPOS_PRUEBA, CatTipoPruebaController.class);
+        REGISTRO_ACTIVO.put(Endpoints.SOLICITUDES, SolNInscripcionController.class);
+        REGISTRO_ACTIVO.put(Endpoints.SOLICITUDES_CHECKLIST, InscripcionChecklistController.class);
+        REGISTRO_ACTIVO.put(Endpoints.SOLICITUDES_PRUEBAS, InscripcionPruebaController.class);
+        REGISTRO_ACTIVO.put(Endpoints.SOLICITUDES_DOCUMENTO, InscripcionDocumentoController.class);
+        REGISTRO_ACTIVO.put(Endpoints.SOLICITUDES_AVISO_VERSIONES, InscripcionAvisoVersionController.class);
         REGISTRO_ACTIVO.put(Endpoints.CATALOGOS_INSCRIPCION, CatalogosInscripcionController.class);
         REGISTRO_ACTIVO.put(Endpoints.CATALOGOS_GEOGRAFICOS, CatalogosGeograficosController.class);
         REGISTRO_ACTIVO.put(Endpoints.PERSONAS, PersonaController.class);

@@ -9,7 +9,7 @@ import { Toaster } from "@/components/ui/toast";
 // nunca "parpadea" al cambiar de pagina, solo el contenido de <Outlet/> cambia.
 //
 // Sin <nav> a proposito: la navegacion entre paginas vive en HomePage (la lista de
-// botones + el PieMenu), no en un menu fijo arriba -- para volver a "/" desde cualquier
+// botones + el DrillMenu), no en un menu fijo arriba -- para volver a "/" desde cualquier
 // pagina, usa el boton "atras" del navegador o escribe la URL.
 export function RootLayout() {
   const queryClient = useQueryClient();
@@ -27,9 +27,19 @@ export function RootLayout() {
   }, [queryClient]);
 
   return (
-    <div className="pagina">
-      <header className="encabezado">
-        <h1>Sistema de Matrículas</h1>
+    // El marco de pagina ya no es una clase CSS propia (.pagina/.encabezado): son
+    // utilidades sobre los tokens de index.css. Asi cualquier pagina puede pisar un valor
+    // desde su JSX -- con la clase suelta era imposible: estaba fuera de @layer y le
+    // ganaba a toda utilidad.
+    //
+    // ANCHO COMPLETO, sin tope: el marco ocupa el 100% y no hay max-width ni mx-auto en
+    // ningun breakpoint (por eso tampoco quedan tokens --container-pagina*). Lo unico que
+    // queda son los gutters laterales, que crecen con el viewport; si alguna pagina
+    // necesita una columna angosta, se la pone ELLA (ver la rama angosta de
+    // FormularioInscripciones), no el marco.
+    <div className="w-full px-6 pt-12 pb-20 md:px-8 lg:px-12">
+      <header className="mb-12 border-b pb-6">
+        <h1 className="text-titulo-pagina mb-1.5 font-semibold tracking-titulo">Sistema de Matrículas</h1>
       </header>
 
       <main>

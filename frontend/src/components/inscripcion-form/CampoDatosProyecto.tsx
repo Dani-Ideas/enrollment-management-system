@@ -11,10 +11,12 @@ export function CampoDatosProyecto({
   form,
   idPrefix,
   mostrarEjemplos = true,
+  disabled = false,
 }: {
   form: InscripcionFormApi["form"]
   idPrefix: string
   mostrarEjemplos?: boolean
+  disabled?: boolean
 }) {
   return (
     <>
@@ -27,6 +29,7 @@ export function CampoDatosProyecto({
               value={field.state.value}
               onChange={(e) => field.handleChange(e.target.value)}
               onBlur={field.handleBlur}
+              disabled={disabled}
               placeholder={mostrarEjemplos ? "Ej. Migración de facturación" : undefined}
               required
             />
@@ -42,6 +45,7 @@ export function CampoDatosProyecto({
               value={field.state.value}
               onChange={(e) => field.handleChange(e.target.value)}
               onBlur={field.handleBlur}
+              disabled={disabled}
               placeholder={mostrarEjemplos ? "Ej. 1.0.0" : undefined}
               required
             />
@@ -58,6 +62,7 @@ export function CampoDatosProyecto({
               value={field.state.value}
               onChange={(e) => field.handleChange(e.target.value)}
               onBlur={field.handleBlur}
+              disabled={disabled}
               required
             />
           )}
@@ -73,6 +78,7 @@ export function CampoDatosProyecto({
               value={field.state.value}
               onChange={(e) => field.handleChange(e.target.value)}
               onBlur={field.handleBlur}
+              disabled={disabled}
             />
           )}
         </form.Field>
@@ -86,6 +92,7 @@ export function CampoDatosProyecto({
               value={field.state.value}
               onChange={(e) => field.handleChange(e.target.value)}
               onBlur={field.handleBlur}
+              disabled={disabled}
               placeholder="Opcional…"
             />
           )}
