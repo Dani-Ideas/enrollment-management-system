@@ -11,6 +11,7 @@ import { etiquetaPaso, totalPasos } from "./types"
 // maxStep/onStepChange (el vocabulario generico del Stepper).
 export function PasosNavegacion({
   accion,
+  conPaneles,
   current,
   maxStep,
   onIrAPaso,
@@ -18,6 +19,9 @@ export function PasosNavegacion({
   bloqueadoGlobalmente,
 }: {
   accion: Accion | null
+  // Si el ambiente de la inscripcion lleva los pasos de checklist/pruebas/documentacion --
+  // cambia CUANTOS pasos tiene el flujo, no solo sus etiquetas (ver pasosDe en types.ts).
+  conPaneles: boolean
   current: number
   maxStep: number
   onIrAPaso: (indice: number) => void
@@ -27,7 +31,9 @@ export function PasosNavegacion({
   pasoEnCurso?: number | null
   bloqueadoGlobalmente?: boolean
 }) {
-  const pasos = Array.from({ length: totalPasos(accion) }, (_, i) => etiquetaPaso(accion, i))
+  const pasos = Array.from({ length: totalPasos(accion, conPaneles) }, (_, i) =>
+    etiquetaPaso(accion, i, conPaneles),
+  )
 
   return (
     <ChevronStepper

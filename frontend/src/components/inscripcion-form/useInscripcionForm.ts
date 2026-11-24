@@ -31,6 +31,7 @@ import type { SeccionResumen } from "./ResumenCadena"
 import {
   type Accion,
   type AvisoVersionEditable,
+  type PasoCadena,
   type CamposFormulario,
   type ChecklistItemEditable,
   type DocumentoEditable,
@@ -41,6 +42,7 @@ import {
   CHECKLIST_ITEM_VACIO,
   CORTE_ESCRITORIO,
   DOCUMENTO_VACIO,
+  pasosDe,
   PRUEBA_ITEM_VACIO,
   aInputDatetime,
 } from "./types"
@@ -242,6 +244,71 @@ export function useInscripcionForm({
   }
   const catalogosListos = catalogosQuery.isSuccess
 
+  // --- Que pasos tiene el flujo: depende de la accion Y DEL AMBIENTE ---
+  // Los pasos de paneles (checklist/pruebas/documentacion/aviso) son parte del proceso SOLO
+  // en el ambiente principal; en cualquier otro, una inscripcion es nada mas sus datos, y
+  // esos pasos -- con sus peticiones HTTP -- no existen (ver pasosDe en types.ts).
+  //
+  // "Principal" = el ambiente de ID MAS CHICO, o sea la primera fila que se inserto (los ids
+  // salen de MINIFORMAMB_SEQ). NO es "el primer elemento de la lista": el cache de catalogos
+  // guarda los ambientes en un ConcurrentHashMap y los sirve con List.copyOf(values()) (ver
+  // CatalogoInscripcionCacheImpl.listarAmbientes), asi que el ORDEN DE LA LISTA ES
+  // INDEFINIDO -- es el de la tabla hash, puede cambiar entre despliegues y no tiene por que
+  // empezar por la fila 1. Tomar data[0] hacia que el ambiente principal fuera cualquiera, y
+  // con eso el formulario perdia (o mostraba de mas) los pasos de paneles.
+  //
+  // Tampoco se compara contra un id fijo a mano: no hay seeder ni columna "orden" en
+  // MINIFORMAMB, asi que "ambiente === 1" apuntaria a otra sucursal en la proxima base
+  // (mismo motivo que idEtapa/idEstadoPorDefecto). El minimo da lo mismo que "el id 1" en
+  // esta base, pero sin depender ni del orden ni del valor.
+  //
+  // El ambiente que manda es el de la inscripcion que se esta trabajando: en "crear" lo
+  // precarga elegirAccion desde ?ambiente=... y el usuario lo puede cambiar en el primer
+  // paso; en "actualizar"/"consultar" lo trae la solicitud cargada (el ?ambiente= de la URL
+  // ahi es solo el filtro del selector, puede no coincidir con la solicitud elegida).
+  // Mientras todavia no se sepa (catalogos en vuelo, o ninguna solicitud elegida) se asume el
+  // flujo COMPLETO: es mejor mostrar pasos que despues desaparecen que esconder pasos que
+  // despues aparecen.
+  function idAmbientePrincipal(): string {
+    const ambientes = ambientesQuery.data
+    if (ambientes === undefined || ambientes.length === 0) return ""
+    return String(ambientes.reduce((a, b) => (a.id <= b.id ? a : b)).id)
+  }
+
+  const llevaPaneles =
+    !catalogosListos || campos.ambienteId === "" || campos.ambienteId === idAmbientePrincipal()
+
+  const pasos = pasosDe(accion, llevaPaneles)
+  const ultimoPaso = Math.max(pasos.length - 1, 0)
+
+  // Indice de un paso logico en el flujo ACTUAL, o -1 si no existe en este ambiente. Todo el
+  // front pregunta por aca en vez de escribir un numero: los indices se corren segun el
+  // ambiente (en "crear" sin paneles, "datos-secundaria" es el 2, no el 3).
+  function pasoDe(paso: PasoCadena): number {
+    return pasos.indexOf(paso)
+  }
+
+  // Indice del paso que viene DESPUES de "paso" -- el siguiente que exista de verdad, que es
+  // lo que necesitan los botones "Siguiente"/"Continuar". Si es el ultimo, su propio indice.
+  function trasPaso(paso: PasoCadena): number {
+    const i = pasos.indexOf(paso)
+    if (i === -1) return 0
+    return Math.min(i + 1, ultimoPaso)
+  }
+
+  // Si el flujo se acorta a mitad de camino (el usuario cambia el ambiente en "crear", o
+  // carga una solicitud de otro ambiente), ni el paso actual ni el tope desbloqueado pueden
+  // quedar apuntando a un paso que ya no existe.
+  useEffect(() => {
+    if (maxStepRef.current > ultimoPaso) {
+      maxStepRef.current = ultimoPaso
+      setMaxStep(ultimoPaso)
+    }
+    if (currentRef.current > ultimoPaso) {
+      api?.scrollTo(ultimoPaso)
+    }
+  }, [ultimoPaso, api])
+
   // Resuelve el id de CAT_ETAPA_INSCRIPCION por "orden" (1=Primaria, 2=Secundaria,
   // 3=Universidad) -- nunca un id fijo a mano: no hay seeder, el id real depende de en que
   // orden se insertaron las filas en cada base (ver CLAUDE.md).
@@ -391,8 +458,8 @@ export function useInscripcionForm({
       // creada, se desbloquea TODO el resto de un saque (ya no paso a paso via
       // continuarCadena/enviarCadena): el usuario navega libremente, el backend sigue
       // validando el orden real al "Finalizar y enviar" (409 si corresponde).
-      desbloquearHasta(7)
-      api?.scrollTo(1)
+      desbloquearHasta(ultimoPaso)
+      api?.scrollTo(pasoDe("confirmar-creacion"))
     },
   })
 
@@ -753,22 +820,31 @@ export function useInscripcionForm({
   // cada panel de ese nivel) es su propia llamada, en orden -- el backend sigue validando
   // la cadena (409 si el nivel anterior no tiene su VoBo completo), asi que un corte a
   // mitad de camino simplemente deja de avanzar, sin dejar nada corrupto (lo ya guardado
-  // queda guardado). "hastaPaso" es el paso de "crear" desde el que se apreto "Finalizar y
-  // enviar" (2 = paneles de primaria, 3 = crear secundaria, 4 = sus paneles, 5 = crear
-  // universidad, 6 = sus paneles; ver etiquetaPaso) -- cada umbral de abajo es ese paso.
+  // queda guardado). "hastaPaso" es el INDICE del paso desde el que se apreto "Finalizar y
+  // enviar", y cada tramo de abajo pregunta si ese indice llega a su propio paso.
+  //
+  // Los umbrales son por ID de paso, no por numero: en un ambiente sin paneles esos pasos no
+  // existen (pasoDe devuelve -1), asi que "alcanza" da false y la secuencia se saltea esas
+  // peticiones sola -- crear la cadena completa ahi son 2 POST (secundaria y universidad) en
+  // vez de 2 POST + 3 tandas de paneles.
   async function enviarSecuenciaCadena(hastaPaso: number) {
     const primariaId = crearSolicitudMutation.data?.solicitud.id
     if (primariaId === undefined) {
       throw new Error("Todavía no se creó la solicitud de primaria")
     }
 
-    if (hastaPaso >= 2) {
+    const alcanza = (paso: PasoCadena) => {
+      const indice = pasoDe(paso)
+      return indice !== -1 && hastaPaso >= indice
+    }
+
+    if (alcanza("paneles-primaria")) {
       await guardarPanelesNivel(primariaId, checklistPrimaria, pruebasPrimaria, documentoPrimaria, avisoPrimaria)
       setVoBoPrimaria((await fetchSolicitud(primariaId)).voBo ?? null)
     }
 
     let secundariaId = solicitudSecundariaId
-    if (hastaPaso >= 3 && secundariaId === null) {
+    if (alcanza("datos-secundaria") && secundariaId === null) {
       const creada = await crearSolicitud({
         solicitud: armarSolicitudRequestDto(camposInscripcionSecundaria, idEtapa(2), primariaId),
         formacionesComplementarias: [],
@@ -777,13 +853,13 @@ export function useInscripcionForm({
       setSolicitudSecundariaId(secundariaId)
     }
 
-    if (hastaPaso >= 4 && secundariaId !== null) {
+    if (alcanza("paneles-secundaria") && secundariaId !== null) {
       await guardarPanelesNivel(secundariaId, checklistSecundaria, pruebasSecundaria, documentoSecundaria, avisoSecundaria)
       setVoBoSecundaria((await fetchSolicitud(secundariaId)).voBo ?? null)
     }
 
     let universidadId = solicitudUniversidadId
-    if (hastaPaso >= 5 && secundariaId !== null && universidadId === null) {
+    if (alcanza("datos-universidad") && secundariaId !== null && universidadId === null) {
       const creada = await crearSolicitud({
         solicitud: armarSolicitudRequestDto(camposInscripcionUniversidad, idEtapa(3), secundariaId),
         formacionesComplementarias: [],
@@ -792,7 +868,7 @@ export function useInscripcionForm({
       setSolicitudUniversidadId(universidadId)
     }
 
-    if (hastaPaso >= 6 && universidadId !== null) {
+    if (alcanza("paneles-universidad") && universidadId !== null) {
       await guardarPanelesNivel(
         universidadId,
         checklistUniversidad,
@@ -804,14 +880,14 @@ export function useInscripcionForm({
     }
   }
 
-  // onSuccess SIEMPRE salta al paso 7 (el de la Confirmacion final), sin importar desde que
-  // paso se disparo "Finalizar y enviar" -- asi hay un UNICO lugar que muestra el resultado
-  // final (el paso 7), en vez de duplicar esa vista en cada nivel.
+  // onSuccess SIEMPRE salta a "confirmar-cadena", sin importar desde que paso se disparo
+  // "Finalizar y enviar" -- asi hay un UNICO lugar que muestra el resultado final, en vez de
+  // duplicar esa vista en cada nivel.
   const cadenaMutation = useMutation({
     mutationFn: enviarSecuenciaCadena,
     onSuccess: () => {
-      desbloquearHasta(7)
-      api?.scrollTo(7)
+      desbloquearHasta(ultimoPaso)
+      api?.scrollTo(pasoDe("confirmar-cadena"))
     },
   })
 
@@ -963,8 +1039,8 @@ export function useInscripcionForm({
   const consultarMutation = useMutation({
     mutationFn: cargarConsulta,
     onSuccess: () => {
-      desbloquearHasta(6)
-      api?.scrollTo(1)
+      desbloquearHasta(ultimoPaso)
+      api?.scrollTo(pasoDe("datos-primaria"))
     },
   })
 
@@ -1075,8 +1151,8 @@ export function useInscripcionForm({
   const actualizarCargaMutation = useMutation({
     mutationFn: cargarActualizacion,
     onSuccess: () => {
-      desbloquearHasta(6)
-      api?.scrollTo(1)
+      desbloquearHasta(ultimoPaso)
+      api?.scrollTo(pasoDe("datos-primaria"))
     },
   })
 
@@ -1306,6 +1382,14 @@ export function useInscripcionForm({
     maxStep,
     irAPaso,
     anterior,
+
+    // El flujo (que pasos hay y en que posicion) -- la pagina monta sus slides con esto y
+    // pregunta indices con pasoDe/trasPaso, nunca escribe un numero de paso.
+    llevaPaneles,
+    pasos,
+    ultimoPaso,
+    pasoDe,
+    trasPaso,
     desbloquearHasta,
 
     form,
