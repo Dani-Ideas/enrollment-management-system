@@ -100,16 +100,13 @@
 :root {
   /* Alturas de las vistas con scroll propio (viewport con techo en rem/px). */
   --alto-pasos-wizard: min(70vh, 36rem);
-  --alto-menu-drill: min(70vh, 32rem);
   --alto-wizard-escritorio: min(85vh, 900px);
 }
 
 @theme {
-  /* Ancho del marco de pagina (RootLayout) en sus 3 cortes -- mismos breakpoints que
-     md/lg de Tailwind. */
-  --container-pagina: 860px;
-  --container-pagina-md: 1080px;
-  --container-pagina-lg: 1400px;
+  /* Sin tokens de ancho de pagina a proposito: el marco (RootLayout) va al 100% del
+     viewport en todos los breakpoints -- el tope de 860/1080/1400px que tenia la vieja
+     clase .pagina ya no existe. */
 
   /* Tipografia de la app: el cuerpo (los 15px historicos), el titulo del marco y los
      titulos de seccion. */

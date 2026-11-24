@@ -1224,7 +1224,7 @@ export function FormularioInscripciones() {
           </ResizablePanelGroup>
         </div>
       ) : (
-        <div className="max-w-2xl sm:max-w-3xl">
+        <div className="w-full">
           {encabezado}
           {pasosNavegacion}
           {tarjetaFormulario}
