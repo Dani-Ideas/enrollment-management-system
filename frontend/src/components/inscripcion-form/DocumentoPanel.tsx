@@ -3,7 +3,6 @@ import { Field, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import type { DocumentoEditable } from "./types"
 
-// 1:1 con la solicitud -- un solo checkbox + un comentario, no una lista.
 export function DocumentoPanel({
   idPrefix,
   valor,

@@ -77,44 +77,17 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
-/* --- Tokens propios de la app -------------------------------------------------------
-   Todo valor que antes estaba escrito a mano dentro de una clase o de un selector suelto
-   (max-width: 860px, h-[min(70vh,36rem)], font-size: 15px...) vive ACA y se consume por
-   nombre. Dos formas, segun si Tailwind v4 tiene un namespace para esa propiedad:
 
-   - Con namespace -> @theme, y Tailwind genera la utilidad: --container-* da max-w y w,
-     --text-* da text (con su --text-*--line-height), --tracking-* da tracking.
-     OJO al escribir estos comentarios: la secuencia "asterisco + barra" CIERRA el
-     comentario donde este. Escrito "max-w-*" + "/w-*" (sin espacio) el comentario
-     terminaba ahi, el resto del texto se parseaba como CSS invalido y se llevaba puesto
-     el bloque :root de abajo: las dos variables de alto no llegaban al bundle, y con
-     height:var(--...) sin definir el wizard entero colapsaba a una franja de 20px.
-   - Sin namespace (las alturas) -> custom property normal en :root, y se usa con la forma
-     corta de variable de Tailwind: h-(--alto-pasos-wizard), que es h-[var(--...)].
 
-   Los tamanios del panel redimensionable NO estan aca: la libreria los recibe por prop
-   (defaultSize="280px"), no por clase, asi que una variable CSS no le sirve -- esos son
-   constantes de TypeScript en components/inscripcion-form/types.ts.
 
-   REGLA: nada de CSS fuera de @layer. Lo que se escribe sin capa le gana a TODAS las
-   utilidades de Tailwind (que viven en la capa "utilities"), sin importar el orden ni la
-   especificidad -- de ahi venian los conflictos: un "section" o un ".pagina" sueltos
-   pisaban cualquier "mb" o "max-w" que se le pusiera al elemento, y la unica salida era
-   pelearlo con !important. Si algo necesita ser CSS y no una clase, va en @layer base
-   (elementos) o @layer components (patrones), nunca al aire. --- */
 :root {
-  /* Alturas de las vistas con scroll propio (viewport con techo en rem/px). */
   --alto-pasos-wizard: min(70vh, 36rem);
+  /* ◽ RESUMEN: alto del marco de escritorio (el ResizablePanelGroup resumen|formulario). */
   --alto-wizard-escritorio: min(85vh, 900px);
 }
 
 @theme {
-  /* Sin tokens de ancho de pagina a proposito: el marco (RootLayout) va al 100% del
-     viewport en todos los breakpoints -- el tope de 860/1080/1400px que tenia la vieja
-     clase .pagina ya no existe. */
 
-  /* Tipografia de la app: el cuerpo (los 15px historicos), el titulo del marco y los
-     titulos de seccion. */
   --text-cuerpo: 0.9375rem;
   --text-cuerpo--line-height: 1.55;
   --text-titulo-pagina: 1.75rem;

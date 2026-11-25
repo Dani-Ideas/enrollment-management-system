@@ -4,20 +4,11 @@ import { CATALOGOS_INSCRIPCION_QUERY } from "@/api/client"
 import { DrillMenu, type DrillMenuItem } from "../components/ui/DrillMenu"
 
 export function HomePage() {
-  // Mismo catalogo/cache que usa useInscripcionForm (RootLayout.tsx ya lo precarga apenas
-  // se entra al sitio) -- "ambientes" hace de "sucursal": varias sucursales comparten el
-  // mismo catalogo CAT_AMBIENTE_INSCRIPCION, asi que "crear"/"actualizar" preguntan primero
-  // en cual trabajar (un submenu por fila real del catalogo, nunca hardcodeado) antes de
-  // entrar al formulario -- ver router.tsx (search.ambiente) y
-  // useInscripcionForm.elegirAccion.
   const catalogosQuery = useQuery(CATALOGOS_INSCRIPCION_QUERY)
   const ambientes = catalogosQuery.data?.ambientes ?? []
 
   function itemConAmbientes(accion: "crear" | "actualizar", label: string, icon: DrillMenuItem["icon"]): DrillMenuItem {
     if (ambientes.length === 0) {
-      // Mientras el catalogo todavia no cargo (recien entrando al sitio, antes de que el
-      // prefetch de RootLayout resuelva) -- entra directo, sin preguntar ambiente, para no
-      // mostrar un submenu vacio.
       return { to: "/formulario-pago", search: { accion }, label, icon }
     }
     return {

@@ -47,22 +47,6 @@ import {
   aInputDatetime,
 } from "./types"
 
-// Toda la logica NO visual de los wizards de Inscripcion (TanStack Form),
-// compartida entre FormularioPagoPage.tanstack.tsx (sin rama "lista") e
-// InscripcionWizard.tanstack.tsx (con rama "lista"): mecanica del carrusel, la del layout
-// (escritorio vs. columna angosta, panel colapsable del Resumen, animacion paso -> fila del
-// Resumen), el formulario (via TanStack Form), los catalogos, la lista de
-// solicitudes, y el CRUD de formaciones complementarias en sus dos variantes (nuevas al
-// crear, editables al actualizar). El componente que llama a este hook solo
-// pone el JSX -- ningun useState/useRef/useMutation/useQuery vive ahi.
-//
-// La rama "lista" en si (filtros + "Ver detalle") NO vive aca: es exclusiva
-// de InscripcionWizard y queda como estado local de ese componente, con su
-// propio wrapping de empezarDeNuevo() para resetearla tambien.
-// Lo que llega por la URL (?accion=...&ambiente=...): la ruta lo valida y lo pasa tal cual
-// (formularioPagoRoute.useSearch() -- ver router.tsx). Entra por parametro, y no leyendo la
-// ruta desde aca, para no acoplar el hook al router (router.tsx -> FormularioInscripciones
-// -> este hook ya es una cadena de imports; cerrarla seria un ciclo).
 export function useInscripcionForm({
   accion: accionUrl,
   ambiente: ambienteUrl,
@@ -71,7 +55,6 @@ export function useInscripcionForm({
 
   const [accion, setAccion] = useState<Accion | null>(null)
 
-  // --- Mecanica del carrusel ---
   const [api, setApi] = useState<CarouselApi>()
   const [current, setCurrent] = useState(0)
   const [maxStep, setMaxStep] = useState(0)
@@ -112,18 +95,7 @@ export function useInscripcionForm({
     api?.scrollTo(Math.max(current - 1, 0))
   }
 
-  // --- Mecanica del layout -- el Resumen de la cadena SOLO existe en escritorio (ver
-  // CORTE_ESCRITORIO en types.ts): ahi la pagina es un ResizablePanelGroup y el usuario
-  // arrastra el ancho a gusto, o lo minimiza/amplia de golpe con el boton. panelRef expone
-  // collapse()/expand() de la libreria; "resumenColapsado" es el estado REAL (colapsado o
-  // no), y onResize (en el JSX) lo mantiene sincronizado pase lo que pase, tanto si se
-  // colapso arrastrando como con el boton.
-  //
-  // De ese estado sale tambien la decision de alternarResumen, a proposito: el isCollapsed()
-  // del handle imperativo no es consulta gratis -- por dentro busca el grupo y las
-  // restricciones del panel en el store de la libreria y TIRA EXCEPCION ("Group ... not
-  // found" / "Panel constraints not found for Panel ...") si el panel no esta registrado en
-  // ese momento, que es justo lo que pasa en el commit en que el arbol se re-monta. ---
+  // ◽ RESUMEN -- el panel colapsable/arrastrable que lo contiene.
   const esEscritorio = useMediaQuery(CORTE_ESCRITORIO)
   const resumenPanelRef = useRef<PanelImperativeHandle>(null)
   const [resumenColapsado, setResumenColapsado] = useState(false)
@@ -138,17 +110,9 @@ export function useInscripcionForm({
     }
   }
 
-  // --- Formulario, via TanStack Form -- "campos" es una lectura reactiva de
-  // TODOS los valores (useStore), con la misma forma que antes tenia el
-  // useState a mano -- el resto del hook lee/compara "campos" tal cual.
   const form = useForm({ defaultValues: CAMPOS_VACIOS })
   const campos = useStore(form.store, (state) => state.values)
 
-  // Los nombres de campo de CamposFormulario (estadoId/sistemaId/...) son solo del lado
-  // del front (bind de los <select>) -- SolicitudRequestDTO ya no usa el sufijo "Id"
-  // (estado/sistema/..., espejo de SolNInscripcionRequestDto.java), por eso el renombre
-  // aca. Usado por "crear" (cualquier nivel), la continuación de la cadena, y "actualizar"
-  // (que ahora edita SOL_N_INSCRIPCION, no la tabla legacy -- ver mas abajo).
   function armarSolicitudRequestDto(
     c: CamposFormulario,
     etapa: number,
@@ -178,11 +142,6 @@ export function useInscripcionForm({
     campos.proyecto.trim() !== "" && campos.version.trim() !== "" && campos.fechaPlanteada !== ""
   const formularioCompleto = catalogoCompleto && responsablesCompletos && datosProyectoCompletos
 
-  // "ambienteInicial" viene del submenu de HomePage (ver router.tsx, search.ambiente) --
-  // varias sucursales comparten el mismo catalogo CAT_AMBIENTE_INSCRIPCION, asi que elegir
-  // "Crear"/"Actualizar" ya resuelve tambien en cual trabajar, sin que el formulario tenga
-  // que volver a preguntarlo. "crear" lo precarga como valor del campo (sigue editable);
-  // "actualizar" lo usa como filtro del selector compartido (ver useSolicitudes).
   function elegirAccion(nueva: Accion, ambienteInicial?: string) {
     setAccion(nueva)
     maxStepRef.current = 0
@@ -197,9 +156,6 @@ export function useInscripcionForm({
     }
   }
 
-  // "accion" llega por la URL -- la elige el submenu de HomePage (ver DrillMenu.tsx) ANTES
-  // de navegar al formulario. No hay paso para elegirla: el paso 0 ya es el primero de esa
-  // accion. Una sola vez por visita (la guarda es accion === null, el estado de aca arriba).
   useEffect(() => {
     if (accionUrl && accion === null) {
       elegirAccion(accionUrl, ambienteUrl)
@@ -207,10 +163,6 @@ export function useInscripcionForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accionUrl, ambienteUrl])
 
-  // --- Catalogos ("tablas genericas") -- en UNA sola llamada (via axios), compartiendo
-  // cache de TanStack Query con HomePage.tsx. "lista" esta incluida en el gate aunque
-  // FormularioPagoPage nunca la dispare -- es una rama muerta inofensiva ahi, y necesaria en
-  // InscripcionWizard (sus 3 filtros tambien dependen de estos catalogos).
   const catalogosHabilitados =
     accion === "crear" || accion === "actualizar" || accion === "lista" || accion === "consultar"
   const catalogosQuery = useQuery({
@@ -244,31 +196,8 @@ export function useInscripcionForm({
   }
   const catalogosListos = catalogosQuery.isSuccess
 
-  // --- Que pasos tiene el flujo: depende de la accion Y DEL AMBIENTE ---
-  // Los pasos de paneles (checklist/pruebas/documentacion/aviso) son parte del proceso SOLO
-  // en el ambiente principal; en cualquier otro, una inscripcion es nada mas sus datos, y
-  // esos pasos -- con sus peticiones HTTP -- no existen (ver pasosDe en types.ts).
-  //
-  // "Principal" = el ambiente de ID MAS CHICO, o sea la primera fila que se inserto (los ids
-  // salen de MINIFORMAMB_SEQ). NO es "el primer elemento de la lista": el cache de catalogos
-  // guarda los ambientes en un ConcurrentHashMap y los sirve con List.copyOf(values()) (ver
-  // CatalogoInscripcionCacheImpl.listarAmbientes), asi que el ORDEN DE LA LISTA ES
-  // INDEFINIDO -- es el de la tabla hash, puede cambiar entre despliegues y no tiene por que
-  // empezar por la fila 1. Tomar data[0] hacia que el ambiente principal fuera cualquiera, y
-  // con eso el formulario perdia (o mostraba de mas) los pasos de paneles.
-  //
-  // Tampoco se compara contra un id fijo a mano: no hay seeder ni columna "orden" en
-  // MINIFORMAMB, asi que "ambiente === 1" apuntaria a otra sucursal en la proxima base
-  // (mismo motivo que idEtapa/idEstadoPorDefecto). El minimo da lo mismo que "el id 1" en
-  // esta base, pero sin depender ni del orden ni del valor.
-  //
-  // El ambiente que manda es el de la inscripcion que se esta trabajando: en "crear" lo
-  // precarga elegirAccion desde ?ambiente=... y el usuario lo puede cambiar en el primer
-  // paso; en "actualizar"/"consultar" lo trae la solicitud cargada (el ?ambiente= de la URL
-  // ahi es solo el filtro del selector, puede no coincidir con la solicitud elegida).
-  // Mientras todavia no se sepa (catalogos en vuelo, o ninguna solicitud elegida) se asume el
-  // flujo COMPLETO: es mejor mostrar pasos que despues desaparecen que esconder pasos que
-  // despues aparecen.
+  // 📌 PASOS DINAMICOS -- NUCLEO EN EL HOOK: si el ambiente lleva paneles, la lista y los indices.
+  // 📌 PASOS DINAMICOS: el ambiente que SI lleva los pasos de paneles.
   function idAmbientePrincipal(): string {
     const ambientes = ambientesQuery.data
     if (ambientes === undefined || ambientes.length === 0) return ""
@@ -281,24 +210,19 @@ export function useInscripcionForm({
   const pasos = pasosDe(accion, llevaPaneles)
   const ultimoPaso = Math.max(pasos.length - 1, 0)
 
-  // Indice de un paso logico en el flujo ACTUAL, o -1 si no existe en este ambiente. Todo el
-  // front pregunta por aca en vez de escribir un numero: los indices se corren segun el
-  // ambiente (en "crear" sin paneles, "datos-secundaria" es el 2, no el 3).
+  // 📌 PASOS DINAMICOS
   function pasoDe(paso: PasoCadena): number {
     return pasos.indexOf(paso)
   }
 
-  // Indice del paso que viene DESPUES de "paso" -- el siguiente que exista de verdad, que es
-  // lo que necesitan los botones "Siguiente"/"Continuar". Si es el ultimo, su propio indice.
+  // 📌 PASOS DINAMICOS
   function trasPaso(paso: PasoCadena): number {
     const i = pasos.indexOf(paso)
     if (i === -1) return 0
     return Math.min(i + 1, ultimoPaso)
   }
 
-  // Si el flujo se acorta a mitad de camino (el usuario cambia el ambiente en "crear", o
-  // carga una solicitud de otro ambiente), ni el paso actual ni el tope desbloqueado pueden
-  // quedar apuntando a un paso que ya no existe.
+  // 📌 PASOS DINAMICOS: sin esto, cambiar de ambiente deja el carrusel en un paso inexistente.
   useEffect(() => {
     if (maxStepRef.current > ultimoPaso) {
       maxStepRef.current = ultimoPaso
@@ -309,19 +233,10 @@ export function useInscripcionForm({
     }
   }, [ultimoPaso, api])
 
-  // Resuelve el id de CAT_ETAPA_INSCRIPCION por "orden" (1=Primaria, 2=Secundaria,
-  // 3=Universidad) -- nunca un id fijo a mano: no hay seeder, el id real depende de en que
-  // orden se insertaron las filas en cada base (ver CLAUDE.md).
   function idEtapa(orden: number): number {
     return catalogosQuery.data?.etapas.find((e) => e.orden === orden)?.id ?? 0
   }
 
-  // Estado con el que arranca una inscripcion nueva -- se resuelve por TEXTO contra
-  // CAT_ESTADO_INSCRIPCION (igual que idEtapa lo hace por "orden"): sin seeder, el id real
-  // depende de en que orden se insertaron las filas en cada base, asi que un id fijo aca
-  // apuntaria a otra cosa en la proxima base. Si el catalogo no tiene esa fila, devuelve ""
-  // y el <select> se queda en su placeholder como siempre -- no inventa un id. El catalogo
-  // real es Pendiente/En progreso/Completada/Cancelada (ver InscripcionVoBoRecalculador).
   const ESTADO_POR_DEFECTO = "Pendiente"
 
   function idEstadoPorDefecto(): string {
@@ -331,18 +246,10 @@ export function useInscripcionForm({
     return fila === undefined ? "" : String(fila.id)
   }
 
-  // Campos de arranque de "crear": los mismos CAMPOS_VACIOS de siempre pero con el estado
-  // ya elegido. Es una funcion (no una constante) porque el catalogo llega DESPUES del
-  // primer render -- ver el useEffect que lo aplica, mas abajo.
   function camposInicialesCrear(): CamposFormulario {
     return { ...CAMPOS_VACIOS, estadoId: idEstadoPorDefecto() }
   }
 
-  // Inversa de armarSolicitudRequestDto: un SolicitudDTO (texto, lo que trae el back) a
-  // CamposFormulario (ids sueltos, lo que necesita el <select>) -- resuelve nombre -> id
-  // contra los mismos catalogos de siempre. Unica fuente de esta resolucion: la usan
-  // aplicarNivelConsultado (consultar/actualizar) y clonarDesde (crear, ver mas abajo) --
-  // antes estaba duplicada inline en la primera.
   function dtoACampos(s: SolicitudDTO): CamposFormulario {
     return {
       estadoId: String(estadosQuery.data?.find((e) => e.estado === s.estado)?.id ?? ""),
@@ -359,11 +266,6 @@ export function useInscripcionForm({
     }
   }
 
-  // Resuelve "campos" (ids sueltos, lo que hay en el formulario TODAVIA sin mandar) a la
-  // MISMA forma que InscripcionDTO (aplanado a texto) -- asi la vista previa de "crear"
-  // (paso de revision, antes de que la solicitud exista de verdad) puede reusar
-  // DetalleInscripcion en vez de duplicar su propio <dl>. "id: 0" es un relleno: Detalle
-  // Inscripcion no lo muestra en ningun lado.
   function camposAVistaPrevia(c: CamposFormulario): InscripcionDTO {
     return {
       id: 0,
@@ -381,9 +283,6 @@ export function useInscripcionForm({
     }
   }
 
-  // --- Filtros de la rama "lista" y "Ver detalle" -- unico consumidor de este hook
-  // ahora (FormularioInscripciones.tsx, borrado InscripcionWizard), asi que ya no hay
-  // motivo para mantenerlos como estado local de la pagina: viven aca.
   const [filtroEstadoId, setFiltroEstadoId] = useState("")
   const [filtroSistemaId, setFiltroSistemaId] = useState("")
   const [filtroAmbienteId, setFiltroAmbienteId] = useState("")
@@ -393,19 +292,10 @@ export function useInscripcionForm({
     setDetalleAbiertoId((actual) => (actual === id ? null : id))
   }
 
-  // --- Lista completa de SOL_N_INSCRIPCION -- usada por "lista" (con los 3 filtros de
-  // arriba), "actualizar" (elegir cual editar) y "consultar" (elegir cual ver) -- las 3
-  // acciones comparten el MISMO selector (CampoSelect + CampoVistaDetalle), solo cambia
-  // que se hace despues de elegir una fila. "actualizar" tambien pasa por el filtro de
-  // ambiente (nunca por estado/sistema, esos quedan en "" -- no hay controles para
-  // tocarlos fuera de "lista"): llega preseteado desde el submenu de HomePage/elegirAccion,
-  // para no mezclar sucursales en el selector.
   function useSolicitudes() {
     return useQuery({
       queryKey: ["solicitudes"],
       queryFn: fetchSolicitudes,
-      // "crear" solo la habilita mientras el picker de "clonar desde" esta abierto -- el
-      // resto del tiempo no hay nada que seleccionar, no tiene sentido pedirla.
       enabled:
         accion === "lista" || accion === "actualizar" || accion === "consultar" || (accion === "crear" && clonarAbierto),
       staleTime: 10 * 1000,
@@ -422,16 +312,12 @@ export function useInscripcionForm({
             (estadoNombre === null || i.estado === estadoNombre) &&
             (sistemaNombre === null || i.sistema === sistemaNombre) &&
             (ambienteNombre === null || i.ambiente === ambienteNombre) &&
-            // "crear a partir de" solo clona de otra Primaria -- restriccion fija, no un
-            // filtro mas que el usuario vea/toque.
             (accion !== "crear" || i.etapa === "Primaria"),
         )
       },
     })
   }
 
-  // --- Formaciones complementarias nuevas (paso "crear") -- misma forma que las
-  // editables de "actualizar" (id siempre null, la solicitud todavia no existe).
   const [formacionesNuevas, setFormacionesNuevas] = useState<FormacionComplementariaEditable[]>([])
 
   function agregarFormacionNueva() {
@@ -446,18 +332,10 @@ export function useInscripcionForm({
     setFormacionesNuevas((anteriores) => anteriores.filter((_, i) => i !== indice))
   }
 
-  // UNA sola peticion HTTP: crea la solicitud (etapa Primaria, sin anterior) y sus
-  // formaciones complementarias juntas (ver SolicitudConFormacionesRequestDTO) -- el
-  // backend resuelve el FK internamente, nada de ids intermedios del lado del cliente.
   const crearSolicitudMutation = useMutation({
     mutationFn: crearSolicitud,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["solicitudes"] })
-      // El bloqueo del stepper (maxStep) solo tiene sentido ANTES de que la Primaria
-      // exista -- no hay nada que mostrar/editar en el resto de la cadena todavia. Una vez
-      // creada, se desbloquea TODO el resto de un saque (ya no paso a paso via
-      // continuarCadena/enviarCadena): el usuario navega libremente, el backend sigue
-      // validando el orden real al "Finalizar y enviar" (409 si corresponde).
       desbloquearHasta(ultimoPaso)
       api?.scrollTo(pasoDe("confirmar-creacion"))
     },
@@ -485,42 +363,27 @@ export function useInscripcionForm({
     resetearCadena()
   }
 
-  // --- "Crear a partir de una solicitud existente" (Primaria) -- patron Prototype: solo
-  // lee un DTO que ya existe (GET /solicitudes/{id}, el mismo que usan lista/actualizar/
-  // consultar) y lo usa para pre-llenar "form" ANTES de que la nueva solicitud exista --
-  // la base de datos nunca se entera, no hay clon ahi, es puro front. Mutacion propia
-  // (no buscarSolicitudMutation): esa esta cableada a los efectos de "actualizar"/
-  // "consultar", mezclarla aca acoplaria algo que no tiene nada que ver. ---
+  // 🔳 CLONAR -- NUCLEO: GET de una solicitud existente + reset del form. No hay endpoint de clonado.
   const [clonarAbierto, setClonarAbierto] = useState(false)
   const clonarMutation = useMutation({
     mutationFn: fetchSolicitud,
     onSuccess: (dto) => {
-      // Las fechas quedan vacias a proposito -- casi siempre son distintas para la
-      // solicitud nueva. formacionesNuevas no se toca: las formaciones del prototipo son
-      // de OTRA solicitud, no se copian.
       form.reset({ ...dtoACampos(dto.solicitud), fechaPlanteada: "", fechaReal: "" }, { keepDefaultValues: true })
       setClonarAbierto(false)
     },
   })
 
+  // 🔳 CLONAR
   function clonarDesde(id: number) {
     clonarMutation.mutate(id)
   }
 
-  // La query en si, resuelta una sola vez aca -- "useSolicitudes" sigue siendo la definicion
-  // (depende de filtros/clonarAbierto, por eso se llama recien a esta altura); lo que se
-  // expone es el resultado, asi el componente no llama hooks por su cuenta.
   const solicitudesQuery = useSolicitudes()
 
-  // --- Selector compartido por "lista"/"actualizar"/"consultar" -- las 3 acciones eligen
-  // una fila de la MISMA lista (useSolicitudes) con el MISMO CampoSelect/CampoVistaDetalle;
-  // lo que cambia es que hace cada accion despues de elegir (ver los 2 useEffect mas abajo).
   const [listaIdInput, setListaIdInput] = useState("")
   const [solicitudIdActual, setSolicitudIdActual] = useState<number | null>(null)
   const [baseline, setBaseline] = useState<CamposFormulario | null>(null)
   const baselineIdRef = useRef<number | null>(null)
-  // Etapa/solicitudAnterior de la solicitud elegida -- inmutables, pero
-  // SolicitudRequestDTO los exige en cada PUT (ver armarSolicitudRequestDto/guardarCambios).
   const etapaIdActualRef = useRef<number | null>(null)
   const solicitudAnteriorIdActualRef = useRef<number | null>(null)
 
@@ -557,11 +420,6 @@ export function useInscripcionForm({
     JSON.stringify(formacionesEditables) !== JSON.stringify(formacionesOriginalRef.current)
   const hayAlgoQueGuardar = huboCambios || huboCambiosFormaciones
 
-  // UNA sola peticion HTTP tambien para editar: mismo shape compuesto que
-  // crearSolicitudConFormaciones() -- formacionesComplementarias es la lista
-  // COMPLETA que debe quedar, el backend sincroniza solo (borra lo que falte,
-  // actualiza lo que tenga id, crea lo que no) -- ver SolNInscripcionServiceImpl.
-  // actualizar().
   const actualizarSolicitudMutation = useMutation({
     mutationFn: (dto: SolicitudRequestDTO) => {
       const formacionesComplementarias: FormacionComplementariaRequestDTO[] = formacionesEditables.map((el) => ({
@@ -579,11 +437,6 @@ export function useInscripcionForm({
     try {
       const dto = armarSolicitudRequestDto(campos, etapaIdActualRef.current ?? 0, solicitudAnteriorIdActualRef.current)
       const actualizada = await actualizarSolicitudMutation.mutateAsync(dto)
-      // "campos" y "formacionesEditables" son exactamente lo que se acaba de
-      // guardar -- sin este reset, "baseline"/"formacionesOriginalRef" quedan
-      // con el valor viejo para siempre (el useEffect de arriba no vuelve a
-      // correr para esta misma solicitud), y hayAlgoQueGuardar seguiria dando
-      // true aunque no haya nada nuevo.
       setBaseline(campos)
       const sincronizadas = actualizada.formacionesComplementarias.map((f) => ({ id: f.id, descripcion: f.descripcion }))
       formacionesOriginalRef.current = sincronizadas
@@ -591,7 +444,6 @@ export function useInscripcionForm({
       queryClient.invalidateQueries({ queryKey: ["solicitudes"] })
       setGuardadoConfirmado(true)
     } catch {
-      // el error ya queda disponible en actualizarSolicitudMutation.error
     }
   }
 
@@ -624,8 +476,6 @@ export function useInscripcionForm({
     resetearCadena()
   }
 
-  // Mantiene la accion (viene de la URL, ya no hay paso para elegirla) y vuelve al
-  // primer paso de esa accion con todo limpio.
   function empezarDeNuevo() {
     maxStepRef.current = 0
     setMaxStep(0)
@@ -664,12 +514,6 @@ export function useInscripcionForm({
     resetearCadena()
   }
 
-  // --- Cadena Primaria/Secundaria/Universidad -- estados compartidos por "crear" (la
-  // construye) y "actualizar"/"consultar" (recorren una que ya existe, ver
-  // cargarActualizacion/cargarConsulta mas abajo). Reemplaza al viejo checklist fijo de
-  // firmas booleanas por checklist/pruebas/documento/aviso de versiones dinamicos (ver
-  // InscripcionChecklistEty/InscripcionPruebaEty/InscripcionDocumentoEty/
-  // InscripcionAvisoVersionEty/InscripcionVoBoEty). ---
 
   function fabricarManejadorLista<T>(set: React.Dispatch<React.SetStateAction<T[]>>, vacio: T) {
     return {
@@ -680,7 +524,6 @@ export function useInscripcionForm({
     }
   }
 
-  // Primaria.
   const [checklistPrimaria, setChecklistPrimaria] = useState<ChecklistItemEditable[]>([])
   const checklistPrimariaAcciones = fabricarManejadorLista(setChecklistPrimaria, CHECKLIST_ITEM_VACIO)
   const [pruebasPrimaria, setPruebasPrimaria] = useState<PruebaItemEditable[]>([])
@@ -689,8 +532,6 @@ export function useInscripcionForm({
   const [avisoPrimaria, setAvisoPrimaria] = useState<AvisoVersionEditable>(AVISO_VERSION_VACIO)
   const [voBoPrimaria, setVoBoPrimaria] = useState<VoBoDTO | null>(null)
 
-  // Secundaria -- mismos 11 campos que Primaria (CamposFormulario), instancia de TanStack
-  // Form PROPIA, asi CampoCatalogo/CampoResponsables/CampoDatosProyecto se reusan tal cual.
   const formInscripcionSecundaria = useForm({ defaultValues: CAMPOS_VACIOS })
   const camposInscripcionSecundaria = useStore(formInscripcionSecundaria.store, (state) => state.values)
   const catalogoSecundariaCompleto =
@@ -716,7 +557,6 @@ export function useInscripcionForm({
   const [avisoSecundaria, setAvisoSecundaria] = useState<AvisoVersionEditable>(AVISO_VERSION_VACIO)
   const [voBoSecundaria, setVoBoSecundaria] = useState<VoBoDTO | null>(null)
 
-  // Universidad -- mismo patron, un nivel mas.
   const formInscripcionUniversidad = useForm({ defaultValues: CAMPOS_VACIOS })
   const camposInscripcionUniversidad = useStore(formInscripcionUniversidad.store, (state) => state.values)
   const catalogoUniversidadCompleto =
@@ -742,14 +582,6 @@ export function useInscripcionForm({
   const [avisoUniversidad, setAvisoUniversidad] = useState<AvisoVersionEditable>(AVISO_VERSION_VACIO)
   const [voBoUniversidad, setVoBoUniversidad] = useState<VoBoDTO | null>(null)
 
-  // El estado por defecto no puede ir en los defaultValues de useForm: los catalogos llegan
-  // por HTTP, despues del primer render (y despues de elegirAccion, que es donde "crear" ya
-  // precarga el ambiente que eligio HomePage). Asi que se aplica en cuanto el catalogo
-  // resuelve, a los 3 niveles de "crear", y SOLO sobre un estado que siga vacio -- nunca
-  // pisa lo que el usuario eligio a mano ni lo que trajo "crear a partir de" (clonarDesde).
-  // Despues de este primer tiro, cada reset vuelve a poner el default por su cuenta (ver
-  // crearOtra/resetearCadena): si el usuario elige "Seleccioná un estado…" a proposito, se
-  // queda vacio.
   useEffect(() => {
     if (accion !== "crear" || !catalogosListos) return
     const id = idEstadoPorDefecto()
@@ -760,11 +592,6 @@ export function useInscripcionForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accion, catalogosListos])
 
-  // Guarda los paneles de UN nivel (checklist/pruebas/documento/aviso) contra una solicitud
-  // que YA existe -- cada fila con id null se crea (POST), cada fila con id se actualiza
-  // (PUT); filas sin seccion/tipoPrueba (vacias, nunca tocadas por el usuario) se saltean,
-  // nunca se mandan al backend. Documento/aviso son 1:1: solo se manda si el usuario escribio
-  // algo (si no, no hay nada que guardar y el backend los deja en null).
   async function guardarPanelesNivel(
     solicitudId: number,
     checklist: ChecklistItemEditable[],
@@ -815,24 +642,13 @@ export function useInscripcionForm({
     }
   }
 
-  // Secuencia de peticiones HTTP que reemplaza al viejo POST /inscripciones/{id}/cadena-
-  // diplomas (una sola peticion): ya no hay un endpoint combinado, asi que cada nivel (y
-  // cada panel de ese nivel) es su propia llamada, en orden -- el backend sigue validando
-  // la cadena (409 si el nivel anterior no tiene su VoBo completo), asi que un corte a
-  // mitad de camino simplemente deja de avanzar, sin dejar nada corrupto (lo ya guardado
-  // queda guardado). "hastaPaso" es el INDICE del paso desde el que se apreto "Finalizar y
-  // enviar", y cada tramo de abajo pregunta si ese indice llega a su propio paso.
-  //
-  // Los umbrales son por ID de paso, no por numero: en un ambiente sin paneles esos pasos no
-  // existen (pasoDe devuelve -1), asi que "alcanza" da false y la secuencia se saltea esas
-  // peticiones sola -- crear la cadena completa ahi son 2 POST (secundaria y universidad) en
-  // vez de 2 POST + 3 tandas de paneles.
   async function enviarSecuenciaCadena(hastaPaso: number) {
     const primariaId = crearSolicitudMutation.data?.solicitud.id
     if (primariaId === undefined) {
       throw new Error("Todavía no se creó la solicitud de primaria")
     }
 
+    // 📌 PASOS DINAMICOS: un paso que no existe no dispara su peticion (la secuencia HTTP se ajusta sola).
     const alcanza = (paso: PasoCadena) => {
       const indice = pasoDe(paso)
       return indice !== -1 && hastaPaso >= indice
@@ -880,9 +696,6 @@ export function useInscripcionForm({
     }
   }
 
-  // onSuccess SIEMPRE salta a "confirmar-cadena", sin importar desde que paso se disparo
-  // "Finalizar y enviar" -- asi hay un UNICO lugar que muestra el resultado final, en vez de
-  // duplicar esa vista en cada nivel.
   const cadenaMutation = useMutation({
     mutationFn: enviarSecuenciaCadena,
     onSuccess: () => {
@@ -891,25 +704,16 @@ export function useInscripcionForm({
     },
   })
 
-  // Dispara la secuencia de la cadena, con todo lo llenado hasta "hastaPaso" -- llamado
-  // desde el pie de cualquier paso de la cadena (2 al 6): el usuario puede "Finalizar y
-  // enviar" apenas termina un nivel, sin obligacion de llegar al final.
   function enviarCadena(hastaPaso: number) {
     cadenaMutation.mutate(hastaPaso)
   }
 
-  // "Continuar": avanza al siguiente paso de la cadena sin mandar nada todavia -- a
-  // diferencia de desbloquearHasta()+scrollTo() en crearSolicitudMutation.onSuccess (que
-  // avanza porque el back YA confirmo algo), aca el avance es puramente local.
   function continuarCadena(siguientePaso: number) {
     desbloquearHasta(siguientePaso)
     api?.scrollTo(siguientePaso)
   }
 
   function resetearCadena() {
-    // En "crear" los 3 niveles arrancan con el estado por defecto; en "actualizar"/
-    // "consultar" los campos los pisa aplicarNivelConsultado con lo que trae el backend,
-    // asi que ahi se vacian como siempre.
     const iniciales = accion === "crear" ? camposInicialesCrear() : CAMPOS_VACIOS
 
     setChecklistPrimaria([])
@@ -937,15 +741,6 @@ export function useInscripcionForm({
     cadenaMutation.reset()
   }
 
-  // --- Consultar (solo lectura): "igual que crear" pero recorriendo una cadena que YA
-  // existe en SOL_N_INSCRIPCION, en vez de construirla. Usa el MISMO selector que
-  // "lista"/"actualizar" (listaIdInput/elegirSolicitud/buscarSolicitudMutation, ver arriba)
-  // -- la unica diferencia es que hace con la solicitud elegida (ver el useEffect mas
-  // abajo). Reusa EXACTAMENTE los mismos estados de la cadena de "crear"
-  // (form/formInscripcionSecundaria/formInscripcionUniversidad, checklist*/pruebas*/
-  // documento*/aviso*/voBo*) -- nunca hay dos acciones activas al mismo tiempo, asi que no
-  // hay conflicto; FormularioInscripciones.tsx los renderiza con disabled=true cuando
-  // accion === "consultar". ---
   const [consultaTieneSecundaria, setConsultaTieneSecundaria] = useState(false)
   const [consultaTieneUniversidad, setConsultaTieneUniversidad] = useState(false)
 
@@ -957,8 +752,6 @@ export function useInscripcionForm({
     setDocumento: (d: DocumentoEditable) => void,
     setAviso: (a: AvisoVersionEditable) => void,
     setVoBo: (v: VoBoDTO | null) => void,
-    // Solo lo usa "actualizar" (ver cargarActualizacion mas abajo) -- "consultar" nunca lo
-    // pasa, no tiene nocion de "baseline" porque todo es de solo lectura.
     setBaseline?: (c: CamposFormulario) => void,
   ) {
     const camposNivel = dtoACampos(dto.solicitud)
@@ -993,9 +786,6 @@ export function useInscripcionForm({
     setBaseline?.(camposNivel)
   }
 
-  // Recibe la Primaria ya elegida por el selector compartido y, si existen, carga
-  // Secundaria/Universidad encadenadas (via solicitudAnteriorId) -- no hay endpoint de
-  // "hijos de X", asi que se resuelve filtrando la lista completa de /solicitudes.
   async function cargarConsulta(primaria: SolicitudConPanelesDTO) {
     if (primaria.solicitud.etapa !== "Primaria") {
       throw new Error(
@@ -1252,6 +1042,7 @@ export function useInscripcionForm({
     (accion === "consultar" && consultarMutation.isSuccess) ||
     (accion === "actualizar" && actualizarCargaMutation.isSuccess)
 
+  // ◽ RESUMEN -- EL CONTENIDO: que secciones/filas muestra el panel (lo unico a reescribir).
   // Resumen de "todo lo llenado hasta ahora" en la cadena -- cada seccion aparece cuando ese
   // nivel/panel REALMENTE tiene datos guardados (voBo/solicitudXId), no segun que paso este
   // desbloqueado: desde que crearSolicitudMutation desbloquea toda la cadena de un saque,
@@ -1324,6 +1115,7 @@ export function useInscripcionForm({
     }
   }
 
+  // ◽ RESUMEN -- LA ANIMACION (opcional: se puede copiar el resumen sin esto).
   // Cada vez que "Siguiente"/"Continuar" agrega una seccion nueva al Resumen, el paso que se
   // acaba de completar se "transforma" en esa fila: mide el Card del formulario ANTES de que
   // la fila nueva exista, y un frame despues mide la fila real, para animar el fantasma de un
@@ -1366,6 +1158,7 @@ export function useInscripcionForm({
     elegirAccion,
     empezarDeNuevo,
 
+    // ◽ RESUMEN: todo este grupo.
     esEscritorio,
     resumenPanelRef,
     resumenColapsado,
@@ -1385,6 +1178,7 @@ export function useInscripcionForm({
 
     // El flujo (que pasos hay y en que posicion) -- la pagina monta sus slides con esto y
     // pregunta indices con pasoDe/trasPaso, nunca escribe un numero de paso.
+    // 📌 PASOS DINAMICOS: todo este grupo.
     llevaPaneles,
     pasos,
     ultimoPaso,
@@ -1424,6 +1218,7 @@ export function useInscripcionForm({
     crearSolicitudMutation,
     crearSolicitudConFormaciones,
     crearOtra,
+    // 🔳 CLONAR: todo este grupo.
     clonarAbierto,
     setClonarAbierto,
     clonarMutation,
@@ -1468,7 +1263,7 @@ export function useInscripcionForm({
     cadenaMutation,
     enviarCadena,
     continuarCadena,
-    seccionesResumen,
+    seccionesResumen, // ◽ RESUMEN
 
     listaIdInput,
     setListaIdInput,

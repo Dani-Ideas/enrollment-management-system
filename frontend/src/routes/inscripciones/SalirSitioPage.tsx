@@ -3,8 +3,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { ExternalLinkIcon, TriangleAlertIcon } from "lucide-react"
 
-// URL destino de la Opción 1 del menú de pago: consola de administración de
-// GlassFish, corriendo en local durante el desarrollo.
 const URL_DESTINO = "http://localhost:4848/"
 
 export function SalirSitioPage() {

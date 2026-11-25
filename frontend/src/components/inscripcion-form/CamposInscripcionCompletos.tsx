@@ -19,18 +19,6 @@ interface CatalogoResponsable {
   isLoading: boolean
 }
 
-// Junta los 4 grupos de campos (Catalogo/Responsables/Datos del proyecto/Formaciones
-// complementarias) en UNA sola pantalla -- antes vivian repartidos en pasos separados del
-// Carousel (uno por grupo), cada uno con su propio boton "Siguiente". Usado tanto por
-// "crear" (paso "Datos de la solicitud", antes de la Confirmacion) como por "actualizar"
-// (paso "Editar campos") -- el llamador sigue siendo dueño del boton de accion final
-// (Siguiente/Guardar cambios): este componente solo INTERCEPTA ese click para avisar si
-// falta algo, en vez de dejar que el boton quede deshabilitado sin explicacion ("no ocultar
-// informacion, solo asistir").
-//
-// Navegacion sin pasos: el indicador de arriba (sticky) no es un stepper -- es un ancla a
-// cada sub-seccion (scrollIntoView), asi que ir "para atras" es tan fluido como ir para
-// adelante, sin depender de botones "anterior/siguiente".
 export function CamposInscripcionCompletos({
   form,
   idPrefix,
@@ -79,8 +67,6 @@ export function CamposInscripcionCompletos({
   const refDatosProyecto = useRef<HTMLDivElement>(null)
   const refFormaciones = useRef<HTMLDivElement>(null)
 
-  // "intento" queda en true para siempre una vez que se dispara -- asi la barra de
-  // progreso no desaparece de nuevo si el usuario completa y despues vacia un campo.
   const [intento, setIntento] = useState(false)
 
   const secciones = [
@@ -108,10 +94,6 @@ export function CamposInscripcionCompletos({
 
   return (
     <div className="space-y-4">
-      {/* Sticky: queda visible aunque el usuario ya haya bajado hasta "Formaciones" --
-          volver a una seccion anterior es un click, no hay que scrollear a mano. Sin
-          margen negativo: eso empujaba el ancho real mas alla del padding-box del
-          contenedor (CarouselItem, que solo tiene overflow-y-auto) y aparecia scroll en X. */}
       <div className="sticky top-0 z-10 space-y-2 bg-background pb-2">
         <div className="flex flex-wrap gap-2">
           {secciones.map((s) => (

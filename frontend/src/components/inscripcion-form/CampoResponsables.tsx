@@ -7,10 +7,6 @@ interface CatalogoResponsable {
   isLoading: boolean
 }
 
-// Grupo de 3 <select> (Jefe de Carrera/Maestro/Carrera) -- las 3 usan el
-// MISMO catalogo (responsablesQuery), solo cambia a que campo de "form"
-// escribe cada uno. Usado tanto en el paso "Responsables" del flujo "crear"
-// como en el paso "Editar campos" del flujo "actualizar".
 export function CampoResponsables({
   form,
   idPrefix,

@@ -37,10 +37,7 @@ import {
   TriangleAlertIcon,
 } from "lucide-react"
 
-// "Fantasma" que se pisa con el rect real del Card del formulario y, un frame despues, con
-// el rect real de la fila nueva del Resumen -- la transicion CSS (transition-all) interpola
-// posicion/tamaño entre esos dos rects. onTransitionEnd desmonta el fantasma -- para entonces
-// la fila real del Resumen ya esta ahi debajo, la ilusion queda completa.
+// ◽ RESUMEN -- LA ANIMACION (opcional): el fantasma que vuela del paso a su fila del resumen.
 function TransformacionPaso({
   desde,
   hasta,
@@ -67,13 +64,7 @@ function TransformacionPaso({
   )
 }
 
-// Pie de un paso de datos en "actualizar"/"consultar": a donde se va desde aca.
-//
-// Con paneles, el paso que sigue es el de los paneles de ESTE mismo nivel, que siempre
-// existe: alcanza un "Siguiente". Sin paneles (ver llevaPaneles en useInscripcionForm) el
-// que sigue es el NIVEL siguiente, que puede no estar encadenado -- y entonces este paso es
-// el final del recorrido, asi que en lugar de "Siguiente" va la salida. Los children son los
-// botones propios del paso (ej. "Guardar cambios"), que van en la misma fila.
+// 📌 PASOS DINAMICOS: sin paneles, el "siguiente" es el nivel de al lado, que puede no existir.
 function PieNivel({
   hayPasoSiguiente,
   textoSinSiguiente,
@@ -111,15 +102,11 @@ function PieNivel({
 }
 
 export function FormularioInscripciones() {
-  // "?accion=...&ambiente=..." -- la ruta ya los valido (ver router.tsx) y el hook los
-  // consume: elige la accion una sola vez y precarga el ambiente (crear) o su filtro
-  // (actualizar). Aca no queda nada mas que pasarlos.
   const wizard = useInscripcionForm(formularioPagoRoute.useSearch())
   const {
     accion,
     empezarDeNuevo,
-    // Layout: escritorio vs. columna angosta, el panel colapsable del Resumen, y los 2 refs
-    // + el rect del "fantasma" que anima cada paso completado hacia su fila del Resumen.
+    // ◽ RESUMEN: todo este grupo.
     esEscritorio,
     resumenPanelRef,
     resumenColapsado,
@@ -133,12 +120,10 @@ export function FormularioInscripciones() {
     maxStep,
     irAPaso,
     anterior,
-    // El flujo: cuantos pasos hay y en que posicion cae cada uno -- depende del ambiente.
+    // 📌 PASOS DINAMICOS: todo este grupo.
     llevaPaneles,
     pasoDe,
     trasPaso,
-    // Ni desbloquearHasta ni el api de Embla se usan directo desde el JSX: todo avance pasa
-    // por continuarCadena(indice), que hace las dos cosas.
     setApi,
     form,
     campos,
@@ -206,7 +191,7 @@ export function FormularioInscripciones() {
     cadenaMutation,
     enviarCadena,
     continuarCadena,
-    seccionesResumen,
+    seccionesResumen, // ◽ RESUMEN
     listaIdInput,
     setListaIdInput,
     buscarPorIdInput,
@@ -262,18 +247,16 @@ export function FormularioInscripciones() {
   )
 
   const tarjetaFormulario = (
+    // ◽ RESUMEN: cardRef lo usa la animacion para medir desde donde sale el fantasma.
     <Card ref={cardRef} className="h-full min-w-0">
       <CardContent>
         <Carousel setApi={setApi} opts={{ watchDrag: false }} className="w-full" orientation="vertical">
           <CarouselContent className="h-(--alto-pasos-wizard)">
-            {/* --- Primer paso: "lista" / "datos-primaria" (crear) / "elegir-solicitud" --- */}
             <CarouselItem className="overflow-y-auto">
               {accion === "lista" && (
                 <div className="space-y-3">
                   <h3 className="text-sm font-medium">Inscripciones</h3>
 
-                  {/* Un solo modo a la vez -- CampoSelect decide si se ve "por número" o
-                      "por categoría" (toggle interno), nunca los dos juntos. */}
                   <CampoSelect
                     idPrefix="pago-tf-lista"
                     valor={listaIdInput}
@@ -306,10 +289,6 @@ export function FormularioInscripciones() {
                 </div>
               )}
 
-              {/* Selector compartido por "actualizar" y "consultar" -- misma lista, mismo
-                  CampoSelect/CampoVistaDetalle (ver useSolicitudes en useInscripcionForm);
-                  lo que se hace DESPUES de elegir una fila es lo que distingue a cada accion
-                  (editar campos vs. recorrer la cadena de solo lectura). */}
 
               {(accion === "actualizar" || accion === "consultar") && (
                 <div className="space-y-4">
@@ -353,9 +332,7 @@ export function FormularioInscripciones() {
 
               {accion === "crear" && (
                 <div className="space-y-4">
-                  {/* "Prototype" -- clona los campos de otra Primaria ya existente a este
-                      formulario ANTES de crear nada; la base de datos no se entera, es
-                      puro front (ver clonarDesde en useInscripcionForm). */}
+                  {/* 🔳 CLONAR -- LA PANTALLA: todo el ternario de abajo (boton + selector). */}
                   {clonarAbierto ? (
                     <div className="space-y-3 rounded-lg border border-dashed border-input p-3">
                       <div className="flex items-center justify-between gap-2">
@@ -421,7 +398,6 @@ export function FormularioInscripciones() {
               )}
             </CarouselItem>
 
-            {/* --- "confirmar-creacion" (crear) / "datos-primaria" (actualizar/consultar) --- */}
             <CarouselItem className="overflow-y-auto">
               {accion === "crear" && (
                 <div className="space-y-4">
@@ -445,9 +421,6 @@ export function FormularioInscripciones() {
                         </Alert>
                       )}
 
-                      {/* La cadena (checklist/pruebas/documentación en adelante) es
-                          OPCIONAL -- el usuario puede seguir ahora o irse y crear otra
-                          solicitud. */}
                       <div className="flex flex-wrap gap-2">
                         <Button
                           variant="outline"
@@ -579,13 +552,7 @@ export function FormularioInscripciones() {
               )}
             </CarouselItem>
 
-            {/* --- "paneles-primaria": checklist/pruebas/documentación/aviso de versiones.
-                Este paso SOLO existe en el ambiente principal -- en cualquier otro, una
-                inscripción es nada más sus datos y el flujo no lo monta (ver llevaPaneles en
-                useInscripcionForm y pasosDe en types.ts), por eso los índices de los pasos que
-                siguen se corren y hay que preguntarlos con pasoDe/trasPaso. No hay un paso de
-                Confirmación aparte por nivel: el VoBo que devuelve el servidor y los botones de
-                la cadena viven en este mismo paso, debajo de los paneles. --- */}
+            {/* 📌 PASOS DINAMICOS: este paso solo existe en el ambiente principal. */}
             {llevaPaneles && (
               <CarouselItem className="overflow-y-auto">
                 {accion === "crear" && (
@@ -613,8 +580,6 @@ export function FormularioInscripciones() {
                     />
                     <DocumentoPanel idPrefix="cadena-dp" valor={documentoPrimaria} onCambiar={setDocumentoPrimaria} />
                     <AvisoVersionesPanel idPrefix="cadena-dp" valor={avisoPrimaria} onCambiar={setAvisoPrimaria} />
-                    {/* El VoBo lo calcula el servidor al guardar los paneles: antes de
-                        "Finalizar y enviar" no hay nada que mostrar todavia. */}
                     {voBoPrimaria !== null && <ResumenVoBo voBo={voBoPrimaria} />}
                     <BotonesCadena
                       hastaPaso={pasoDe("paneles-primaria")}
@@ -726,7 +691,6 @@ export function FormularioInscripciones() {
               </CarouselItem>
             )}
 
-            {/* --- "datos-secundaria" --- */}
             <CarouselItem className="overflow-y-auto">
               {accion === "crear" && (
                 <div className="space-y-4">
@@ -839,13 +803,7 @@ export function FormularioInscripciones() {
               )}
             </CarouselItem>
 
-            {/* --- "paneles-secundaria": checklist/pruebas/documentación/aviso de versiones.
-                Este paso SOLO existe en el ambiente principal -- en cualquier otro, una
-                inscripción es nada más sus datos y el flujo no lo monta (ver llevaPaneles en
-                useInscripcionForm y pasosDe en types.ts), por eso los índices de los pasos que
-                siguen se corren y hay que preguntarlos con pasoDe/trasPaso. No hay un paso de
-                Confirmación aparte por nivel: el VoBo que devuelve el servidor y los botones de
-                la cadena viven en este mismo paso, debajo de los paneles. --- */}
+            {/* 📌 PASOS DINAMICOS: este paso solo existe en el ambiente principal. */}
             {llevaPaneles && (
               <CarouselItem className="overflow-y-auto">
                 {accion === "crear" && (
@@ -869,8 +827,6 @@ export function FormularioInscripciones() {
                     />
                     <DocumentoPanel idPrefix="cadena-ds" valor={documentoSecundaria} onCambiar={setDocumentoSecundaria} />
                     <AvisoVersionesPanel idPrefix="cadena-ds" valor={avisoSecundaria} onCambiar={setAvisoSecundaria} />
-                    {/* El VoBo lo calcula el servidor al guardar los paneles: antes de
-                        "Finalizar y enviar" no hay nada que mostrar todavia. */}
                     {voBoSecundaria !== null && <ResumenVoBo voBo={voBoSecundaria} />}
                     <BotonesCadena
                       hastaPaso={pasoDe("paneles-secundaria")}
@@ -982,7 +938,6 @@ export function FormularioInscripciones() {
               </CarouselItem>
             )}
 
-            {/* --- "datos-universidad" --- */}
             <CarouselItem className="overflow-y-auto">
               {accion === "crear" && (
                 <div className="space-y-4">
@@ -1091,13 +1046,7 @@ export function FormularioInscripciones() {
               )}
             </CarouselItem>
 
-            {/* --- "paneles-universidad": checklist/pruebas/documentación/aviso de versiones.
-                Este paso SOLO existe en el ambiente principal -- en cualquier otro, una
-                inscripción es nada más sus datos y el flujo no lo monta (ver llevaPaneles en
-                useInscripcionForm y pasosDe en types.ts), por eso los índices de los pasos que
-                siguen se corren y hay que preguntarlos con pasoDe/trasPaso. No hay un paso de
-                Confirmación aparte por nivel: el VoBo que devuelve el servidor y los botones de
-                la cadena viven en este mismo paso, debajo de los paneles. --- */}
+            {/* 📌 PASOS DINAMICOS: este paso solo existe en el ambiente principal. */}
             {llevaPaneles && (
               <CarouselItem className="overflow-y-auto">
                 {accion === "crear" && (
@@ -1121,8 +1070,6 @@ export function FormularioInscripciones() {
                     />
                     <DocumentoPanel idPrefix="cadena-du" valor={documentoUniversidad} onCambiar={setDocumentoUniversidad} />
                     <AvisoVersionesPanel idPrefix="cadena-du" valor={avisoUniversidad} onCambiar={setAvisoUniversidad} />
-                    {/* El VoBo lo calcula el servidor al guardar los paneles: antes de
-                        "Finalizar y enviar" no hay nada que mostrar todavia. */}
                     {voBoUniversidad !== null && <ResumenVoBo voBo={voBoUniversidad} />}
                     <BotonesCadena
                       hastaPaso={pasoDe("paneles-universidad")}
@@ -1220,10 +1167,6 @@ export function FormularioInscripciones() {
               </CarouselItem>
             )}
 
-            {/* --- "confirmar-cadena": resultado de "Finalizar y enviar" (SOLO "crear") -- unico
-                lugar que lo muestra, sin importar desde que paso se haya disparado (ver
-                cadenaMutation.onSuccess en useInscripcionForm). "actualizar"/"consultar" no usan
-                este slide: terminan en el ultimo paso del nivel universidad. --- */}
             <CarouselItem className="overflow-y-auto">
               {accion === "crear" && (
                 <div className="space-y-4">
@@ -1266,9 +1209,8 @@ export function FormularioInscripciones() {
 
   return (
     <section className="mb-12 w-full">
+      {/* ◽ RESUMEN -- EL LAYOUT: en escritorio, ResizablePanelGroup (resumen | formulario). */}
       {esEscritorio ? (
-        // ResizablePanelGroup fuerza height:100% por INLINE style (pisa cualquier clase que
-        // se le ponga a el mismo) -- la altura real hay que darsela al padre, no al grupo.
         <div className="h-(--alto-wizard-escritorio)">
           <ResizablePanelGroup orientation="horizontal">
             <ResizablePanel
@@ -1278,19 +1220,13 @@ export function FormularioInscripciones() {
               defaultSize={PANEL_RESUMEN.defecto}
               minSize={PANEL_RESUMEN.minimo}
               maxSize={PANEL_RESUMEN.maximo}
-              // El tamaño llega por parametro -- no se le pregunta al handle imperativo
-              // (isCollapsed() tira excepcion si el panel todavia/ya no esta registrado,
-              // ver alternarResumen en useInscripcionForm). collapsedSize es "0px", asi que
-              // "0 pixeles" ES colapsado.
               onResize={(tamano) => setResumenColapsado(tamano.inPixels <= 0)}
             >
+              {/* ◽ RESUMEN -- EL PANEL EN SI */}
               <ResumenCadena ref={resumenRef} secciones={seccionesResumen} />
             </ResizablePanel>
             <ResizableHandle withHandle />
             <ResizablePanel>
-              {/* Division encabezado/formulario fija -- a diferencia de la de arriba, esta
-                  NO se arrastra (handle disabled, sin grip): el encabezado es un titulo, no
-                  tiene sentido redimensionarlo. */}
               <ResizablePanelGroup orientation="vertical">
                 <ResizablePanel defaultSize={ALTO_ENCABEZADO_ESCRITORIO} disabled>
                   <div className="flex h-full items-start justify-between gap-2 overflow-y-auto">
@@ -1325,6 +1261,7 @@ export function FormularioInscripciones() {
         </div>
       )}
 
+      {/* ◽ RESUMEN -- LA ANIMACION */}
       {transformacion && (
         <TransformacionPaso
           desde={transformacion.desde}

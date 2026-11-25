@@ -4,41 +4,23 @@ import { HomePage } from "./routes/HomePage";
 import { SalirSitioPage } from "./routes/inscripciones/SalirSitioPage";
 import { FormularioInscripciones } from "./routes/inscripciones/FormularioInscripciones";
 
-// Este archivo es el "mapa" completo de la app: que URL corresponde a que componente.
-// No dibuja nada el mismo -- solo arma la estructura que despues usa <RouterProvider/>
-// en main.tsx.
 
-// La ruta raiz -- SIEMPRE se renderiza, sin importar la URL. Trae el <Outlet/>
-// donde se inserta la pagina que corresponda.
 const rootRoute = createRootRoute({
   component: RootLayout,
 });
 
-// Cada createRoute() es "hijo" de rootRoute, y dice: para esta URL, este componente.
-// getParentRoute le dice al router donde "cuelga" esta ruta dentro del arbol (aqui,
-// todas cuelgan directo de rootRoute, no hay sub-rutas anidadas todavia).
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
   component: HomePage,
 });
 
-// Rutas del "menu de pago" de la pagina de inicio.
 const salirSitioRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/salir-sitio",
   component: SalirSitioPage,
 });
 
-// "accion" opcional en la URL (?accion=lista|crear|actualizar|consultar) -- la elige el
-// submenu de HomePage (ver DrillMenu.tsx) ANTES de navegar, asi FormularioInscripciones
-// puede arrancar directo en el paso 1 de esa accion, sin pasar por el paso 0 (que ya quedo
-// desactivado). "consultar": igual que "crear" pero de solo lectura (ver useInscripcionForm).
-//
-// "ambiente" opcional -- el id (CAT_AMBIENTE_INSCRIPCION) de la sucursal elegida en el
-// submenu de HomePage para "crear"/"actualizar" (varias sucursales comparten el mismo
-// catalogo de ambientes, ver HomePage.tsx): useInscripcionForm.elegirAccion lo usa para
-// precargar el campo "ambiente" (crear) o el filtro del selector compartido (actualizar).
 export type AccionFormularioInscripciones = "lista" | "crear" | "actualizar" | "consultar";
 
 export const formularioPagoRoute = createRoute({
@@ -61,8 +43,6 @@ export const formularioPagoRoute = createRoute({
 });
 
 
-// Junta las rutas sueltas en un solo arbol -- esto es lo que createRouter necesita para
-// saber que existe en la app completa.
 const routeTree = rootRoute.addChildren([
   indexRoute,
   salirSitioRoute,
@@ -71,16 +51,9 @@ const routeTree = rootRoute.addChildren([
 
 export const router = createRouter({
   routeTree,
-  // El WAR se despliega bajo /SistemaMatriculas/, no en la raiz del dominio -- mismo
-  // problema que el "base" de Vite (ver vite.config.ts): sin esto, <Link to="/materias">
-  // generaria un href de "/materias" a secas (raiz del dominio), en vez de
-  // "/SistemaMatriculas/materias" (donde realmente vive el WAR).
   basepath: "/SistemaMatriculas",
 });
 
-// Registro de tipos: le da a TypeScript autocompletado y validacion de las rutas que
-// existen (por eso <Link to="/productos"> se valida en tiempo de compilacion -- si
-// escribieras <Link to="/no-existe">, TypeScript marcaria error antes de correr nada).
 declare module "@tanstack/react-router" {
   interface Register {
     router: typeof router;

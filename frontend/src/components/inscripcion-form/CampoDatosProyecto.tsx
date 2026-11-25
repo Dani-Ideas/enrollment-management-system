@@ -3,10 +3,6 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import type { InscripcionFormApi } from "./useInscripcionForm"
 
-// Proyecto/Versión/Fecha planteada/Fecha real/Descripción -- usado tanto en
-// el paso "Datos del proyecto" del flujo "crear" como en el paso "Editar
-// campos" del flujo "actualizar". mostrarEjemplos=false en "actualizar" (ya
-// hay datos reales cargados, no hace falta el placeholder "Ej. ...").
 export function CampoDatosProyecto({
   form,
   idPrefix,

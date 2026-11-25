@@ -22,16 +22,6 @@ function ResizablePanel({ className, ...props }: React.ComponentProps<typeof Pan
   return <Panel data-slot="resizable-panel" className={cn("min-h-0 min-w-0", className)} {...props} />
 }
 
-// El "group" (clase, no el Group del carousel) es lo que permite que el icono de agarre de
-// adentro lea la orientacion -- Separator pone aria-orientation en si mismo segun el Group
-// padre, pero no lo propaga a sus hijos, asi que el grip usa group-aria-[orientation=...]
-// para leerlo igual.
-//
-// OJO: aria-orientation describe la LINEA del separador, no la orientacion del Group --
-// un Group horizontal (paneles lado a lado) tiene una linea VERTICAL entre ellos, por eso
-// ahi aria-orientation="vertical" (confirmado corriendo esto: lo tenia al reves y el handle
-// se estiraba al 100% del ancho). Las clases base (sin variante) son esa linea vertical, y
-// la variante aria-[orientation=horizontal] la rota para un Group vertical.
 function ResizableHandle({
   withHandle,
   className,

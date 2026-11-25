@@ -2,13 +2,7 @@ import { ChevronStepper } from "@/components/ui/chevron-stepper"
 import type { Accion } from "./types"
 import { etiquetaPaso, totalPasos } from "./types"
 
-// Indicador de pasos (arriba del Carousel) -- clickeable solo hasta "maxStep" (el paso mas
-// lejano ya desbloqueado). Idéntico entre FormularioPagoPage.tanstack.tsx e
-// InscripcionWizard.tanstack.tsx, salvo que este ultimo tiene un paso mas ("lista").
-//
-// El chevron en si (ChevronStepper) no sabe nada de "inscripciones" -- este componente solo
-// traduce accion/current/maxStep/onIrAPaso (el vocabulario de este wizard) a steps/current/
-// maxStep/onStepChange (el vocabulario generico del Stepper).
+// 📌 PASOS DINAMICOS -- ARCHIVO COMPLETO: el stepper sale de totalPasos/etiquetaPaso.
 export function PasosNavegacion({
   accion,
   conPaneles,
@@ -19,15 +13,10 @@ export function PasosNavegacion({
   bloqueadoGlobalmente,
 }: {
   accion: Accion | null
-  // Si el ambiente de la inscripcion lleva los pasos de checklist/pruebas/documentacion --
-  // cambia CUANTOS pasos tiene el flujo, no solo sus etiquetas (ver pasosDe en types.ts).
   conPaneles: boolean
   current: number
   maxStep: number
   onIrAPaso: (indice: number) => void
-  // Mientras se espera la confirmacion del back de la cadena completa (ver
-  // useInscripcionForm.cadenaDiplomasMutation): ese paso muestra un Spinner y NADA es
-  // clickeable hasta que resuelva.
   pasoEnCurso?: number | null
   bloqueadoGlobalmente?: boolean
 }) {

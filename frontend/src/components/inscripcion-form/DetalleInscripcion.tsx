@@ -1,8 +1,5 @@
 import type { InscripcionDTO } from "@/api/types"
 
-// <dl> de solo lectura con todos los campos de una Inscripcion -- usado en
-// la confirmacion de "crear", la confirmacion de "actualizar", y "Ver
-// detalle" en la lista (InscripcionWizard).
 export function DetalleInscripcion({ inscripcion }: { inscripcion: InscripcionDTO }) {
   return (
     <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">

@@ -13,9 +13,6 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 
-// Un item puede navegar directo (sin "submenu": hoja) o abrir una nueva lista de bullets
-// (con "submenu") -- recursivo, sin limite de profundidad. Mismo shape que el PieMenuItem
-// que reemplaza este componente: HomePage.tsx no cambia su arreglo de items.
 export type DrillMenuItem = {
   to: LinkProps["to"]
   search?: LinkProps["search"]
@@ -29,30 +26,16 @@ type Props = {
   items: DrillMenuItem[]
 }
 
-// Cuanto se desenfoca/oscurece un nivel segun su distancia al centro del scroll -- los
-// UNICOS numeros a tocar para ajustar esa sensacion ("el protagonista nitido en el centro,
-// el resto perceptible pero desenfocado/opaco, nunca oculto del todo").
 const BLUR_MAXIMO_PX = 6
 const OPACIDAD_MINIMA = 0.45
 const ESCALA_MINIMA = 0.92
 
-// Menu de "perillas" (radio bullets) con drill-down tipo iOS Settings. Cada nivel ya
-// recorrido queda apilado en una columna con scroll-snap NATIVO (snap-y snap-mandatory +
-// snap-always en cada nivel) -- eso es lo que garantiza que el scroll SIEMPRE termina
-// centrado en un nivel entero, nunca a mitad de camino entre dos (no hace falta logica
-// propia para eso, el navegador lo resuelve solo). El desenfoque/opacidad/escala de los
-// niveles que no estan centrados se recalcula en cada frame de scroll y se pisa directo por
-// ref (no por estado de React, seria un re-render por frame). Mobile first: las clases base
-// son para una columna angosta tactil, sm/md solo angostan el maxWidth y agrandan el
-// padding.
 export function DrillMenu({ items }: Props) {
   const navigate = useNavigate()
   const [caminoIndices, setCaminoIndices] = useState<number[]>([])
   const contenedorRef = useRef<HTMLDivElement>(null)
   const nivelRefs = useRef<(HTMLDivElement | null)[]>([])
   const montadoRef = useRef(false)
-  // true mientras un scrollIntoView disparado por codigo (no por el usuario arrastrando o
-  // usando la rueda) todavia puede estar animando -- ver alAsentarse().
   const programaticoRef = useRef(false)
 
   function nivelEn(profundidad: number): DrillMenuItem[] {
@@ -63,12 +46,9 @@ export function DrillMenu({ items }: Props) {
     return lista
   }
 
-  // Un nivel por paso ya recorrido + el nivel actual (sin elegir todavia).
   const niveles = Array.from({ length: caminoIndices.length + 1 }, (_, profundidad) => nivelEn(profundidad))
   const caminoItems = caminoIndices.map((indice, profundidad) => nivelEn(profundidad)[indice])
 
-  // Elegir en CUALQUIER nivel visible (no solo el ultimo) -- volver a un nivel ya recorrido
-  // y elegir una rama distinta trunca lo que colgaba de la eleccion vieja.
   function elegir(profundidad: number, indice: number) {
     const item = nivelEn(profundidad)[indice]
     if (item.submenu) {
@@ -82,18 +62,10 @@ export function DrillMenu({ items }: Props) {
     setCaminoIndices((actual) => actual.slice(0, profundidad))
   }
 
-  // nivel.offsetTop es relativo al ancestro posicionado mas cercano, NO al contenedor de
-  // scroll -- si hay cualquier cosa posicionada entre medio (o el contenedor mismo no es el
-  // offsetParent), queda mal. getBoundingClientRect() da la posicion real en pantalla, y
-  // restando la del contenedor (mas su scrollTop actual) da el top relativo al contenido
-  // scrolleable que realmente hace falta para centrar o medir distancias.
   function topRelativoAlContenedor(nivel: HTMLDivElement, contenedor: HTMLDivElement) {
     return nivel.getBoundingClientRect().top - contenedor.getBoundingClientRect().top + contenedor.scrollTop
   }
 
-  // scrollIntoView({block:"center"}) resulto pelearse con el scroll-snap nativo (el
-  // contenedor quedaba a mitad de camino, ni en 0 ni centrado) -- calcular el scrollTop
-  // exacto a mano y pisarlo directo es lo unico que lo deja siempre perfectamente centrado.
   function centrarNivel(profundidad: number, animado: boolean) {
     const contenedor = contenedorRef.current
     const nivel = nivelRefs.current[profundidad]
@@ -102,12 +74,6 @@ export function DrillMenu({ items }: Props) {
     contenedor.scrollTo({ top: destino, behavior: animado ? "smooth" : "auto" })
   }
 
-  // Desenfoque/opacidad/escala continuos segun la distancia de cada nivel al centro del
-  // contenedor, recalculados en cada scroll (drag, rueda o el scrollIntoView programatico de
-  // mas abajo pasan todos por aca). Cuando el scroll se asienta (120ms sin moverse, ya
-  // snapeado a un nivel por el CSS) sincroniza caminoIndices con el nivel que quedo
-  // centrado -- asi "elegido" nunca queda desincronizado de lo que el usuario ve, tambien
-  // si llego ahi a mano con la rueda/drag en vez de clickeando una perilla.
   useEffect(() => {
     const contenedor = contenedorRef.current
     if (!contenedor) return

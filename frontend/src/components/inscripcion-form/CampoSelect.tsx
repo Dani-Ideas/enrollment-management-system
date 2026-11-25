@@ -28,12 +28,6 @@ export interface CampoSelectFiltros {
   hayResultados: boolean
 }
 
-// "Encontrar una solicitud existente" -- sin "filtros", es solo busqueda por numero
-// exacto (mismo bloque de siempre, usado por "actualizar": elegir cual editar). Con
-// "filtros", agrega un toggle y un SEGUNDO modo (estado/sistema/ambiente) -- nunca los
-// dos modos juntos, uno tapa al otro (usado por "lista": solo consultar). La lista en si
-// que arman esos filtros se renderiza aparte, con CampoVistaDetalle -- aca solo van los
-// controles y el loading/error/vacio de esa lista.
 export function CampoSelect({
   idPrefix,
   valor,

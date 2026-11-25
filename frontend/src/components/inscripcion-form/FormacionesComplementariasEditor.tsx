@@ -5,13 +5,6 @@ import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
 import type { FormacionComplementariaEditable } from "./types"
 
-// Lista editable (agregar/quitar/editar texto) de formaciones
-// complementarias -- misma UI para las dos situaciones donde aparece: las
-// "nuevas" del flujo "crear" (formacionesNuevas, todo con id null porque la
-// Inscripcion todavia no existe) y las "editables" del flujo "actualizar"
-// (formacionesEditables, mezcla de filas con id real y filas recien
-// agregadas). El diff contra lo que habia antes se resuelve en el hook, no
-// aca -- este componente solo junta texto.
 export function FormacionesComplementariasEditor({
   items,
   onAgregar,

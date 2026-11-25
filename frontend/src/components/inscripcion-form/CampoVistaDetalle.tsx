@@ -4,14 +4,6 @@ import { Spinner } from "@/components/ui/spinner"
 import { DetalleInscripcion } from "./DetalleInscripcion"
 import type { InscripcionDTO } from "@/api/types"
 
-// Lista de solicitudes, en dos modos -- mismos datos (InscripcionDTO[]), distinto click:
-//
-// "detalle": fila con boton "Ver detalle" que expande/colapsa un <DetalleInscripcion>
-// in-place, una sola fila abierta a la vez (rama "lista" -- solo consultar, no hay
-// adonde navegar).
-//
-// "seleccionar": la fila ENTERA es un boton que llama a onSeleccionar(id) -- elegir una
-// solicitud para pasar al siguiente paso (rama "actualizar": elegir cual editar).
 type Props =
   | {
       modo: "detalle"

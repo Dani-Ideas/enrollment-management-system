@@ -20,21 +20,13 @@ import type {
   TablasInscripcionDTO,
 } from "./types";
 
-// Ruta relativa: en `npm run dev` la resuelve el proxy de vite.config.ts hacia GlassFish;
-// en produccion, el frontend vive dentro del mismo WAR, asi que resuelve al mismo origen.
 const API_BASE = "/SistemaMatriculas/api";
 
-// UN SOLO cliente de axios para TODO este archivo, sin excepcion -- antes solo lo usaba
-// fetchTablasInscripcion() y el resto seguia con fetch()/RequestInit; ahora todas las
-// funciones de abajo pasan por request(), que a su vez pasa por este cliente.
 const axiosClient = axios.create({
   baseURL: API_BASE,
   headers: { "Content-Type": "application/json" },
 });
 
-// UNICA fuente de verdad de los paths que usa este archivo -- cada funcion de abajo
-// referencia una de estas constantes, nunca un string suelto escrito dos veces. Evita que
-// el mismo path quede tipeado en mas de un lugar y se desincronice por un typo.
 const RUTAS = {
   estados: "/estados",
   sistemas: "/sistemas",
@@ -45,14 +37,6 @@ const RUTAS = {
   endpoints: "/endpoints",
 } as const;
 
-// Chequeo SOLO en desarrollo: el backend expone que paths estan REALMENTE registrados
-// (ApplicationConfig.listEndpoints(), via GET /endpoints -- ver EndpointsController.java).
-// Al cargar este modulo se compara contra RUTAS de arriba y se avisa por consola si algo
-// que este archivo usa ya no esta activo en el backend (ej. alguien comento la entrada en
-// ApplicationConfig.REGISTRO_ACTIVO y se le olvido avisar al frontend) -- en vez de
-// descubrirlo con un 404 crudo en producción. Nunca bloquea nada: si /endpoints no
-// responde (backend caido, etc.) se ignora en silencio, un chequeo de desarrollo no debe
-// tumbar la app.
 if (import.meta.env.DEV) {
   axiosClient
     .get<string[]>(RUTAS.endpoints)

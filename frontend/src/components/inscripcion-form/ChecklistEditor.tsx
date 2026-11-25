@@ -14,11 +14,6 @@ interface CatalogoResponsable {
   isLoading: boolean
 }
 
-// Lista editable (agregar/quitar/editar) de filas de checklist -- reemplaza al viejo
-// checklist fijo de firmas booleanas (CampoFirmas): cada fila es una actividad con su propio
-// estado/responsable, no un checkbox con nombre fijo. Mismo patron add/remove que
-// FormacionesComplementariasEditor. disabled=true (usado por "consultar"): inputs
-// deshabilitados, sin botones de agregar/quitar -- solo lectura.
 export function ChecklistEditor({
   items,
   onAgregar,

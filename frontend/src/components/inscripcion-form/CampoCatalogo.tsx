@@ -7,11 +7,6 @@ interface Catalogo {
   isLoading: boolean
 }
 
-// Grupo de 3 <select> (Estado/Sistema/Ambiente) ligados a "form" via
-// form.Field -- usado tanto en el paso "Catálogo" del flujo "crear" como en
-// el paso "Editar campos" del flujo "actualizar". mostrarPlaceholder=false
-// en "actualizar" (el baseline ya trae un id valido cargado, no hace falta
-// la opcion "Seleccioná...").
 export function CampoCatalogo({
   form,
   idPrefix,

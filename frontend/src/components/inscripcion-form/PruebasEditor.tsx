@@ -10,8 +10,6 @@ interface Catalogo {
   isLoading: boolean
 }
 
-// Mismo patron add/remove que ChecklistEditor, para las filas de INSCRIPCION_PRUEBA.
-// disabled=true (usado por "consultar"): solo lectura.
 export function PruebasEditor({
   items,
   onAgregar,

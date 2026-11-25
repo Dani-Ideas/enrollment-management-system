@@ -4,12 +4,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { TriangleAlertIcon } from "lucide-react"
 import type { InscripcionFormApi } from "./useInscripcionForm"
 
-// Fila de botones de la cadena -- "Finalizar y enviar" dispara la secuencia de peticiones
-// con todo lo llenado hasta "hastaPaso" (puede ser parcial: el usuario no esta obligado a
-// seguir toda la cadena). "Continuar" (si hay un siguiente nivel) solo avanza local, sin
-// mandar nada. Ya no hay pasos de Confirmacion por nivel: esta fila va al pie del paso de
-// cada nivel de "crear" (2/3/4/5/6). "deshabilitado" es para los pasos de datos, donde
-// todavia no se puede ni enviar ni avanzar porque falta llenar campos obligatorios.
+// 📌 PASOS DINAMICOS: "hastaPaso"/"siguientePaso" son indices del flujo, via pasoDe()/trasPaso().
 export function BotonesCadena({
   hastaPaso,
   siguientePaso,
