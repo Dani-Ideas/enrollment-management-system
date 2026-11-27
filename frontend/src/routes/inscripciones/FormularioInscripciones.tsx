@@ -234,6 +234,7 @@ export function FormularioInscripciones() {
     </>
   )
 
+  // ⭐ Mientras vuela el HTTP 2, la navegacion entera queda bloqueada (cadenaMutation.isPending).
   const pasosNavegacion = (
     <PasosNavegacion
       accion={accion}
@@ -439,6 +440,7 @@ export function FormularioInscripciones() {
                       <h3 className="text-sm font-medium">Revisá antes de finalizar</h3>
                       <DetalleInscripcion inscripcion={camposAVistaPrevia(campos)} />
 
+                      {/* ⭐ Unico disparador del HTTP 1 (crear). */}
                       <Button
                         onClick={crearSolicitudConFormaciones}
                         disabled={!formularioCompleto || crearSolicitudMutation.isPending}

@@ -2,6 +2,7 @@ import { createRootRoute, createRoute, createRouter } from "@tanstack/react-rout
 import { RootLayout } from "./routes/RootLayout";
 import { HomePage } from "./routes/HomePage";
 import { SalirSitioPage } from "./routes/inscripciones/SalirSitioPage";
+import { SeccionPage } from "./routes/SeccionPage";
 import { FormularioInscripciones } from "./routes/inscripciones/FormularioInscripciones";
 
 
@@ -13,6 +14,15 @@ const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
   component: HomePage,
+});
+
+// Una ruta por seccion del sidebar que tenga submenu: el submenu se dibuja en el
+// contenido principal (SeccionPage), no dentro del sidebar. Agregar una seccion nueva con
+// submenu = una entrada en useSecciones() + una ruta de estas.
+const solicitudesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/solicitudes",
+  component: () => <SeccionPage seccionId="solicitudes" />,
 });
 
 const salirSitioRoute = createRoute({
@@ -45,6 +55,7 @@ export const formularioPagoRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
+  solicitudesRoute,
   salirSitioRoute,
   formularioPagoRoute,
 ]);

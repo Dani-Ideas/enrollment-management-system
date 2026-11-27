@@ -5,6 +5,7 @@ import { TriangleAlertIcon } from "lucide-react"
 import type { InscripcionFormApi } from "./useInscripcionForm"
 
 // 📌 PASOS DINAMICOS: "hastaPaso"/"siguientePaso" son indices del flujo, via pasoDe()/trasPaso().
+// ⭐ Unico disparador del HTTP 2: manda "hastaPaso" y se auto-bloquea con mutation.isPending.
 export function BotonesCadena({
   hastaPaso,
   siguientePaso,

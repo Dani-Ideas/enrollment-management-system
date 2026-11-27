@@ -332,6 +332,7 @@ export function useInscripcionForm({
     setFormacionesNuevas((anteriores) => anteriores.filter((_, i) => i !== indice))
   }
 
+  // ⭐ HTTP 1 de 2 (crear): POST de la primaria. Su data.solicitud.id es lo unico que habilita el HTTP 2.
   const crearSolicitudMutation = useMutation({
     mutationFn: crearSolicitud,
     onSuccess: () => {
@@ -420,6 +421,7 @@ export function useInscripcionForm({
     JSON.stringify(formacionesEditables) !== JSON.stringify(formacionesOriginalRef.current)
   const hayAlgoQueGuardar = huboCambios || huboCambiosFormaciones
 
+  // ⭐ HTTP 1 de 2 (actualizar): PUT de la primaria -- aca el id ya existe, no hay que esperarlo.
   const actualizarSolicitudMutation = useMutation({
     mutationFn: (dto: SolicitudRequestDTO) => {
       const formacionesComplementarias: FormacionComplementariaRequestDTO[] = formacionesEditables.map((el) => ({
@@ -642,8 +644,10 @@ export function useInscripcionForm({
     }
   }
 
+  // ⭐ HTTP 2 de 2: TODO lo que va despues de la primaria, en una sola secuencia await tras await.
   async function enviarSecuenciaCadena(hastaPaso: number) {
     const primariaId = crearSolicitudMutation.data?.solicitud.id
+    // ⭐ CANDADO: sin id de primaria no sale ni un HTTP del paso 2 (toda la cadena cuelga de ella).
     if (primariaId === undefined) {
       throw new Error("Todavía no se creó la solicitud de primaria")
     }
@@ -659,6 +663,7 @@ export function useInscripcionForm({
       setVoBoPrimaria((await fetchSolicitud(primariaId)).voBo ?? null)
     }
 
+    // ⭐ ENCADENADO: la secundaria nace con primariaId de padre, y la universidad exige secundariaId.
     let secundariaId = solicitudSecundariaId
     if (alcanza("datos-secundaria") && secundariaId === null) {
       const creada = await crearSolicitud({
@@ -696,6 +701,7 @@ export function useInscripcionForm({
     }
   }
 
+  // ⭐ CONTROL DEL HTTP 2: un solo envio en vuelo -- su isPending bloquea botones y navegacion.
   const cadenaMutation = useMutation({
     mutationFn: enviarSecuenciaCadena,
     onSuccess: () => {
@@ -966,6 +972,7 @@ export function useInscripcionForm({
   // PUT generico de un nivel YA existente, sin formaciones (a diferencia de la Primaria,
   // que si las tiene) -- una instancia por nivel para que isPending/isSuccess/isError no se
   // pisen entre si cuando el usuario navega de un paso a otro sin guardar.
+  // ⭐ HTTP 2 (actualizar): un PUT por nivel, cada uno gateado por su propio id ya cargado.
   const actualizarSecundariaMutation = useMutation({
     mutationFn: (dto: SolicitudRequestDTO) => actualizarSolicitud(solicitudSecundariaId!, { solicitud: dto }),
   })
@@ -1001,6 +1008,7 @@ export function useInscripcionForm({
   // guardarPanelesNivel() (llamado DESDE la cadena de "crear", nivel recien creado), aca
   // simplemente sincroniza contra un id fijo y refresca el VoBo. 3 instancias separadas,
   // mismo motivo que las de arriba.
+  // ⭐ HTTP 2 (actualizar): paneles contra un id fijo -- el nivel ya existe, no se espera a nadie.
   const guardarPanelesPrimariaMutation = useMutation({
     mutationFn: async () => {
       if (solicitudIdActual === null) return
