@@ -1390,6 +1390,11 @@ export function useInscripcionForm({
 
     plantillasChecklist,
 
+    // Ids de los niveles ya creados: los usa la propuesta de correos para saber hasta donde
+    // llego la cadena (null = ese nivel todavia no existe).
+    solicitudSecundariaId,
+    solicitudUniversidadId,
+
     checklistPrimaria,
     checklistPrimariaAcciones,
     pruebasPrimaria,

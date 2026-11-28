@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from "react"
 import type { ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
 import { formularioPagoRoute } from "@/router"
+import { DialogoCorreos } from "@/components/correos/DialogoCorreos"
+import { correosDeCadena, correosDeCreacion } from "@/components/correos/correos"
+import { usePerfil } from "@/components/perfil/contextoPerfil"
 import {
   ALTO_ENCABEZADO_ESCRITORIO,
   AvisoVersionesPanel,
@@ -31,6 +34,7 @@ import { Spinner } from "@/components/ui/spinner"
 import {
   ArrowLeftIcon,
   CheckCircle2Icon,
+  MailIcon,
   PanelLeftCloseIcon,
   PanelLeftOpenIcon,
   RotateCcwIcon,
@@ -145,6 +149,14 @@ function PieNivel({
 
 export function FormularioInscripciones() {
   const wizard = useInscripcionForm(formularioPagoRoute.useSearch())
+  const { perfil } = usePerfil()
+
+  // Propuesta de correos: se abre sola la primera vez que un envío termina bien, antes de
+  // que el sistema "despache" nada. El ref hace que sea UNA vez por envío -- si dependiera
+  // solo del isSuccess, volvería a abrirse en cada render de ese paso.
+  const [correosAbiertos, setCorreosAbiertos] = useState<"creacion" | "cadena" | null>(null)
+  const correosCreacionRef = useRef(false)
+  const correosCadenaRef = useRef(false)
   const {
     accion,
     empezarDeNuevo,
@@ -277,6 +289,25 @@ export function FormularioInscripciones() {
       <h2>Solicitudes de inscripción</h2>
     </>
   )
+
+  useEffect(() => {
+    if (crearSolicitudMutation.isSuccess && !correosCreacionRef.current) {
+      correosCreacionRef.current = true
+      setCorreosAbiertos("creacion")
+    }
+  }, [crearSolicitudMutation.isSuccess])
+
+  useEffect(() => {
+    if (cadenaMutation.isSuccess && !correosCadenaRef.current) {
+      correosCadenaRef.current = true
+      setCorreosAbiertos("cadena")
+    }
+  }, [cadenaMutation.isSuccess])
+
+  const solicitudCreada = crearSolicitudMutation.data?.solicitud ?? null
+  const nivelesDeLaCadena = ["Primaria"]
+  if (wizard.solicitudSecundariaId !== null) nivelesDeLaCadena.push("Secundaria")
+  if (wizard.solicitudUniversidadId !== null) nivelesDeLaCadena.push("Universidad")
 
   // ⭐ Mientras vuela el HTTP 2, la navegacion entera queda bloqueada (cadenaMutation.isPending).
   const pasosNavegacion = (
@@ -481,6 +512,14 @@ export function FormularioInscripciones() {
                         </Button>
                         <Button onClick={crearOtra} className="w-fit">
                           Crear otra solicitud
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => setCorreosAbiertos("creacion")}
+                          className="w-fit"
+                        >
+                          <MailIcon />
+                          Ver correos automáticos
                         </Button>
                       </div>
                     </>
@@ -1245,9 +1284,15 @@ export function FormularioInscripciones() {
                         <CheckCircle2Icon />
                         <AlertTitle>Cadena enviada</AlertTitle>
                       </Alert>
-                      <Button onClick={crearOtra} className="w-fit">
-                        Crear otra solicitud
-                      </Button>
+                      <div className="flex flex-wrap gap-2">
+                        <Button onClick={crearOtra} className="w-fit">
+                          Crear otra solicitud
+                        </Button>
+                        <Button variant="outline" onClick={() => setCorreosAbiertos("cadena")} className="w-fit">
+                          <MailIcon />
+                          Ver correos automáticos
+                        </Button>
+                      </div>
                     </>
                   ) : (
                     <p className="text-sm text-muted-foreground">
@@ -1328,6 +1373,22 @@ export function FormularioInscripciones() {
           {pasosNavegacion}
           {tarjetaFormulario}
         </div>
+      )}
+
+      {/* Propuesta de correos: lo que el sistema mandaría, antes de mandarlo (simulado). */}
+      {solicitudCreada !== null && (
+        <DialogoCorreos
+          abierto={correosAbiertos !== null}
+          onAbiertoChange={(abierto) => setCorreosAbiertos(abierto ? correosAbiertos : null)}
+          titulo={
+            correosAbiertos === "cadena" ? "Correos del cierre de la cadena" : "Correos de la solicitud creada"
+          }
+          correos={
+            correosAbiertos === "cadena"
+              ? correosDeCadena(solicitudCreada, perfil, nivelesDeLaCadena)
+              : correosDeCreacion(solicitudCreada, perfil, nivelesDeLaCadena.length < 3)
+          }
+        />
       )}
 
       {/* ◽ RESUMEN -- LA ANIMACION */}
