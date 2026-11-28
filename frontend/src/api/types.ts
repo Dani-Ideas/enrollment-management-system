@@ -52,6 +52,13 @@ export interface TablasInscripcionDTO {
   ambientes: AmbienteDTO[];
   etapas: EtapaInscripcionDTO[];
   tiposPrueba: TipoPruebaDTO[];
+  tiposArquitectura: TipoArquitecturaDTO[];
+}
+
+// Catalogo CAT_TIPO_ARQUITECTURA: por aca se agrupan las plantillas de checklist.
+export interface TipoArquitecturaDTO {
+  id: number;
+  nombre: string;
 }
 
 export interface FormacionComplementariaDTO {
@@ -133,23 +140,42 @@ export interface ChecklistItemRequestDTO {
 }
 
 // Plantilla de checklist (SOL_N_INSCRIPCION_CHECKLIST_TEMPLATE): preset global, no cuelga
-// de ninguna solicitud. La fila solo trae los 4 textos -- estado y responsable los sigue
-// eligiendo el usuario, porque son ids de catalogo y cambian de base en base.
+// de ninguna solicitud. Se identifica por NOMBRE + TIPO DE ARQUITECTURA (es la PK real de
+// la tabla, junto con el orden de cada fila), y cada fila dice a que ETAPA de la cadena
+// aplica. Estado y responsable NO vienen de la plantilla: son ids de catalogo y cambian de
+// base en base, asi que los sigue eligiendo el usuario.
 export interface ChecklistTemplateFilaDTO {
+  etapa: string;
+  // 1/2/3 (Primaria/Secundaria/Universidad). Es por lo que el front filtra las filas que
+  // le tocan a cada nivel -- el orden es estable entre bases, el id no.
+  etapaOrden: number;
   seccion: string;
   actividad: string;
   descripcion: string;
   conexion: string;
+  comentario: string | null;
 }
 
 export interface ChecklistTemplateDTO {
   nombre: string;
+  tipoArquitecturaId: number;
+  tipoArquitectura: string;
   filas: ChecklistTemplateFilaDTO[];
+}
+
+export interface ChecklistTemplateFilaRequestDTO {
+  etapa: number;
+  seccion: string;
+  actividad: string;
+  descripcion: string;
+  conexion: string;
+  comentario: string | null;
 }
 
 export interface ChecklistTemplateRequestDTO {
   nombre: string;
-  filas: ChecklistTemplateFilaDTO[];
+  tipoArquitectura: number;
+  filas: ChecklistTemplateFilaRequestDTO[];
 }
 
 export interface PruebaDTO {

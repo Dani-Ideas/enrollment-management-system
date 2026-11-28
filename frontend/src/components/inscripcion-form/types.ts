@@ -1,5 +1,10 @@
 
-import type { ChecklistTemplateDTO, ChecklistTemplateFilaDTO } from "@/api/types"
+import type {
+  ChecklistTemplateDTO,
+  ChecklistTemplateFilaDTO,
+  ChecklistTemplateFilaRequestDTO,
+  TipoArquitecturaDTO,
+} from "@/api/types"
 
 export type Accion = "lista" | "crear" | "actualizar" | "consultar"
 
@@ -163,36 +168,52 @@ export const CHECKLIST_ITEM_VACIO: ChecklistItemEditable = {
 // objeto sirve para primaria, secundaria y universidad.
 export type PlantillasChecklistApi = {
   query: { data: ChecklistTemplateDTO[] | undefined; isLoading: boolean }
-  guardar: (nombre: string, items: ChecklistItemEditable[]) => void
+  // Las plantillas se agrupan por tipo de arquitectura, asi que guardar una exige elegir
+  // cual: es parte de su identidad, no un dato suelto.
+  arquitecturas: TipoArquitecturaDTO[]
+  guardar: (nombre: string, tipoArquitecturaId: string, items: ChecklistItemEditable[], nivel: number) => void
   guardando: boolean
   error: string | null
   guardada: string | null
 }
 
-// Plantilla -> filas editables. La plantilla solo trae los 4 textos, asi que el resto
-// (estado, responsable, comentario) arranca vacio igual que una fila nueva: id null, o sea
-// que al guardar salen como POST, no como PUT.
-export function checklistDesdePlantilla(filas: ChecklistTemplateFilaDTO[]): ChecklistItemEditable[] {
-  return filas.map((fila) => ({
-    ...CHECKLIST_ITEM_VACIO,
-    seccion: fila.seccion,
-    actividad: fila.actividad,
-    descripcion: fila.descripcion,
-    conexion: fila.conexion,
-  }))
+// Plantilla -> filas editables del nivel que se esta llenando. Una plantilla puede traer
+// filas para los 3 niveles (cada fila dice su etapa), asi que se filtra por "nivel" (1/2/3
+// = el ORDEN de la etapa, estable entre bases, a diferencia del id). Estado y responsable
+// arrancan vacios igual que una fila nueva, y el id en null hace que salgan como POST.
+export function checklistDesdePlantilla(
+  filas: ChecklistTemplateFilaDTO[],
+  nivel: number,
+): ChecklistItemEditable[] {
+  return filas
+    .filter((fila) => fila.etapaOrden === nivel)
+    .map((fila) => ({
+      ...CHECKLIST_ITEM_VACIO,
+      seccion: fila.seccion,
+      actividad: fila.actividad,
+      descripcion: fila.descripcion,
+      conexion: fila.conexion,
+      comentario: fila.comentario ?? "",
+    }))
 }
 
-// Filas editables -> plantilla. Descarta las filas en blanco con el MISMO criterio que
-// guardarPanelesNivel() (seccion y actividad vacias), para que lo que se guarda como
-// plantilla sea exactamente lo que se guardaria como checklist.
-export function plantillaDesdeChecklist(items: ChecklistItemEditable[]): ChecklistTemplateFilaDTO[] {
+// Filas editables -> filas de plantilla, todas con la etapa del nivel que las guarda.
+// Descarta las filas en blanco con el MISMO criterio que guardarPanelesNivel() (seccion y
+// actividad vacias), para que lo que se guarda como plantilla sea exactamente lo que se
+// guardaria como checklist.
+export function plantillaDesdeChecklist(
+  items: ChecklistItemEditable[],
+  etapaId: number,
+): ChecklistTemplateFilaRequestDTO[] {
   return items
     .filter((item) => item.seccion.trim() !== "" || item.actividad.trim() !== "")
     .map((item) => ({
+      etapa: etapaId,
       seccion: item.seccion,
       actividad: item.actividad,
       descripcion: item.descripcion,
       conexion: item.conexion,
+      comentario: item.comentario.trim() === "" ? null : item.comentario,
     }))
 }
 

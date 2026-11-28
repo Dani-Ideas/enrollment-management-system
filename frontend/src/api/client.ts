@@ -215,8 +215,10 @@ export function crearChecklistTemplate(dto: ChecklistTemplateRequestDTO): Promis
   return request<ChecklistTemplateDTO>(RUTAS.plantillasChecklist, { method: "POST", data: dto });
 }
 
-export function eliminarChecklistTemplate(nombre: string): Promise<void> {
-  return request<void>(`${RUTAS.plantillasChecklist}/${encodeURIComponent(nombre)}`, { method: "DELETE" });
+export function eliminarChecklistTemplate(tipoArquitecturaId: number, nombre: string): Promise<void> {
+  return request<void>(`${RUTAS.plantillasChecklist}/${tipoArquitecturaId}/${encodeURIComponent(nombre)}`, {
+    method: "DELETE",
+  });
 }
 
 // Misma razon que CATALOGOS_INSCRIPCION_QUERY: una sola fuente de verdad de la queryKey,

@@ -622,6 +622,7 @@ export function FormularioInscripciones() {
                       responsablesQuery={responsablesQuery}
                       plantillas={plantillasChecklist}
                       onAgregarVarias={checklistPrimariaAcciones.agregarVarias}
+                      nivel={1}
                     />
                     <PruebasEditor
                       items={pruebasPrimaria}
@@ -683,6 +684,7 @@ export function FormularioInscripciones() {
                       responsablesQuery={responsablesQuery}
                       plantillas={plantillasChecklist}
                       onAgregarVarias={checklistPrimariaAcciones.agregarVarias}
+                      nivel={1}
                     />
                     <PruebasEditor
                       items={pruebasPrimaria}
@@ -873,6 +875,7 @@ export function FormularioInscripciones() {
                       responsablesQuery={responsablesQuery}
                       plantillas={plantillasChecklist}
                       onAgregarVarias={checklistSecundariaAcciones.agregarVarias}
+                      nivel={2}
                     />
                     <PruebasEditor
                       items={pruebasSecundaria}
@@ -934,6 +937,7 @@ export function FormularioInscripciones() {
                       responsablesQuery={responsablesQuery}
                       plantillas={plantillasChecklist}
                       onAgregarVarias={checklistSecundariaAcciones.agregarVarias}
+                      nivel={2}
                     />
                     <PruebasEditor
                       items={pruebasSecundaria}
@@ -1120,6 +1124,7 @@ export function FormularioInscripciones() {
                       responsablesQuery={responsablesQuery}
                       plantillas={plantillasChecklist}
                       onAgregarVarias={checklistUniversidadAcciones.agregarVarias}
+                      nivel={3}
                     />
                     <PruebasEditor
                       items={pruebasUniversidad}
@@ -1178,6 +1183,7 @@ export function FormularioInscripciones() {
                       responsablesQuery={responsablesQuery}
                       plantillas={plantillasChecklist}
                       onAgregarVarias={checklistUniversidadAcciones.agregarVarias}
+                      nivel={3}
                     />
                     <PruebasEditor
                       items={pruebasUniversidad}

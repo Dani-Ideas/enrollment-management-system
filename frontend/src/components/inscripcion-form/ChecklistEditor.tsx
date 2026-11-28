@@ -26,6 +26,7 @@ export function ChecklistEditor({
   disabled = false,
   plantillas,
   onAgregarVarias,
+  nivel,
 }: {
   items: ChecklistItemEditable[]
   onAgregar: () => void
@@ -34,22 +35,37 @@ export function ChecklistEditor({
   estadosQuery: Catalogo
   responsablesQuery: CatalogoResponsable
   disabled?: boolean
-  // Plantillas: opcionales a proposito -- sin estas dos props el editor es exactamente el
-  // de antes (es lo que usan las vistas de solo lectura).
+  // Plantillas: opcionales a proposito -- sin estas props el editor es exactamente el de
+  // antes (es lo que usan las vistas de solo lectura).
   plantillas?: PlantillasChecklistApi
   onAgregarVarias?: (filas: ChecklistItemEditable[]) => void
+  // 1/2/3 = Primaria/Secundaria/Universidad. Es el ORDEN de la etapa, no su id: una
+  // plantilla trae filas para los 3 niveles y hay que quedarse con las de este.
+  nivel?: number
 }) {
+  // La clave de una plantilla es arquitectura + nombre, no el nombre solo: dos
+  // arquitecturas pueden tener una "Basica" distinta.
   const [plantillaElegida, setPlantillaElegida] = useState("")
   const [nombreNuevo, setNombreNuevo] = useState("")
+  const [arquitecturaNueva, setArquitecturaNueva] = useState("")
 
-  const ofrecePlantillas = !disabled && plantillas !== undefined && onAgregarVarias !== undefined
+  const ofrecePlantillas =
+    !disabled && plantillas !== undefined && onAgregarVarias !== undefined && nivel !== undefined
+
+  function claveDe(p: { tipoArquitecturaId: number; nombre: string }) {
+    return `${p.tipoArquitecturaId}|${p.nombre}`
+  }
+
+  const plantilla = plantillas?.query.data?.find((p) => claveDe(p) === plantillaElegida)
+  const filasDelNivel = plantilla === undefined || nivel === undefined
+    ? []
+    : plantilla.filas.filter((f) => f.etapaOrden === nivel)
 
   // Aplicar = copiar las filas al final de lo que ya hay. Nunca reemplaza ni pisa nada, y
   // se pueden aplicar dos plantillas seguidas.
   function aplicarPlantilla() {
-    const plantilla = plantillas?.query.data?.find((p) => p.nombre === plantillaElegida)
-    if (plantilla === undefined || onAgregarVarias === undefined) return
-    onAgregarVarias(checklistDesdePlantilla(plantilla.filas))
+    if (plantilla === undefined || onAgregarVarias === undefined || nivel === undefined) return
+    onAgregarVarias(checklistDesdePlantilla(plantilla.filas, nivel))
     setPlantillaElegida("")
   }
 
@@ -68,8 +84,8 @@ export function ChecklistEditor({
                 >
                   <option value="">{plantillas!.query.isLoading ? "Cargando…" : "Seleccioná…"}</option>
                   {plantillas!.query.data?.map((p) => (
-                    <option key={p.nombre} value={p.nombre}>
-                      {p.nombre} ({p.filas.length} fila{p.filas.length === 1 ? "" : "s"})
+                    <option key={claveDe(p)} value={claveDe(p)}>
+                      {p.nombre} · {p.tipoArquitectura} ({p.filas.filter((f) => f.etapaOrden === nivel).length})
                     </option>
                   ))}
                 </NativeSelect>
@@ -78,7 +94,7 @@ export function ChecklistEditor({
                   variant="outline"
                   size="sm"
                   onClick={aplicarPlantilla}
-                  disabled={plantillaElegida === ""}
+                  disabled={plantillaElegida === "" || filasDelNivel.length === 0}
                   className="w-fit shrink-0"
                 >
                   <ListPlusIcon />
@@ -95,12 +111,29 @@ export function ChecklistEditor({
                   placeholder="Nombre de la plantilla"
                   className="min-w-0 flex-1"
                 />
+                <NativeSelect
+                  value={arquitecturaNueva}
+                  onChange={(e) => setArquitecturaNueva(e.target.value)}
+                  className="min-w-0 flex-1"
+                >
+                  <option value="">Arquitectura…</option>
+                  {plantillas!.arquitecturas.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.nombre}
+                    </option>
+                  ))}
+                </NativeSelect>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => plantillas!.guardar(nombreNuevo, items)}
-                  disabled={nombreNuevo.trim() === "" || items.length === 0 || plantillas!.guardando}
+                  onClick={() => plantillas!.guardar(nombreNuevo, arquitecturaNueva, items, nivel!)}
+                  disabled={
+                    nombreNuevo.trim() === "" ||
+                    arquitecturaNueva === "" ||
+                    items.length === 0 ||
+                    plantillas!.guardando
+                  }
                   className="w-fit shrink-0"
                 >
                   {plantillas!.guardando && <Spinner />}
@@ -110,6 +143,11 @@ export function ChecklistEditor({
               </div>
             </Field>
           </div>
+          {plantillaElegida !== "" && filasDelNivel.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              Esa plantilla no trae filas para este nivel de la cadena.
+            </p>
+          )}
           {plantillas!.error !== null && <p className="text-sm text-destructive">{plantillas!.error}</p>}
           {plantillas!.error === null && plantillas!.guardada !== null && (
             <p className="text-sm text-muted-foreground">Plantilla «{plantillas!.guardada}» guardada.</p>

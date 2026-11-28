@@ -29,7 +29,7 @@ import type {
 } from "@/api/types"
 import type { CarouselApi } from "@/components/ui/carousel"
 import { useMediaQuery } from "@/hooks/useMediaQuery"
-import type { SeccionResumen } from "./ResumenCadena"
+import type { FilaResumen, SeccionResumen } from "./ResumenCadena"
 import {
   type Accion,
   type AvisoVersionEditable,
@@ -545,15 +545,23 @@ export function useInscripcionForm({
 
   const plantillasChecklist: PlantillasChecklistApi = {
     query: plantillasChecklistQuery,
+    arquitecturas: catalogosQuery.data?.tiposArquitectura ?? [],
     guardando: guardarPlantillaChecklistMutation.isPending,
     error: guardarPlantillaChecklistMutation.isError
       ? (guardarPlantillaChecklistMutation.error as Error).message
       : null,
     guardada: guardarPlantillaChecklistMutation.isSuccess ? guardarPlantillaChecklistMutation.data.nombre : null,
-    guardar: (nombre, items) => {
-      const filas = plantillaDesdeChecklist(items)
-      if (nombre.trim() === "" || filas.length === 0) return
-      guardarPlantillaChecklistMutation.mutate({ nombre: nombre.trim(), filas })
+    // "nivel" es el ORDEN de la etapa (1/2/3): el id real se resuelve aca con idEtapa(),
+    // nunca se escribe a mano -- no hay seeder y los ids cambian de base en base.
+    guardar: (nombre, tipoArquitecturaId, items, nivel) => {
+      const etapaId = idEtapa(nivel)
+      const filas = plantillaDesdeChecklist(items, etapaId)
+      if (nombre.trim() === "" || tipoArquitecturaId === "" || etapaId === 0 || filas.length === 0) return
+      guardarPlantillaChecklistMutation.mutate({
+        nombre: nombre.trim(),
+        tipoArquitectura: Number(tipoArquitecturaId),
+        filas,
+      })
     },
   }
 
@@ -1087,72 +1095,162 @@ export function useInscripcionForm({
   // desbloqueado: desde que crearSolicitudMutation desbloquea toda la cadena de un saque,
   // "maxStep" ya no sirve para esto (ver su onSuccess). Solo "crear" la tiene. ResumenCadena
   // decide por si mismo si se renderiza (no en mobile); aca solo se junta el contenido.
+  // "Hay algo escrito" usa el MISMO criterio con el que guardarPanelesNivel decide que
+  // filas manda: una fila en blanco no cuenta, asi que el resumen no muestra una seccion
+  // pendiente por una fila vacia que el usuario agrego sin querer.
+  function hayAlgoEnPaneles(
+    checklist: ChecklistItemEditable[],
+    pruebas: PruebaItemEditable[],
+    documento: DocumentoEditable,
+    aviso: AvisoVersionEditable,
+  ): boolean {
+    return (
+      checklist.some((i) => i.seccion.trim() !== "" || i.actividad.trim() !== "") ||
+      pruebas.some((i) => i.tipoPruebaId !== "" || i.ruta.trim() !== "") ||
+      documento.completo ||
+      documento.comentario.trim() !== "" ||
+      aviso.reporte.trim() !== ""
+    )
+  }
+
+  function filasDePaneles(
+    checklist: ChecklistItemEditable[],
+    pruebas: PruebaItemEditable[],
+    documento: DocumentoEditable,
+  ): FilaResumen[] {
+    return [
+      { etiqueta: "Checklist", valor: `${checklist.length} fila${checklist.length === 1 ? "" : "s"}` },
+      { etiqueta: "Pruebas", valor: `${pruebas.length}` },
+      { etiqueta: "Documentación", valor: documento.completo ? "Marcada" : "Sin marcar" },
+    ]
+  }
+
   const seccionesResumen: SeccionResumen[] = []
+
+  function agregarSeccion(titulo: string, filas: FilaResumen[], pendiente = false) {
+    seccionesResumen.push({ titulo, filas, pendiente })
+  }
+
   if (accion === "crear") {
+    // Cada nivel/panel aparece DOS veces posibles: como "guardado" cuando el backend ya lo
+    // tiene, o como "sin enviar" cuando hay algo escrito que todavia no salio. Antes solo
+    // existia la primera rama, y como "Continuar" no manda nada (solo mueve el carrusel),
+    // el resumen se quedaba quieto mientras el usuario llenaba secundaria y universidad.
     if (crearSolicitudMutation.isSuccess) {
       const s = crearSolicitudMutation.data.solicitud
-      seccionesResumen.push({
-        titulo: "Inscripción primaria",
-        filas: [
-          { etiqueta: "Proyecto", valor: s.proyecto },
-          { etiqueta: "Versión", valor: s.version },
-          { etiqueta: "Estado", valor: s.estado },
+      agregarSeccion("Inscripción primaria", [
+        { etiqueta: "Proyecto", valor: s.proyecto },
+        { etiqueta: "Versión", valor: s.version },
+        { etiqueta: "Estado", valor: s.estado },
+      ])
+    } else if (campos.proyecto.trim() !== "" || campos.version.trim() !== "") {
+      agregarSeccion(
+        "Inscripción primaria",
+        [
+          { etiqueta: "Proyecto", valor: campos.proyecto.trim() === "" ? "—" : campos.proyecto },
+          { etiqueta: "Versión", valor: campos.version.trim() === "" ? "—" : campos.version },
         ],
-      })
+        true,
+      )
     }
-    // Ya no se puede usar "maxStep >= X" para decidir que secciones mostrar -- desde que
-    // crearSolicitudMutation desbloquea TODA la cadena de un saque (ver su onSuccess),
-    // maxStep deja de significar "hasta donde se avanzo realmente". En su lugar, cada
-    // seccion se gatilla por si ese nivel/panel REALMENTE tiene datos guardados.
+
     if (voBoPrimaria !== null) {
-      seccionesResumen.push({
-        titulo: "Checklist/pruebas/documentación (primaria)",
-        filas: [
-          { etiqueta: "Checklist", valor: voBoPrimaria.checklist ? "Completo" : "Pendiente" },
-          { etiqueta: "Pruebas", valor: voBoPrimaria.pruebas ? "Completo" : "Pendiente" },
-          { etiqueta: "Documentación", valor: voBoPrimaria.documentacion ? "Completo" : "Pendiente" },
-        ],
-      })
+      agregarSeccion("Checklist/pruebas/documentación (primaria)", [
+        { etiqueta: "Checklist", valor: voBoPrimaria.checklist ? "Completo" : "Pendiente" },
+        { etiqueta: "Pruebas", valor: voBoPrimaria.pruebas ? "Completo" : "Pendiente" },
+        { etiqueta: "Documentación", valor: voBoPrimaria.documentacion ? "Completo" : "Pendiente" },
+      ])
+    } else if (hayAlgoEnPaneles(checklistPrimaria, pruebasPrimaria, documentoPrimaria, avisoPrimaria)) {
+      agregarSeccion(
+        "Checklist/pruebas/documentación (primaria)",
+        filasDePaneles(checklistPrimaria, pruebasPrimaria, documentoPrimaria),
+        true,
+      )
     }
+
     if (solicitudSecundariaId !== null) {
-      seccionesResumen.push({
-        titulo: "Inscripción secundaria",
-        filas: [
-          { etiqueta: "Proyecto", valor: camposInscripcionSecundaria.proyecto },
-          { etiqueta: "Versión", valor: camposInscripcionSecundaria.version },
+      agregarSeccion("Inscripción secundaria", [
+        { etiqueta: "Proyecto", valor: camposInscripcionSecundaria.proyecto },
+        { etiqueta: "Versión", valor: camposInscripcionSecundaria.version },
+      ])
+    } else if (camposInscripcionSecundaria.proyecto.trim() !== "" || camposInscripcionSecundaria.version.trim() !== "") {
+      agregarSeccion(
+        "Inscripción secundaria",
+        [
+          {
+            etiqueta: "Proyecto",
+            valor:
+              camposInscripcionSecundaria.proyecto.trim() === "" ? "—" : camposInscripcionSecundaria.proyecto,
+          },
+          {
+            etiqueta: "Versión",
+            valor: camposInscripcionSecundaria.version.trim() === "" ? "—" : camposInscripcionSecundaria.version,
+          },
         ],
-      })
+        true,
+      )
     }
+
     if (voBoSecundaria !== null) {
-      seccionesResumen.push({
-        titulo: "Checklist/pruebas/documentación (secundaria)",
-        filas: [
-          { etiqueta: "Checklist", valor: voBoSecundaria.checklist ? "Completo" : "Pendiente" },
-          { etiqueta: "Pruebas", valor: voBoSecundaria.pruebas ? "Completo" : "Pendiente" },
-          { etiqueta: "Documentación", valor: voBoSecundaria.documentacion ? "Completo" : "Pendiente" },
-        ],
-      })
+      agregarSeccion("Checklist/pruebas/documentación (secundaria)", [
+        { etiqueta: "Checklist", valor: voBoSecundaria.checklist ? "Completo" : "Pendiente" },
+        { etiqueta: "Pruebas", valor: voBoSecundaria.pruebas ? "Completo" : "Pendiente" },
+        { etiqueta: "Documentación", valor: voBoSecundaria.documentacion ? "Completo" : "Pendiente" },
+      ])
+    } else if (
+      hayAlgoEnPaneles(checklistSecundaria, pruebasSecundaria, documentoSecundaria, avisoSecundaria)
+    ) {
+      agregarSeccion(
+        "Checklist/pruebas/documentación (secundaria)",
+        filasDePaneles(checklistSecundaria, pruebasSecundaria, documentoSecundaria),
+        true,
+      )
     }
+
     if (solicitudUniversidadId !== null) {
-      seccionesResumen.push({
-        titulo: "Inscripción universidad",
-        filas: [
-          { etiqueta: "Proyecto", valor: camposInscripcionUniversidad.proyecto },
-          { etiqueta: "Versión", valor: camposInscripcionUniversidad.version },
+      agregarSeccion("Inscripción universidad", [
+        { etiqueta: "Proyecto", valor: camposInscripcionUniversidad.proyecto },
+        { etiqueta: "Versión", valor: camposInscripcionUniversidad.version },
+      ])
+    } else if (
+      camposInscripcionUniversidad.proyecto.trim() !== "" ||
+      camposInscripcionUniversidad.version.trim() !== ""
+    ) {
+      agregarSeccion(
+        "Inscripción universidad",
+        [
+          {
+            etiqueta: "Proyecto",
+            valor:
+              camposInscripcionUniversidad.proyecto.trim() === "" ? "—" : camposInscripcionUniversidad.proyecto,
+          },
+          {
+            etiqueta: "Versión",
+            valor:
+              camposInscripcionUniversidad.version.trim() === "" ? "—" : camposInscripcionUniversidad.version,
+          },
         ],
-      })
+        true,
+      )
     }
+
     if (voBoUniversidad !== null) {
-      seccionesResumen.push({
-        titulo: "Checklist/pruebas/documentación (universidad)",
-        filas: [
-          { etiqueta: "Checklist", valor: voBoUniversidad.checklist ? "Completo" : "Pendiente" },
-          { etiqueta: "Pruebas", valor: voBoUniversidad.pruebas ? "Completo" : "Pendiente" },
-          { etiqueta: "Documentación", valor: voBoUniversidad.documentacion ? "Completo" : "Pendiente" },
-        ],
-      })
+      agregarSeccion("Checklist/pruebas/documentación (universidad)", [
+        { etiqueta: "Checklist", valor: voBoUniversidad.checklist ? "Completo" : "Pendiente" },
+        { etiqueta: "Pruebas", valor: voBoUniversidad.pruebas ? "Completo" : "Pendiente" },
+        { etiqueta: "Documentación", valor: voBoUniversidad.documentacion ? "Completo" : "Pendiente" },
+      ])
+    } else if (
+      hayAlgoEnPaneles(checklistUniversidad, pruebasUniversidad, documentoUniversidad, avisoUniversidad)
+    ) {
+      agregarSeccion(
+        "Checklist/pruebas/documentación (universidad)",
+        filasDePaneles(checklistUniversidad, pruebasUniversidad, documentoUniversidad),
+        true,
+      )
     }
   }
+
 
   // Dos rects son "el mismo" si no se mueven ni un pixel: animar de un rect a si mismo no
   // dispara ninguna transicion, asi que el fantasma se montaria y no se desmontaria nunca
