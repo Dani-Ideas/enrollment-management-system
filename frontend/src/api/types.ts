@@ -132,6 +132,26 @@ export interface ChecklistItemRequestDTO {
   comentario: string | null;
 }
 
+// Plantilla de checklist (SOL_N_INSCRIPCION_CHECKLIST_TEMPLATE): preset global, no cuelga
+// de ninguna solicitud. La fila solo trae los 4 textos -- estado y responsable los sigue
+// eligiendo el usuario, porque son ids de catalogo y cambian de base en base.
+export interface ChecklistTemplateFilaDTO {
+  seccion: string;
+  actividad: string;
+  descripcion: string;
+  conexion: string;
+}
+
+export interface ChecklistTemplateDTO {
+  nombre: string;
+  filas: ChecklistTemplateFilaDTO[];
+}
+
+export interface ChecklistTemplateRequestDTO {
+  nombre: string;
+  filas: ChecklistTemplateFilaDTO[];
+}
+
 export interface PruebaDTO {
   id: number;
   solicitudId: number;

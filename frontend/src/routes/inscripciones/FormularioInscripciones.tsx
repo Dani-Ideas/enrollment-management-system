@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import type { ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
 import { formularioPagoRoute } from "@/router"
@@ -37,7 +37,19 @@ import {
   TriangleAlertIcon,
 } from "lucide-react"
 
+// Duracion de la animacion, en UN solo lugar: la usa el style (no una clase duration-*) y
+// tambien el temporizador de seguridad de abajo. Si vivieran en dos lados y alguien cambiara
+// solo uno, el temporizador cortaria la animacion a mitad de camino.
+const DURACION_TRANSFORMACION_MS = 500
+
 // ◽ RESUMEN -- LA ANIMACION (opcional): el fantasma que vuela del paso a su fila del resumen.
+//
+// BLINDADO a proposito, porque este componente se saca SOLO: mientras "transformacion" no
+// vuelva a null (ver limpiarTransformacion), queda un div position:fixed z-50 del tamaño del
+// formulario encima de TODA la app. Dos candados para que eso no pueda pasar:
+//   1. un temporizador que lo saca aunque la transicion nunca arranque;
+//   2. "pointer-events-none" (NO es cosmetico: sin eso, un fantasma pegado se come todos los
+//      clicks y la app queda viva pero intocable).
 function TransformacionPaso({
   desde,
   hasta,
@@ -48,18 +60,48 @@ function TransformacionPaso({
   onTerminar: () => void
 }) {
   const [rect, setRect] = useState(desde)
+  const terminadoRef = useRef(false)
+
+  // Un solo "terminar": onTransitionEnd dispara UNA VEZ POR PROPIEDAD (top/left/width/height)
+  // y el temporizador de abajo puede ganarles. Sin este candado, onTerminar corre 5 veces.
+  function terminar() {
+    if (terminadoRef.current) return
+    terminadoRef.current = true
+    onTerminar()
+  }
 
   useEffect(() => {
+    terminadoRef.current = false
     const cuadro = requestAnimationFrame(() => setRect(hasta))
-    return () => cancelAnimationFrame(cuadro)
+
+    // Red de seguridad. onTransitionEnd puede NO llegar nunca: si el cambio de estilo cae en
+    // el mismo frame que el montaje, si el usuario tiene prefers-reduced-motion, si la
+    // pestaña estaba en segundo plano, o si el navegador decide que no hay nada que animar.
+    // En todos esos casos el fantasma se quedaria fijo encima de la app para siempre.
+    const limite = setTimeout(terminar, DURACION_TRANSFORMACION_MS + 150)
+
+    return () => {
+      cancelAnimationFrame(cuadro)
+      clearTimeout(limite)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasta])
 
   return (
     <div
       aria-hidden
-      className="pointer-events-none fixed z-50 rounded-xl border bg-card shadow-2xl ring-foreground/20 transition-all duration-500 ease-in-out"
-      style={{ top: rect.top, left: rect.left, width: rect.width, height: rect.height }}
-      onTransitionEnd={onTerminar}
+      onTransitionEnd={terminar}
+      className="pointer-events-none fixed z-50 rounded-xl border bg-card shadow-2xl ring-foreground/20 ease-in-out"
+      style={{
+        top: rect.top,
+        left: rect.left,
+        width: rect.width,
+        height: rect.height,
+        // Lista explicita en vez de "transition-all": transition-all tambien transiciona
+        // propiedades que no cambian y dispara transitionend de mas.
+        transitionProperty: "top, left, width, height",
+        transitionDuration: `${DURACION_TRANSFORMACION_MS}ms`,
+      }}
     />
   )
 }
@@ -112,7 +154,8 @@ export function FormularioInscripciones() {
     resumenColapsado,
     setResumenColapsado,
     alternarResumen,
-    cardRef,
+    // cardRef: lo sigue exportando el hook, pero aca NO se desestructura porque la animacion
+    // esta apagada y tsconfig tiene noUnusedLocals. Al prenderla, agregalo de vuelta.
     resumenRef,
     transformacion,
     limpiarTransformacion,
@@ -157,6 +200,7 @@ export function FormularioInscripciones() {
     setClonarAbierto,
     clonarMutation,
     clonarDesde,
+    plantillasChecklist,
     checklistPrimaria,
     checklistPrimariaAcciones,
     pruebasPrimaria,
@@ -248,8 +292,13 @@ export function FormularioInscripciones() {
   )
 
   const tarjetaFormulario = (
-    // ◽ RESUMEN: cardRef lo usa la animacion para medir desde donde sale el fantasma.
-    <Card ref={cardRef} className="h-full min-w-0">
+    // ◽ RESUMEN: la animacion del fantasma esta APAGADA. Se prende con una sola linea,
+    // "ref={cardRef}" aca -- el efecto que la dispara (ver useInscripcionForm) esta gateado
+    // por "cardRef.current", asi que sin el ref enganchado no corre nada. "h-full" si hace
+    // falta: el Card tiene que llenar el ResizablePanel de escritorio, y el 100% se resuelve
+    // contra la cadena de alturas --alto-wizard-escritorio -> panel. Fuera de esa cadena
+    // (otro proyecto, otro layout) "h-full" colapsa el Card.
+    <Card className="h-full min-w-0">
       <CardContent>
         <Carousel setApi={setApi} opts={{ watchDrag: false }} className="w-full" orientation="vertical">
           <CarouselContent className="h-(--alto-pasos-wizard)">
@@ -571,6 +620,8 @@ export function FormularioInscripciones() {
                       onQuitar={checklistPrimariaAcciones.quitar}
                       estadosQuery={estadosQuery}
                       responsablesQuery={responsablesQuery}
+                      plantillas={plantillasChecklist}
+                      onAgregarVarias={checklistPrimariaAcciones.agregarVarias}
                     />
                     <PruebasEditor
                       items={pruebasPrimaria}
@@ -630,6 +681,8 @@ export function FormularioInscripciones() {
                       onQuitar={checklistPrimariaAcciones.quitar}
                       estadosQuery={estadosQuery}
                       responsablesQuery={responsablesQuery}
+                      plantillas={plantillasChecklist}
+                      onAgregarVarias={checklistPrimariaAcciones.agregarVarias}
                     />
                     <PruebasEditor
                       items={pruebasPrimaria}
@@ -818,6 +871,8 @@ export function FormularioInscripciones() {
                       onQuitar={checklistSecundariaAcciones.quitar}
                       estadosQuery={estadosQuery}
                       responsablesQuery={responsablesQuery}
+                      plantillas={plantillasChecklist}
+                      onAgregarVarias={checklistSecundariaAcciones.agregarVarias}
                     />
                     <PruebasEditor
                       items={pruebasSecundaria}
@@ -877,6 +932,8 @@ export function FormularioInscripciones() {
                       onQuitar={checklistSecundariaAcciones.quitar}
                       estadosQuery={estadosQuery}
                       responsablesQuery={responsablesQuery}
+                      plantillas={plantillasChecklist}
+                      onAgregarVarias={checklistSecundariaAcciones.agregarVarias}
                     />
                     <PruebasEditor
                       items={pruebasSecundaria}
@@ -1061,6 +1118,8 @@ export function FormularioInscripciones() {
                       onQuitar={checklistUniversidadAcciones.quitar}
                       estadosQuery={estadosQuery}
                       responsablesQuery={responsablesQuery}
+                      plantillas={plantillasChecklist}
+                      onAgregarVarias={checklistUniversidadAcciones.agregarVarias}
                     />
                     <PruebasEditor
                       items={pruebasUniversidad}
@@ -1117,6 +1176,8 @@ export function FormularioInscripciones() {
                       onQuitar={checklistUniversidadAcciones.quitar}
                       estadosQuery={estadosQuery}
                       responsablesQuery={responsablesQuery}
+                      plantillas={plantillasChecklist}
+                      onAgregarVarias={checklistUniversidadAcciones.agregarVarias}
                     />
                     <PruebasEditor
                       items={pruebasUniversidad}

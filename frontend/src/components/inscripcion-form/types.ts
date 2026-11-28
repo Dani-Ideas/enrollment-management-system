@@ -1,4 +1,6 @@
 
+import type { ChecklistTemplateDTO, ChecklistTemplateFilaDTO } from "@/api/types"
+
 export type Accion = "lista" | "crear" | "actualizar" | "consultar"
 
 export interface FormacionComplementariaEditable {
@@ -154,6 +156,44 @@ export const CHECKLIST_ITEM_VACIO: ChecklistItemEditable = {
   descripcion: "",
   conexion: "",
   comentario: "",
+}
+
+// Lo que ChecklistEditor necesita para ofrecer plantillas. Es UNO para toda la pantalla
+// (no uno por nivel): "guardar" recibe las filas del nivel que lo llama, asi que el mismo
+// objeto sirve para primaria, secundaria y universidad.
+export type PlantillasChecklistApi = {
+  query: { data: ChecklistTemplateDTO[] | undefined; isLoading: boolean }
+  guardar: (nombre: string, items: ChecklistItemEditable[]) => void
+  guardando: boolean
+  error: string | null
+  guardada: string | null
+}
+
+// Plantilla -> filas editables. La plantilla solo trae los 4 textos, asi que el resto
+// (estado, responsable, comentario) arranca vacio igual que una fila nueva: id null, o sea
+// que al guardar salen como POST, no como PUT.
+export function checklistDesdePlantilla(filas: ChecklistTemplateFilaDTO[]): ChecklistItemEditable[] {
+  return filas.map((fila) => ({
+    ...CHECKLIST_ITEM_VACIO,
+    seccion: fila.seccion,
+    actividad: fila.actividad,
+    descripcion: fila.descripcion,
+    conexion: fila.conexion,
+  }))
+}
+
+// Filas editables -> plantilla. Descarta las filas en blanco con el MISMO criterio que
+// guardarPanelesNivel() (seccion y actividad vacias), para que lo que se guarda como
+// plantilla sea exactamente lo que se guardaria como checklist.
+export function plantillaDesdeChecklist(items: ChecklistItemEditable[]): ChecklistTemplateFilaDTO[] {
+  return items
+    .filter((item) => item.seccion.trim() !== "" || item.actividad.trim() !== "")
+    .map((item) => ({
+      seccion: item.seccion,
+      actividad: item.actividad,
+      descripcion: item.descripcion,
+      conexion: item.conexion,
+    }))
 }
 
 export interface PruebaItemEditable {

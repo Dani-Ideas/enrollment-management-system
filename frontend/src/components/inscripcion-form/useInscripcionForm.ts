@@ -8,12 +8,14 @@ import {
   actualizarSolicitud,
   CATALOGOS_INSCRIPCION_QUERY,
   crearChecklistItem,
+  crearChecklistTemplate,
   crearPruebaItem,
   crearSolicitud,
   fetchSolicitud,
   fetchSolicitudes,
   guardarAvisoVersiones,
   guardarDocumento,
+  PLANTILLAS_CHECKLIST_QUERY,
 } from "@/api/client"
 import type {
   ChecklistItemRequestDTO,
@@ -36,6 +38,7 @@ import {
   type ChecklistItemEditable,
   type DocumentoEditable,
   type FormacionComplementariaEditable,
+  type PlantillasChecklistApi,
   type PruebaItemEditable,
   AVISO_VERSION_VACIO,
   CAMPOS_VACIOS,
@@ -43,6 +46,7 @@ import {
   CORTE_ESCRITORIO,
   DOCUMENTO_VACIO,
   pasosDe,
+  plantillaDesdeChecklist,
   PRUEBA_ITEM_VACIO,
   aInputDatetime,
 } from "./types"
@@ -520,10 +524,37 @@ export function useInscripcionForm({
   function fabricarManejadorLista<T>(set: React.Dispatch<React.SetStateAction<T[]>>, vacio: T) {
     return {
       agregar: () => set((anteriores) => [...anteriores, vacio]),
+      // Para aplicar una plantilla: agrega al final y NO borra lo que ya estaba escrito.
+      agregarVarias: (nuevas: T[]) => set((anteriores) => [...anteriores, ...nuevas]),
       cambiar: (indice: number, campo: keyof T, valor: string) =>
         set((anteriores) => anteriores.map((el, i) => (i === indice ? { ...el, [campo]: valor } : el))),
       quitar: (indice: number) => set((anteriores) => anteriores.filter((_, i) => i !== indice)),
     }
+  }
+
+  // Plantillas de checklist: UNA sola query y UNA sola mutacion para los 3 niveles. No
+  // hace falta una por nivel porque guardar() recibe las filas del nivel que lo llama, y
+  // aplicar una plantilla es puro estado local (agregarVarias), sin HTTP.
+  const plantillasChecklistQuery = useQuery(PLANTILLAS_CHECKLIST_QUERY)
+  const guardarPlantillaChecklistMutation = useMutation({
+    mutationFn: crearChecklistTemplate,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PLANTILLAS_CHECKLIST_QUERY.queryKey })
+    },
+  })
+
+  const plantillasChecklist: PlantillasChecklistApi = {
+    query: plantillasChecklistQuery,
+    guardando: guardarPlantillaChecklistMutation.isPending,
+    error: guardarPlantillaChecklistMutation.isError
+      ? (guardarPlantillaChecklistMutation.error as Error).message
+      : null,
+    guardada: guardarPlantillaChecklistMutation.isSuccess ? guardarPlantillaChecklistMutation.data.nombre : null,
+    guardar: (nombre, items) => {
+      const filas = plantillaDesdeChecklist(items)
+      if (nombre.trim() === "" || filas.length === 0) return
+      guardarPlantillaChecklistMutation.mutate({ nombre: nombre.trim(), filas })
+    },
   }
 
   const [checklistPrimaria, setChecklistPrimaria] = useState<ChecklistItemEditable[]>([])
@@ -1123,6 +1154,18 @@ export function useInscripcionForm({
     }
   }
 
+  // Dos rects son "el mismo" si no se mueven ni un pixel: animar de un rect a si mismo no
+  // dispara ninguna transicion, asi que el fantasma se montaria y no se desmontaria nunca
+  // (lo cubre igual el temporizador de TransformacionPaso, pero mejor no montarlo).
+  function mismoRect(a: DOMRect, b: DOMRect): boolean {
+    return (
+      Math.abs(a.top - b.top) < 1 &&
+      Math.abs(a.left - b.left) < 1 &&
+      Math.abs(a.width - b.width) < 1 &&
+      Math.abs(a.height - b.height) < 1
+    )
+  }
+
   // ◽ RESUMEN -- LA ANIMACION (opcional: se puede copiar el resumen sin esto).
   // Cada vez que "Siguiente"/"Continuar" agrega una seccion nueva al Resumen, el paso que se
   // acaba de completar se "transforma" en esa fila: mide el Card del formulario ANTES de que
@@ -1130,6 +1173,10 @@ export function useInscripcionForm({
   // rect al otro (el fantasma es <TransformacionPaso> en FormularioInscripciones.tsx -- es
   // puro JSX, lo unico de esto que se queda en el componente). No corre en el primer montaje
   // ni si el Resumen no esta montado (mobile): los dos refs los engancha el JSX.
+  //
+  // HOY ESTA APAGADA: el Card del formulario ya NO lleva "ref={cardRef}" (ver
+  // FormularioInscripciones.tsx), y todo este efecto esta gateado por "cardRef.current", asi
+  // que no corre. Para prenderla, poner el ref de vuelta -- es una sola linea.
   const cardRef = useRef<HTMLDivElement>(null)
   const resumenRef = useRef<HTMLDivElement>(null)
   const seccionesAnteriorRef = useRef(0)
@@ -1144,11 +1191,22 @@ export function useInscripcionForm({
     }
     if (seccionesResumen.length > seccionesAnteriorRef.current && cardRef.current) {
       const desde = cardRef.current.getBoundingClientRect()
+      // Card sin tamaño (colapsado por una cadena de alturas incompleta, o todavia sin
+      // layout): no hay nada que animar y un fantasma de 0x0 no transiciona.
+      if (desde.width === 0 || desde.height === 0) {
+        seccionesAnteriorRef.current = seccionesResumen.length
+        return
+      }
       const cuadro = requestAnimationFrame(() => {
+        // querySelector por data-slot: depende de que el Resumen sea un Card de shadcn
+        // NUEVO (los viejos no emiten data-slot). Si no lo encuentra, no anima y listo.
         const contenido = resumenRef.current?.querySelector('[data-slot="card-content"]')
         const filaNueva = contenido?.lastElementChild
         if (filaNueva) {
-          setTransformacion({ desde, hasta: filaNueva.getBoundingClientRect() })
+          const hasta = filaNueva.getBoundingClientRect()
+          if (hasta.width > 0 && hasta.height > 0 && !mismoRect(desde, hasta)) {
+            setTransformacion({ desde, hasta })
+          }
         }
       })
       seccionesAnteriorRef.current = seccionesResumen.length
@@ -1231,6 +1289,8 @@ export function useInscripcionForm({
     setClonarAbierto,
     clonarMutation,
     clonarDesde,
+
+    plantillasChecklist,
 
     checklistPrimaria,
     checklistPrimariaAcciones,

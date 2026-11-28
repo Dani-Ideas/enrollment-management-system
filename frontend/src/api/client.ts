@@ -6,6 +6,8 @@ import type {
   AvisoVersionRequestDTO,
   ChecklistItemDTO,
   ChecklistItemRequestDTO,
+  ChecklistTemplateDTO,
+  ChecklistTemplateRequestDTO,
   DocumentoDTO,
   DocumentoRequestDTO,
   EstadoDTO,
@@ -34,6 +36,7 @@ const RUTAS = {
   ambientes: "/ambientes",
   catalogosInscripcion: "/catalogos-inscripcion",
   solicitudes: "/solicitudes",
+  plantillasChecklist: "/plantillas-checklist",
   endpoints: "/endpoints",
 } as const;
 
@@ -197,6 +200,32 @@ export function actualizarChecklistItem(
 export function eliminarChecklistItem(solicitudId: number, itemId: number): Promise<void> {
   return request<void>(`${RUTAS.solicitudes}/${solicitudId}/checklist/${itemId}`, { method: "DELETE" });
 }
+
+// --- Plantillas de checklist ---
+//
+// Presets globales: no llevan id de solicitud, por eso si van en RUTAS (y el chequeo DEV de
+// endpoints activos de arriba las valida de verdad). El id de cada fila nunca sale del
+// backend: una plantilla se identifica por su NOMBRE, que es lo que viaja en la URL.
+
+export function fetchChecklistTemplates(): Promise<ChecklistTemplateDTO[]> {
+  return request<ChecklistTemplateDTO[]>(RUTAS.plantillasChecklist);
+}
+
+export function crearChecklistTemplate(dto: ChecklistTemplateRequestDTO): Promise<ChecklistTemplateDTO> {
+  return request<ChecklistTemplateDTO>(RUTAS.plantillasChecklist, { method: "POST", data: dto });
+}
+
+export function eliminarChecklistTemplate(nombre: string): Promise<void> {
+  return request<void>(`${RUTAS.plantillasChecklist}/${encodeURIComponent(nombre)}`, { method: "DELETE" });
+}
+
+// Misma razon que CATALOGOS_INSCRIPCION_QUERY: una sola fuente de verdad de la queryKey,
+// para que invalidar despues de guardar una plantilla refresque TODOS los selects abiertos.
+// Sin staleTime "static": las plantillas se crean desde la propia pantalla.
+export const PLANTILLAS_CHECKLIST_QUERY = queryOptions({
+  queryKey: ["plantillas-checklist"] as const,
+  queryFn: fetchChecklistTemplates,
+});
 
 export function fetchPruebas(solicitudId: number): Promise<PruebaDTO[]> {
   return request<PruebaDTO[]>(`${RUTAS.solicitudes}/${solicitudId}/pruebas`);
