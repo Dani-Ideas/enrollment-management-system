@@ -1,4 +1,5 @@
-import { ChevronDownIcon, ChevronUpIcon } from "lucide-react"
+import { Link } from "@tanstack/react-router"
+import { ChevronDownIcon, ChevronUpIcon, ExternalLinkIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { DetalleInscripcion } from "./DetalleInscripcion"
@@ -52,15 +53,28 @@ export function CampoVistaDetalle(props: Props) {
                   <p className="text-sm font-medium">
                     #{inscripcion.id} · {inscripcion.proyecto} ({inscripcion.version}) · {inscripcion.estado}
                   </p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => props.onAlternarDetalle(inscripcion.id)}
-                  >
-                    {abierto ? <ChevronUpIcon /> : <ChevronDownIcon />}
-                    Ver detalle
-                  </Button>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => props.onAlternarDetalle(inscripcion.id)}
+                    >
+                      {abierto ? <ChevronUpIcon /> : <ChevronDownIcon />}
+                      Ver detalle
+                    </Button>
+                    {/* Entrada al panel de la solicitud (la pantalla nueva). El detalle de
+                        aca al lado sigue igual: son dos niveles de lectura distintos. */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      nativeButton={false}
+                      render={<Link to="/solicitud/$id" params={{ id: String(inscripcion.id) }} />}
+                    >
+                      <ExternalLinkIcon />
+                      Panel
+                    </Button>
+                  </div>
                 </div>
                 {abierto && (
                   <div className="mt-3 border-t border-dashed border-input pt-3">

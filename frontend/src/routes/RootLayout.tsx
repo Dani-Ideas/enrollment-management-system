@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/navegacion/AppSidebar";
+import { BuscadorGlobal } from "@/components/navegacion/BuscadorGlobal";
 import { useSeccionActiva } from "@/components/navegacion/useSecciones";
 
 export function RootLayout() {
@@ -26,7 +27,12 @@ export function RootLayout() {
           <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
             <SidebarTrigger />
             <Separator orientation="vertical" className="h-4" />
-            <span className="truncate text-sm font-medium">{seccionActiva?.label ?? "Inicio"}</span>
+            <span className="hidden truncate text-sm font-medium sm:inline">
+              {seccionActiva?.label ?? "Inicio"}
+            </span>
+            <div className="ml-auto flex min-w-0 flex-1 justify-end">
+              <BuscadorGlobal />
+            </div>
           </header>
 
           <main className="w-full min-w-0 flex-1 px-4 pt-8 pb-20 md:px-6 lg:px-8">

@@ -81,6 +81,14 @@
 
 
 :root {
+  /* Estados del ciclo de vida de una solicitud (los usa el Panel). UN color por estado:
+     el fondo y el borde del badge salen del mismo token con opacidad (bg-ciclo-x/10,
+     border-ciclo-x/25), asi no hay 3 tokens por estado que se puedan desincronizar. */
+  --ciclo-aprobado: oklch(0.6 0.13 163);
+  --ciclo-revision: oklch(0.67 0.15 70);
+  --ciclo-borrador: oklch(0.55 0.03 257);
+  --ciclo-conflicto: oklch(0.59 0.22 13);
+
   --alto-pasos-wizard: min(70vh, 36rem);
   /* ◽ RESUMEN: alto del marco de escritorio (el ResizablePanelGroup resumen|formulario). */
   --alto-wizard-escritorio: min(85vh, 900px);
@@ -96,6 +104,10 @@
 }
 
 @theme inline {
+  --color-ciclo-aprobado: var(--ciclo-aprobado);
+  --color-ciclo-revision: var(--ciclo-revision);
+  --color-ciclo-borrador: var(--ciclo-borrador);
+  --color-ciclo-conflicto: var(--ciclo-conflicto);
   --font-heading: var(--font-sans);
   --font-sans: 'Geist Variable', sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
@@ -139,6 +151,12 @@
 }
 
 .dark {
+  /* Mismos estados, subidos de luminosidad para que lean sobre fondo oscuro. */
+  --ciclo-aprobado: oklch(0.75 0.14 163);
+  --ciclo-revision: oklch(0.79 0.14 70);
+  --ciclo-borrador: oklch(0.72 0.03 257);
+  --ciclo-conflicto: oklch(0.71 0.18 13);
+
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
